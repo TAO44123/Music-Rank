@@ -1,0 +1,19 @@
+services:
+  database:
+    image: postgres:17.6-alpine
+    environment:
+      POSTGRES_USER: music_rank
+      POSTGRES_PASSWORD: music_rank
+      POSTGRES_DB: music_rank
+    ports:
+      - "5432:5432"
+    volumes:
+      - music_rank_postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U music_rank -d music_rank"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  music_rank_postgres:
