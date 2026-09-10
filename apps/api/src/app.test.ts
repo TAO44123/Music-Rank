@@ -1,11 +1,15 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import request from 'supertest';
-import { eq } from 'drizzle-orm';
-import { closeDatabase, db, singingListEntries, users, userTopListEntries } from '@music-rank/database';
+import { eq, inArray } from 'drizzle-orm';
+import { authSessions, closeDatabase, db, demoUserId, singingListEntries, users, userTopListEntries } from '@music-rank/database';
 import { createApp } from './app.js';
+import { hashSessionToken } from './auth.js';
 
 const testUserId = '0ec26a67-6b68-4c23-b164-53f02bb49961';
-const app = createApp({ currentUserId: testUserId });
+const app = createApp({ currentUserId: testUserId, enforceOrigin: false });
+const allowedOrigin = 'http://localhost:5173';
+const authApp = createApp({ allowedOrigin, authRateLimit: { maxAttempts: 100 } });
+const authUsernames = ['auth_alice', 'auth_bob', 'auth_case_user'];
 const songIds = [
   '1c2a849c-0aef-4cac-a307-45674508f01c', '22cbfd77-7dda-4f3f-a8f3-d001a13c826c', '47d0ae76-7a88-4f7d-ab28-2652d9daebbe', '8e918b13-2c48-4caf-af88-2b92f9bece44',
   'a80d386d-4a0e-4ca6-9d0a-6f8ce4f5106b', 'fd94f558-a2d2-49e2-9a9c-1f2e86d6d7bb', '13ba6493-c42f-4fd8-b805-02a12771ca8b', '82ce9a2f-2a0c-4e6e-b585-afcc7e545a10',
@@ -20,11 +24,107 @@ beforeAll(async () => {
 beforeEach(async () => {
   await db.delete(userTopListEntries).where(eq(userTopListEntries.userId, testUserId));
   await db.delete(singingListEntries).where(eq(singingListEntries.userId, testUserId));
+  await db.delete(users).where(inArray(users.username, authUsernames));
 });
 
 afterAll(async () => {
+  await db.delete(users).where(inArray(users.username, authUsernames));
   await db.delete(users).where(eq(users.id, testUserId));
   await closeDatabase();
+});
+
+describe('Authentication and public lists', () => {
+  const register = (agent: ReturnType<typeof request.agent>, username: string, displayName: string) =>
+    agent.post('/api/auth/register').set('Origin', allowedOrigin).send({ username, displayName, password: 'correct horse battery staple' });
+
+  it('registers, restores, and revokes an opaque cookie session', async () => {
+    const agent = request.agent(authApp);
+    const registration = await register(agent, 'auth_alice', 'Alice Listener').expect(201);
+    expect(registration.body).toEqual({ user: expect.objectContaining({ username: 'auth_alice', displayName: 'Alice Listener' }) });
+    expect(registration.headers['set-cookie']?.[0]).toMatch(/music_rank_session=.*HttpOnly.*SameSite=Lax/);
+    await agent.get('/api/auth/session').expect(200).expect(({ body }) => expect(body.user.username).toBe('auth_alice'));
+    await agent.get('/api/me/top-list').expect(200).expect('Cache-Control', 'private, no-store');
+    await agent.post('/api/auth/logout').set('Origin', allowedOrigin).expect(204);
+    await agent.get('/api/me/top-list').expect(401).expect(({ body }) => expect(body.code).toBe('AUTH_REQUIRED'));
+  });
+
+  it('rejects and removes expired sessions', async () => {
+    const agent = request.agent(authApp);
+    const registration = await register(agent, 'auth_alice', 'Alice Listener').expect(201);
+    const cookie = registration.headers['set-cookie']?.[0] as unknown as string;
+    const token = /music_rank_session=([^;]+)/.exec(cookie)?.[1];
+    expect(token).toBeTruthy();
+    await db.update(authSessions).set({ expiresAt: new Date(Date.now() - 1_000) })
+      .where(eq(authSessions.tokenHash, hashSessionToken(token!)));
+    await agent.get('/api/me/top-list').expect(401);
+    const remaining = await db.select({ id: authSessions.id }).from(authSessions)
+      .where(eq(authSessions.tokenHash, hashSessionToken(token!)));
+    expect(remaining).toHaveLength(0);
+  });
+
+  it('normalizes usernames and does not enumerate accounts on login', async () => {
+    const agent = request.agent(authApp);
+    await register(agent, 'Auth_Case_User', 'Case Listener').expect(201);
+    await request(authApp).post('/api/auth/register').set('Origin', allowedOrigin)
+      .send({ username: 'auth_case_user', displayName: 'Duplicate', password: 'another secure passphrase' })
+      .expect(409).expect(({ body }) => expect(body.code).toBe('USERNAME_TAKEN'));
+    const wrongPassword = await request(authApp).post('/api/auth/login').set('Origin', allowedOrigin)
+      .send({ username: 'auth_case_user', password: 'definitely incorrect' }).expect(401);
+    const missingUser = await request(authApp).post('/api/auth/login').set('Origin', allowedOrigin)
+      .send({ username: 'auth_bob', password: 'definitely incorrect' }).expect(401);
+    expect(wrongPassword.body).toEqual(missingUser.body);
+    expect(wrongPassword.body.code).toBe('INVALID_CREDENTIALS');
+  });
+
+  it('rejects unsafe requests from an unapproved origin', async () => {
+    await request(authApp).post('/api/auth/register')
+      .send({ username: 'auth_alice', displayName: 'Alice', password: 'correct horse battery staple' })
+      .expect(403).expect(({ body }) => expect(body.code).toBe('INVALID_ORIGIN'));
+  });
+
+  it('isolates users and publishes only approved list fields', async () => {
+    const alice = request.agent(authApp);
+    const bob = request.agent(authApp);
+    await register(alice, 'auth_alice', 'Alice Listener').expect(201);
+    await register(bob, 'auth_bob', 'Bob Listener').expect(201);
+
+    await alice.post('/api/me/top-list/items').set('Origin', allowedOrigin).send({ songId: songIds[0] }).expect(201);
+    await alice.put(`/api/me/singing-list/items/${songIds[0]}`).set('Origin', allowedOrigin)
+      .send({ status: 'PRACTICING', note: 'This note is private.' }).expect(200);
+    await bob.get('/api/me/top-list').expect(200).expect([]);
+    await bob.delete(`/api/me/top-list/items/${songIds[0]}`).set('Origin', allowedOrigin).expect(404);
+    await alice.get('/api/me/top-list').expect(200).expect(({ body }) => expect(body).toHaveLength(1));
+    await request(authApp).get('/api/users/auth_alice').expect(404);
+
+    await alice.patch('/api/me/lists/top-list/visibility').set('Origin', allowedOrigin).send({ visibility: 'PUBLIC' }).expect(200);
+    await alice.patch('/api/me/lists/singing-list/visibility').set('Origin', allowedOrigin).send({ visibility: 'PUBLIC' }).expect(200);
+    await request(authApp).get('/api/users/auth_alice').expect(200)
+      .expect(({ body }) => expect(body.lists).toEqual({ topList: 'PUBLIC', singingList: 'PUBLIC' }));
+    await request(authApp).get('/api/users/auth_alice/top-list').expect(200).expect('Cache-Control', 'no-store')
+      .expect(({ body }) => expect(body).toMatchObject([{ id: songIds[0], position: 1 }]));
+    await request(authApp).get('/api/users/auth_alice/singing-list').expect(200)
+      .expect(({ body }) => {
+        expect(body).toMatchObject([{ id: songIds[0], status: 'PRACTICING' }]);
+        expect(body[0]).not.toHaveProperty('note');
+      });
+
+    await alice.patch('/api/me/lists/singing-list/visibility').set('Origin', allowedOrigin).send({ visibility: 'PRIVATE' }).expect(200);
+    await request(authApp).get('/api/users/auth_alice/singing-list').expect(404);
+  });
+
+  it('rate limits repeated authentication attempts', async () => {
+    const limitedApp = createApp({ allowedOrigin, authRateLimit: { maxAttempts: 1, windowMs: 60_000 } });
+    const attempt = () => request(limitedApp).post('/api/auth/login').set('Origin', allowedOrigin)
+      .send({ username: 'auth_bob', password: 'definitely incorrect' });
+    await attempt().expect(401);
+    await attempt().expect(429).expect(({ body }) => expect(body.code).toBe('AUTH_RATE_LIMITED'));
+  });
+
+  it('keeps the existing demo account credential-free and private by default', async () => {
+    const [demoUser] = await db.select({ username: users.username }).from(users).where(eq(users.id, demoUserId));
+    expect(demoUser).toEqual({ username: null });
+    await request(authApp).get(`/api/users/${demoUserId}`).expect(400);
+  });
 });
 
 describe('Music Rank API', () => {

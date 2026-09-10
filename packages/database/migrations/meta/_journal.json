@@ -8,6 +8,13 @@
       "when": 1789015780513,
       "tag": "0000_fast_nemesis",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1789068693088,
+      "tag": "0001_lively_the_watchers",
+      "breakpoints": true
     }
   ]
 }

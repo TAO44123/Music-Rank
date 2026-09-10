@@ -17,7 +17,7 @@ export const errorHandler: ErrorRequestHandler = (error, request, response, _nex
     response.status(error.status).json({ code: error.code, message: error.message });
     return;
   }
-  console.error(JSON.stringify({ level: 'error', requestId, message: 'Unexpected server error', error: error instanceof Error ? error.message : String(error) }));
+  console.error(JSON.stringify({ level: 'error', requestId, message: 'Unexpected server error', errorType: error instanceof Error ? error.name : typeof error }));
   response.status(500).json({ code: 'INTERNAL_ERROR', message: 'An unexpected error occurred', requestId });
 };
 

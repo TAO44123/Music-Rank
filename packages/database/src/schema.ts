@@ -3,6 +3,7 @@ import {
   boolean,
   check,
   integer,
+  primaryKey,
   pgEnum,
   pgTable,
   text,
@@ -14,6 +15,8 @@ import {
 export const verificationStatusEnum = pgEnum('verification_status', ['DEMO', 'VERIFIED', 'UNVERIFIED']);
 export const rankingSourceTypeEnum = pgEnum('ranking_source_type', ['DEMO', 'OFFICIAL', 'MEDIA', 'COMMUNITY']);
 export const singingStatusEnum = pgEnum('singing_status', ['CAN_SING', 'REGULARLY_SING', 'PRACTICING', 'WANT_TO_LEARN']);
+export const listTypeEnum = pgEnum('list_type', ['TOP_LIST', 'SINGING_LIST']);
+export const listVisibilityEnum = pgEnum('list_visibility', ['PRIVATE', 'PUBLIC']);
 
 const timestamps = {
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
@@ -22,9 +25,38 @@ const timestamps = {
 
 export const users = pgTable('users', {
   id: uuid('id').primaryKey(),
+  username: text('username'),
   displayName: text('display_name').notNull(),
   ...timestamps
+}, (table) => [
+  uniqueIndex('users_username_unique').on(table.username),
+  check('users_username_normalized', sql`${table.username} IS NULL OR ${table.username} = lower(${table.username})`)
+]);
+
+export const passwordCredentials = pgTable('password_credentials', {
+  userId: uuid('user_id').primaryKey().references(() => users.id, { onDelete: 'cascade' }),
+  passwordHash: text('password_hash').notNull(),
+  ...timestamps
 });
+
+export const authSessions = pgTable('auth_sessions', {
+  id: uuid('id').primaryKey(),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  tokenHash: text('token_hash').notNull(),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  ...timestamps
+}, (table) => [
+  uniqueIndex('auth_sessions_token_hash_unique').on(table.tokenHash)
+]);
+
+export const userListSettings = pgTable('user_list_settings', {
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  listType: listTypeEnum('list_type').notNull(),
+  visibility: listVisibilityEnum('visibility').notNull().default('PRIVATE'),
+  ...timestamps
+}, (table) => [
+  primaryKey({ columns: [table.userId, table.listType], name: 'user_list_settings_user_list_type_pk' })
+]);
 
 export const songs = pgTable('songs', {
   id: uuid('id').primaryKey(),

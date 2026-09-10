@@ -1,226 +1,140 @@
-# Music Rank — Authentication Session Handoff
+# Music Rank — Session Handoff
 
-## 1. Handoff Purpose
+## 1. Current Status
 
-This document is the starting point for the next development session. The primary objective of that session is to implement login and authentication for Music Rank.
+The approved authentication and list-sharing iteration is implemented and fully verified in the working tree. There is no remaining implementation work in the current scope. The next actions are user acceptance review and, only if the user explicitly requests it, commit/push preparation.
 
-Authentication is now an approved development direction, superseding the earlier Version 1 scope statement that excluded authentication. However, the exact authentication product requirements and technical design have not yet been approved. The next Agent must clarify the decisions listed in Section 6 before changing the database schema, API, or UI. Do not infer those decisions.
+The approved behavior is:
 
-For detailed architecture and API behavior, read [ENGINEERING_GUIDE.md](ENGINEERING_GUIDE.md). For first-time environment setup, read [LOCAL_FIRST_RUN_GUIDE.md](LOCAL_FIRST_RUN_GUIDE.md).
+- Local username/password registration and login.
+- Opaque server-managed cookie sessions that expire after seven days.
+- Anonymous access to the global ranking and explicitly public personal lists.
+- Independent `private`/`public` settings for My Top 10 and My Singing List; both default to `private`.
+- A shareable `/u/:username` page that shows only lists the owner has made public.
+- `PUBLIC` currently means accessible through the shareable profile URL. There is no public directory, user search, feed, or other in-app discovery path.
+- Public Singing List responses omit private notes.
+- Existing demo data remains attached to the credential-free demo user and is private.
+- Future SSO is supported by the separation between users, credentials, and sessions, but no SSO provider tables or routes are part of this iteration.
 
-## 2. Repository State at Handoff
+The full decisions and security model are recorded in [AUTHENTICATION_DESIGN.md](AUTHENTICATION_DESIGN.md).
 
-| Item | Current state |
-| --- | --- |
-| Repository | `Music-Rank` |
-| Default branch | `main` |
-| Upstream | `origin/main` |
-| Remote | `https://github.com/TAO44123/Music-Rank.git` |
-| Current HEAD | `753fd31` — `docs: add engineering guide` |
-| Git identity last verified | `Tao <integrity0588@gmail.com>` from the global Git config |
-| Remote synchronization | Local `main` and `origin/main` pointed to the same commit when last checked |
+## 2. Repository State
 
-The working tree is intentionally not clean. These documentation changes existed at handoff and must be preserved:
+At the time of this update:
 
-- Modified: `README.md`
-- Modified: `docs/ENGINEERING_GUIDE.md`
-- Added: `docs/LOCAL_FIRST_RUN_GUIDE.md`
-- Modified by this handoff: `docs/SESSION_HANDOFF.md`
+- Branch: `main`, one local commit ahead of `origin/main` before the current uncommitted implementation.
+- Current HEAD: `a64736f` — `docs: add local setup and authentication handoff`.
+- The authentication/list-sharing implementation is intentionally uncommitted.
+- No commit or push is authorized by this task.
 
-The uncommitted changes add the first-local-run guide, link it from existing documentation, standardize clean installation on `npm ci`, and update this handoff. Review them together before committing. Do not reset, discard, or overwrite them.
+Preserve all working-tree changes. Do not reset or discard them. Use `git status --short --branch` for the live file list rather than relying on a copied snapshot here.
 
-No commit or push has been made for these documentation changes. The user previously assigned future push work to Codex, but a later session should only commit and push when the user explicitly asks it to do so.
+## 3. Implemented Architecture
 
-## 3. Current Application Baseline
+### Database
 
-Music Rank is a local full-stack application with:
+- `users.username` is nullable for legacy/demo identities and unique for login-capable accounts.
+- `password_credentials` stores one scrypt hash per local-password account.
+- `auth_sessions` stores only SHA-256 hashes of random opaque session tokens with an expiration timestamp; logout revokes a session by deleting its row.
+- `user_list_settings` stores one visibility value for each user/list pair.
+- Migration `0001_lively_the_watchers.sql` is forward-only and preserves existing users and lists. Missing visibility rows resolve to private; registration creates explicit private rows for new accounts.
 
-- React 19, Vite, Material UI, TanStack Query, and dnd-kit in `apps/web`.
-- Express 5 in `apps/api`.
-- PostgreSQL 17.6 and Drizzle ORM in `packages/database`.
-- Shared Zod contracts in `packages/contracts`.
-- Vitest integration/component tests and one Playwright critical-flow test.
+### API and security
 
-Current verified toolchain:
+- `POST /api/auth/register`, `POST /api/auth/login`, and `POST /api/auth/logout` manage local accounts and sessions.
+- `GET /api/auth/session` restores the current browser session.
+- `/api/me/*` now requires an authenticated session; the fixed demo-user resolver is no longer used at runtime.
+- `GET /api/me/list-settings` reads both effective visibility settings.
+- `PATCH /api/me/lists/:listType/visibility` changes one authenticated user's list visibility.
+- `GET /api/users/:username` returns public profile metadata and visibility.
+- `GET /api/users/:username/top-list` and `/singing-list` return only public lists; the Singing List projection never selects or returns notes.
+- Unsafe requests require a matching `Origin`; authentication attempts are rate-limited by client address and normalized username.
+- Authentication and public-profile/list responses use `Cache-Control: no-store`; personalized responses use `Cache-Control: private, no-store`.
 
-- Node.js 24.21.0
-- npm 11.19.0
-- Vite 7.2.1
-- `@vitejs/plugin-react` 5.1.1
-- PostgreSQL 17.6 Alpine through Docker Compose
+### Web application
 
-Vite and the React Vite plugin are deliberately pinned. Do not broaden or upgrade them as part of authentication work unless the user separately approves it and the development server, Vite client, build, tests, and E2E are all reverified.
+- Anonymous visitors see the global ranking and a sign-in/register entry point.
+- Authentication uses a dialog with separate login and registration modes.
+- Authenticated users can edit personal lists and independently publish or privatize each list from its panel header.
+- `/u/:username` is the shareable public profile route.
+- On logout or an authentication failure, in-flight personal queries are cancelled, cached private data is erased, and personal query entries are removed after observers detach.
 
-The most recent complete verification before these documentation-only changes passed:
+## 4. Automated Coverage
 
-- `npm run typecheck`
-- API integration tests: 4 passing
-- Web tests: 5 passing
-- `npm run build`
-- Playwright E2E: 1 passing
+The suite currently covers:
 
-Only documentation has changed since that run. Static checks for the new documentation passed, including local Markdown links, documented npm script names, Docker Compose configuration, and `git diff --check`.
+- Registration, login, logout, session restoration, invalid credentials, expired sessions, rate limiting, origin checks, and unauthenticated protection.
+- Cross-user personal-list isolation, independent visibility settings, public/private enforcement, and public note omission.
+- Auth dialog and visibility controls.
+- Anonymous, authenticated, logout/cache cleanup, and public-profile application states.
+- A Playwright critical path for register, edit, publish, logout, and anonymous public viewing.
 
-## 4. Current Identity Model
+The final verification results on September 10, 2026 were:
 
-The project does not currently authenticate requests.
+- API integration tests: 11 passing.
+- Web tests: 11 passing.
+- Playwright E2E: 1 passing.
+- Desktop and mobile manual browser checks: no console errors or warnings.
+- Database migration and seed: successful and repeatable.
+- Existing demo data check: credential-free demo user preserved with 3 Top 10 entries and 2 Singing List entries; missing visibility rows resolve to private.
+- TypeScript typecheck, production build, and `git diff --check`: passing.
 
-- The `users` table contains only `id`, `display_name`, `created_at`, and `updated_at`.
-- There are no email, username, password hash, credential, session, verification, recovery, or OAuth tables/columns.
-- `packages/database/src/seed.ts` creates one demo user.
-- `packages/database/src/config.ts` resolves `DEMO_USER_ID`.
-- `apps/api/src/current-user.ts` places that fixed user ID in `response.locals.userId`.
-- Every `/api/me/*` route trusts that middleware and therefore reads or writes the same demo user's data.
-- Service functions already accept `userId` explicitly. This is a useful boundary: authentication should replace the request-level user resolver without requiring personal-list services to be redesigned.
-- API tests inject a dedicated test user through `createApp({ currentUserId })`.
-- Playwright uses a separate fixed E2E user ID and clears only that user's personal lists.
+The production build retains the previously documented bundle-size warning. It does not fail the build and was not added to this iteration's scope.
 
-Existing personal data is linked to `users.id` through foreign keys:
+## 5. Current TODO
 
-- `user_top_list_entries.user_id`
-- `singing_list_entries.user_id`
+### Current iteration
 
-Any authentication migration must preserve referential integrity and must not silently delete or reassign existing demo, test, or personal-list data.
+- User acceptance review of registration, login/logout, independent visibility controls, link sharing, and the anonymous public page.
+- No code change is currently pending.
+- Do not commit or push unless the user explicitly requests it.
 
-## 5. Primary Objective for the Next Session
+### Candidate next iteration: friends and friend-visible lists
 
-Design and implement a complete, testable login flow that replaces the fixed demo-current-user behavior for normal application requests.
+The user has approved keeping the current direct-link public behavior and is considering a later friends feature that lets users view friends' Top 10 and Singing List. This is a future candidate, not authorization to implement it now.
 
-At minimum, the completed feature will probably need to cover identity storage, credential validation, authenticated request resolution, protected personal endpoints, login/logout UI, client authentication state, database migration, automated tests, environment configuration, and documentation. This list describes the affected capability areas; it does not decide the product behavior or technology.
+Do not add placeholder friendship tables or speculative endpoints in the current iteration. The existing internal `users.id`, `user_list_settings`, and user-centric resource paths provide a sufficient migration boundary.
 
-Public ranking and song behavior should remain unchanged unless the user decides that authentication is required for the entire application. My Top 10 and My Singing List must remain isolated by authenticated user identity.
+Before implementing the friends iteration, ask the user to decide all behavior that remains unresolved:
 
-## 6. Decisions Required Before Coding
+1. Whether the relationship is mutual friendship or one-way following.
+2. The request lifecycle: request, accept, reject, cancel, unfriend, and whether blocking is required.
+3. Whether a new `FRIENDS` visibility is required and whether it is configured independently for Top 10 and Singing List.
+4. What profile information is visible to friends, non-friends, and anonymous visitors.
+5. How users discover or invite one another, and whether usernames are searchable.
+6. Whether friend requests need notifications in the first friends release.
 
-The next Agent must ask the user for these decisions before implementation. They materially change the schema, API, security model, and UI.
+After those decisions are approved, the intended technical direction is:
 
-1. **Login method:** local email/password, username/password, third-party OAuth, magic link, or another method?
-2. **Account creation:** should users be able to register, or should login work only for pre-created accounts?
-3. **Session model:** server-managed cookie session or token-based authentication? If the user has no preference, explain the tradeoffs and make a recommendation before implementing.
-4. **Demo experience:** should anonymous visitors still browse the public ranking, and should a demo mode remain available?
-5. **Existing demo data:** should the seeded demo user's Top 10 and Singing List remain demo-only, be migrated to a real account, or be removed only through an explicitly approved data migration?
-6. **Login identifier and profile fields:** which fields are required and which must be unique?
-7. **Account lifecycle scope:** are logout, persistent login, password reset, email verification, and account deletion required in this iteration?
-8. **UI expectations:** dedicated login/register pages, a dialog, or another approved flow? What should users see after login and logout?
+- Add relationship tables keyed by stable internal user IDs, with constraints and indexes matching the approved relationship model.
+- Extend list visibility through a forward migration only if `FRIENDS` is approved.
+- Keep `GET /api/users/:username`, `/top-list`, and `/singing-list` as the list-reading resources; make authentication optional there and resolve access from viewer, owner, relationship, and list visibility.
+- Add separate endpoints only for relationship management, such as friend requests and the current user's friend list.
+- Continue returning `404` for nonexistent and unauthorized lists so private-resource existence is not disclosed.
+- Add cross-user authorization, relationship lifecycle, UI, and E2E coverage before release.
 
-Record the approved answers in this file or a dedicated authentication design document before implementation. If an answer remains unresolved, do not guess.
+## 6. Instructions for the Next Agent
 
-## 7. Security Requirements to Preserve
+Start by reading this document, [AUTHENTICATION_DESIGN.md](AUTHENTICATION_DESIGN.md), and the relevant sections of [ENGINEERING_GUIDE.md](ENGINEERING_GUIDE.md). Then inspect `git status --short --branch` and the working-tree diff without discarding or overwriting any existing change.
 
-Regardless of the selected approach:
+Report these facts to the user before taking further action:
 
-- Never store plaintext passwords.
-- Never return password hashes, session secrets, reset tokens, or sensitive credentials through the API or logs.
-- Keep secrets in environment variables and add safe placeholders only to `.env.example`.
-- Do not commit `.env` or real credentials.
-- Validate all authentication inputs at the API boundary.
-- Use generic login failures that do not disclose whether an account exists.
-- Apply explicit expiration and revocation behavior to sessions or tokens.
-- Protect state-changing authenticated routes against the threats relevant to the selected session model.
-- Preserve the existing 32 KB JSON body limit or deliberately document any change.
-- Do not use `npm audit fix --force` or introduce unrelated dependency upgrades.
-- Add database uniqueness constraints for identity fields rather than relying only on application checks.
-- Ensure one user cannot read, modify, reorder, or delete another user's personal lists.
+- The authentication and direct-link list-sharing iteration is implemented and verified but remains uncommitted.
+- The current iteration has no pending code task other than issues found during user acceptance.
+- Friends and SSO are future candidates only and are not authorized implementation work.
 
-Authentication is security-sensitive. If the implementation depends on current library APIs or security guidance, verify them against primary documentation rather than relying on memory.
+Ask the user which next action they want: investigate acceptance feedback, prepare a commit/push, discuss the next version, or another explicitly scoped task. If a requirement, target, or authorization is unclear, ask the user instead of guessing. Do not create friendship schema, endpoints, or UI until the unresolved decisions in Section 5 have been answered and implementation has been explicitly approved.
 
-## 8. Expected Change Areas After Requirements Are Approved
+Do not rerun the entire verification suite merely to restate the existing handoff result. Rerun checks in proportion to any new changes, or when the user explicitly requests fresh verification.
 
-The precise file list depends on the chosen design, but inspect these areas first:
-
-| Area | Likely responsibility |
-| --- | --- |
-| `packages/database/src/schema.ts` | Identity, credential, or session schema changes |
-| `packages/database/migrations` | Forward-only tracked migration |
-| `packages/database/src/seed.ts` | Demo or initial account behavior |
-| `packages/contracts` | Login, registration, session, and profile request schemas/types |
-| `apps/api/src/current-user.ts` | Replace fixed user resolution with authenticated request resolution |
-| `apps/api/src/app.ts` | Authentication endpoints and protected-route middleware |
-| `apps/api/src/errors.ts` | Stable authentication/authorization error responses |
-| `apps/api/src/app.test.ts` | Authentication and cross-user isolation integration tests |
-| `apps/web/src/api.ts` | Credential/cookie/token request behavior and auth errors |
-| `apps/web/src/App.tsx` | Authentication state and protected personal-data queries |
-| `apps/web/src/components` | Login/logout/register UI selected by the user |
-| `e2e/music-rank.spec.ts` | Real login and protected personal-list critical flow |
-| `.env.example` | Non-secret authentication configuration placeholders |
-| `README.md` and `docs/ENGINEERING_GUIDE.md` | Setup, API, schema, security, and operational updates |
-
-Do not manually edit an existing migration to represent a new authentication schema. Generate and review a new forward migration.
-
-## 9. Recommended Implementation Sequence
-
-After Section 6 is resolved:
-
-1. Write down the approved authentication behavior and acceptance criteria.
-2. Inspect current official documentation for any selected authentication libraries.
-3. Design schema changes and data-preservation behavior.
-4. Define shared request/response contracts and stable error codes.
-5. Implement credential/session services and authenticated request middleware.
-6. Protect the appropriate API routes and remove normal runtime dependence on `DEMO_USER_ID` as approved.
-7. Add API integration tests, including unauthenticated access and cross-user isolation.
-8. Implement frontend authentication state and the approved login/logout/registration UI.
-9. Update Playwright to exercise the real login flow with an isolated E2E account.
-10. Run migrations and verify existing demo data remains intact.
-11. Run the full validation suite and manual authentication checks.
-12. Update all affected documentation in the same change.
-
-Keep commits logically separated if practical—for example, authentication foundation/migration, frontend flow, and documentation—but do not commit or push until requested.
-
-## 10. Acceptance Checklist to Finalize With the User
-
-The next Agent should turn the approved requirements into explicit checks. The final checklist should include at least:
-
-- Valid credentials establish the approved authenticated state.
-- Invalid credentials receive a stable, non-enumerating error response.
-- Logout invalidates the authenticated state according to the approved model.
-- Unauthenticated users cannot access protected `/api/me/*` operations.
-- User A cannot read or mutate User B's Top 10 or Singing List.
-- Refresh/restart behavior matches the approved persistence requirement.
-- Authentication secrets and password material do not appear in responses or logs.
-- Database migration succeeds against the existing local database.
-- Existing data is preserved according to the user's explicit migration decision.
-- Public ranking access matches the approved anonymous-access rule.
-- Keyboard use, validation messages, loading states, and mobile layout work for the authentication UI.
-- API, component, and E2E tests cover the critical authentication path.
-
-## 11. Starting the Next Session
+## 7. Verification Commands
 
 From the repository root:
-
-~~~bash
-git status --short --branch
-git log -3 --oneline --decorate
-git diff -- README.md docs/ENGINEERING_GUIDE.md docs/SESSION_HANDOFF.md
-git diff --no-index /dev/null docs/LOCAL_FIRST_RUN_GUIDE.md
-~~~
-
-Read, in order:
-
-1. `docs/SESSION_HANDOFF.md`
-2. `docs/LOCAL_FIRST_RUN_GUIDE.md`
-3. `docs/ENGINEERING_GUIDE.md`
-
-Then check the environment without overwriting `.env` or terminating unknown processes. The detailed safe startup procedure is in the first-local-run guide.
-
-Typical startup after the environment is confirmed:
 
 ~~~bash
 npm run db:up
 npm run db:migrate
 npm run db:seed
-npm run dev
-~~~
-
-Development endpoints:
-
-- Web: http://localhost:5173
-- API health: http://localhost:3001/api/health
-- PostgreSQL: localhost:5432
-- Playwright temporary server: localhost:3101
-
-At the end of implementation, run:
-
-~~~bash
 npm run typecheck
 npm run test
 npm run build
@@ -228,18 +142,21 @@ npm run test:e2e
 git diff --check
 ~~~
 
-## 12. Existing Non-Authentication Issues
+When changes resume, also inspect:
 
-Do not silently expand the authentication task to include unrelated cleanup:
+- `git status --short --branch`
+- the generated SQL and migration metadata
+- documentation for stale fixed-demo-user or unauthenticated-application descriptions
+- preservation of the seeded demo user's personal data
 
-- When the Singing List is filtered by status, ranking membership is derived only from the filtered entries. Songs in other statuses may therefore appear addable.
-- Malformed JSON, oversized request bodies, and unknown API routes do not yet share the normal structured JSON error format.
-- The production frontend bundle exceeds Vite's default 500 KB warning threshold.
-- Known dependency audit findings remain unresolved and require individual upgrade evaluation.
-- Vite/React plugin compatibility and bundle-size warnings are documented in the engineering guide.
+## 8. Operational Notes
 
-Only fix these items if they directly block authentication or the user explicitly adds them to the scope.
+- `APP_ORIGIN` is the exact allowed browser origin and controls the secure cookie name when HTTPS is used.
+- The normal local web origin is `http://localhost:5173`; Playwright uses `http://127.0.0.1:3101`.
+- Do not terminate an unknown process already using a development port. Confirm ownership first or select an alternate port.
+- The production frontend still has the previously documented bundle-size warning; it is not part of this scope.
+- Password reset, email verification, account deletion, user/friend discovery, friendship management, unlisted links, and actual SSO providers remain out of the completed scope.
 
-## 13. First Action for the Next Agent
+## 9. Separate Future Iteration: SSO
 
-Report that the handoff and Git status have been read, summarize the current fixed-demo-user authentication boundary, and ask the Section 6 questions that are still unanswered. Do not begin schema or implementation work until the user answers the decisions that materially affect the design.
+When SSO is approved, add provider-specific external identities keyed to `users.id` and continue issuing the same first-party `auth_sessions`. Do not overload `users.username` or `password_credentials` with provider identifiers. Decide account linking, collision handling, and whether username selection is required before creating provider schema or endpoints.

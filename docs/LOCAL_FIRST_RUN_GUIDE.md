@@ -222,11 +222,12 @@ cp .env.example .env
 | --- | --- |
 | NODE_ENV | development |
 | PORT | 3001 |
+| APP_ORIGIN | http://localhost:5173 |
 | DATABASE_URL | postgresql://music_rank:music_rank@localhost:5432/music_rank |
 | DEMO_USER_ID | 7c5b5636-48f8-4e9b-89b0-06381d28496b |
 | LOG_LEVEL | info；当前实现尚未读取 |
 
-这些数据库凭据只用于本地 Docker demo。不要将相同凭据用于共享或公网数据库。
+APP_ORIGIN 必须与浏览器地址的 Origin 完全一致；默认开发地址应使用 localhost 而不是 127.0.0.1。上述数据库凭据只用于本地 Docker demo。不要将相同凭据用于共享或公网数据库。
 
 确认 .env 被忽略：
 
@@ -408,7 +409,9 @@ http://localhost:5173
 - 无筛选时显示 30 results 和两页分页。
 - 搜索可以按标题或歌手缩小结果。
 - Artist 与 Release year 可以组合筛选。
-- My Top 10 和 My Singing List 能加载。
+- 匿名用户看到登录提示，不会请求 My Top 10 或 My Singing List。
+- 注册和登录后，两个个人列表能加载且默认 Private。
+- Public 列表可通过 /u/:username 匿名访问，Singing List 备注不出现在公开页。
 - 浏览器控制台没有运行时错误。
 - 桌面宽度显示双列；移动宽度显示单列。
 
@@ -430,17 +433,17 @@ npm run test:e2e
 | 检查 | 当前预期 |
 | --- | --- |
 | TypeScript | 所有 workspace 通过 |
-| API 测试 | 4 项通过 |
-| Web 测试 | 5 项通过 |
+| API 测试 | 11 项通过 |
+| Web 测试 | 11 项通过 |
 | Production build | 成功 |
 | Playwright E2E | 1 项通过 |
 
 测试说明：
 
-- API 集成测试使用独立测试用户，但连接本地 PostgreSQL。
-- E2E 使用独立用户和端口 3101。
+- API 集成测试使用动态创建的认证用户和一个注入式旧功能测试用户，但连接本地 PostgreSQL。
+- E2E 在端口 3101 使用页面注册的唯一用户。
 - 测试不应清空 demo 用户个人列表。
-- E2E 会自行构建、Seed 测试用户并启动 production 形态服务。
+- E2E 会自行构建、迁移、Seed 公共 fixtures、启动 production 形态服务，并只删除自己创建的账户。
 
 ### 17.1 Playwright 浏览器缺失
 

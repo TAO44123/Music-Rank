@@ -5,6 +5,7 @@ import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline';
 import { DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, arrayMove, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { Box, IconButton, List, ListItem, ListItemText, Paper, Stack, Typography } from '@mui/material';
+import type { ReactNode } from 'react';
 import type { TopListEntry } from '../api';
 
 type SortableItemProps = { entry: TopListEntry; index: number; count: number; onMove: (from: number, to: number) => void; onRemove: (songId: string) => void };
@@ -23,7 +24,7 @@ function SortableItem({ entry, index, count, onMove, onRemove }: SortableItemPro
   </ListItem>;
 }
 
-export function TopListPanel({ entries, onReorder, onRemove }: { entries: TopListEntry[]; onReorder: (ids: string[]) => void; onRemove: (songId: string) => void }) {
+export function TopListPanel({ entries, onReorder, onRemove, headerAction }: { entries: TopListEntry[]; onReorder: (ids: string[]) => void; onRemove: (songId: string) => void; headerAction?: ReactNode }) {
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
   const handleDragEnd = ({ active, over }: DragEndEvent) => {
     if (!over || active.id === over.id) return;
@@ -33,7 +34,7 @@ export function TopListPanel({ entries, onReorder, onRemove }: { entries: TopLis
   };
   const move = (from: number, to: number) => onReorder(arrayMove(entries, from, to).map((entry) => entry.id));
   return <Paper component="section" sx={{ p: 2.5 }} aria-labelledby="top-list-heading">
-    <Stack direction="row" justifyContent="space-between" alignItems="baseline"><Box><Typography variant="overline" color="secondary.main" fontWeight={800}>Personal ranking</Typography><Typography id="top-list-heading" variant="h2" fontSize="1.45rem">My Top 10</Typography></Box><Typography color="text.secondary" fontWeight={700}>{entries.length}/10</Typography></Stack>
+    <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'stretch', sm: 'center' }} gap={1.5}><Box><Typography variant="overline" color="secondary.main" fontWeight={800}>Personal ranking</Typography><Typography id="top-list-heading" variant="h2" fontSize="1.45rem">My Top 10</Typography></Box><Stack direction="row" alignItems="center" justifyContent="space-between" gap={1}><Typography color="text.secondary" fontWeight={700}>{entries.length}/10</Typography>{headerAction}</Stack></Stack>
     {entries.length === 0 ? <Typography color="text.secondary" py={3}>Add songs from the ranking to start your list.</Typography> : <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}><SortableContext items={entries.map((entry) => entry.id)} strategy={verticalListSortingStrategy}><List disablePadding aria-label="My Top 10">{entries.map((entry, index) => <SortableItem key={entry.id} entry={entry} index={index} count={entries.length} onMove={move} onRemove={onRemove} />)}</List></SortableContext></DndContext>}
   </Paper>;
 }

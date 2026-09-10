@@ -6,9 +6,9 @@
 | --- | --- |
 | 文档性质 | 持续维护的工程实现说明 |
 | 目标读者 | 负责开发、测试、排障和后续维护的工程师 |
-| 当前产品版本 | Version 1，本地单用户演示应用 |
+| 当前产品版本 | Version 1 + 认证扩展，本地多用户应用 |
 | 最后更新日期 | 2026-09-10（America/New_York） |
-| 最后核对的代码提交 | 9ce4a1c（feat: implement Music Rank v1） |
+| 最后核对的代码提交 | 当前工作树（认证与公开榜单实现） |
 | 事实来源 | 当前仓库代码、配置、迁移和自动化测试 |
 
 这份文档描述系统现在如何工作。首次在本机配置和运行项目时，先执行 [LOCAL_FIRST_RUN_GUIDE.md](LOCAL_FIRST_RUN_GUIDE.md)；产品目标和范围以 [PROJECT_SPEC_ZH.md](PROJECT_SPEC_ZH.md) 与 [PROJECT_SPEC_EN.md](PROJECT_SPEC_EN.md) 为准；历史交接信息以 [IMPLEMENTATION_HANDOFF.md](IMPLEMENTATION_HANDOFF.md) 和 [SESSION_HANDOFF.md](SESSION_HANDOFF.md) 为准。若文档与代码不一致，应先核对代码和测试，再更新本文档。
@@ -31,7 +31,7 @@
 
 Music Rank 是一个本地运行的全栈演示应用。用户可以浏览一份明确标记为 Demo Data 的 1990 年代中国大陆流行歌曲虚构榜单，维护个人 Top 10，并维护带演唱状态和备注的 Singing List。
 
-Version 1 只有一个由环境变量解析的 demo 用户，不提供登录、注册、会话或权限系统。个人列表保存在 PostgreSQL 中。
+应用支持本地用户名/密码注册登录、PostgreSQL Session、多用户隔离，以及分别公开或隐藏 Top 10 和 Singing List。匿名用户仍可浏览公共歌曲榜单。
 
 ~~~mermaid
 flowchart LR
@@ -56,10 +56,13 @@ flowchart LR
 - 独立于 Top 10 的 My Singing List。
 - 四种演唱状态和最长 300 字符的纯文本备注。
 - 本地数据库迁移、幂等种子、组件测试、API 集成测试和 Playwright E2E。
+- 用户注册、登录、七天持久 Session 和退出撤销。
+- 默认私密且可独立公开的 Top 10 与 Singing List；公开 Singing List 不包含备注。
 
 当前不包含：
 
-- 身份认证、多账号和权限模型。
+- SSO、邮箱验证、密码重置和账户删除。
+- 用户目录、关注和 Unlisted 分享。
 - 远程仓库、部署或生产基础设施。
 - 音频播放、歌词、视频采集、OCR 或 AI 提取。
 - 社交能力和管理后台。
@@ -110,6 +113,8 @@ Vite 7.2.1 和 @vitejs/plugin-react 5.1.1 是有意锁定的组合。此前更�
 | apps/web/src/theme.ts | Material UI 主题和状态颜色 |
 | apps/api | Express API |
 | apps/api/src/app.ts | Middleware、路由注册和请求校验入口 |
+| apps/api/src/auth.ts | 密码哈希、凭据校验、Session 创建/解析/撤销 |
+| apps/api/src/security.ts | Origin 防护与认证速率限制 |
 | apps/api/src/services.ts | 数据访问和业务规则 |
 | apps/api/src/errors.ts | AppError、Zod 错误和未知错误处理 |
 | apps/api/src/current-user.ts | 当前 demo/test 用户解析器 |
@@ -120,6 +125,7 @@ Vite 7.2.1 和 @vitejs/plugin-react 5.1.1 是有意锁定的组合。此前更�
 | e2e | Playwright 关键流程 |
 | docs | 产品、交接和工程文档 |
 | docs/LOCAL_FIRST_RUN_GUIDE.md | 新成员或 Agent 的首次环境检查、配置、启动和验证 Runbook |
+| docs/AUTHENTICATION_DESIGN.md | 认证、榜单可见性和未来 SSO 边界 |
 | playwright.config.ts | E2E 专用用户、端口和 Web Server |
 | docker-compose.yml | 本地 PostgreSQL 服务和持久卷 |
 
@@ -140,8 +146,9 @@ Vite 7.2.1 和 @vitejs/plugin-react 5.1.1 是有意锁定的组合。此前更�
 | --- | --- | --- | --- |
 | NODE_ENV | development | API 入口 | production 时由 Express 提供前端静态文件 |
 | PORT | 3001 | API 入口 | Express 监听端口 |
+| APP_ORIGIN | http://localhost:5173 | API Origin 防护和 Cookie 配置 | 必须与浏览器 Origin 完全一致；HTTPS 时启用 Secure Cookie |
 | DATABASE_URL | postgresql://music_rank:music_rank@localhost:5432/music_rank | 数据库客户端和 Drizzle Kit | PostgreSQL 连接字符串 |
-| DEMO_USER_ID | 7c5b5636-48f8-4e9b-89b0-06381d28496b | Seed 与当前用户解析器 | 必须是 UUID；变更后应重新运行 Seed |
+| DEMO_USER_ID | 7c5b5636-48f8-4e9b-89b0-06381d28496b | Seed | 凭据为空的 demo fixture ID；变更后应重新运行 Seed |
 | LOG_LEVEL | info | .env.example | 当前代码尚未读取该变量 |
 
 本地 .env 不应提交；.env.example 是可提交模板。
@@ -184,7 +191,7 @@ npm run dev
 
 ### 5.5 生产形态的本地运行
 
-先执行 npm run build，再使用 NODE_ENV=production 和 PORT 启动 npm run start。生产模式下 Express 从 apps/web/dist 提供静态资源，并将非 API 路径回退到 index.html。
+先执行 npm run build，再使用 NODE_ENV=production、APP_ORIGIN 和 PORT 启动 npm run start。生产模式下 Express 从 apps/web/dist 提供静态资源，并将非 API 路径回退到 index.html。APP_ORIGIN 应设置为最终浏览器访问 Origin，例如本地同源形态为 http://localhost:3001。
 
 当前项目没有正式部署配置、反向代理配置、TLS、进程守护或运行时监控。
 
@@ -195,7 +202,7 @@ npm run dev
 1. React 页面通过 apps/web/src/api.ts 的 request 函数发起同源 fetch。
 2. 开发环境由 Vite 代理 /api；生产形态由 Express 同源处理。
 3. app.ts 为每个请求生成 requestId，并在响应完成后输出结构化 JSON 日志。
-4. /api/me 路由先经过当前用户解析器。
+4. Unsafe 请求先经过同源校验；/api/me 路由再从 HttpOnly Cookie 解析 Session。
 5. Zod 在路由入口校验 Path、Query 和 Body。
 6. Service 层执行业务规则、事务和 Drizzle 查询。
 7. errorHandler 将已知错误映射为 JSON 响应。
@@ -211,9 +218,9 @@ npm run dev
 
 ### 6.3 当前用户模型
 
-生产和普通开发调用 createApp() 时，createCurrentUserResolver 使用 DEMO_USER_ID。所有 /api/me 请求都被解析为同一个用户。
+生产和普通开发调用 createApp() 时，createCurrentUserResolver 从 Cookie 读取不透明 token，以 SHA-256 哈希查询未过期 Session，并把内部 userId 写入 response.locals。缺失、过期或无效 Session 返回 401 AUTH_REQUIRED。
 
-createApp 允许注入 currentUserId，仅用于测试隔离。未来接入认证时，优先替换当前用户 Middleware，同时继续让 Service 显式接收 userId，避免重写个人列表的数据访问接口。
+createApp 仍允许注入 currentUserId，但只供既有个人列表集成测试隔离使用；普通运行入口从不传入该选项。Service 继续显式接收 userId。未来 OIDC/SSO 登录只需在验证外部身份后调用同一个 Session 创建边界。
 
 ## 7. 数据模型
 
@@ -224,19 +231,44 @@ createApp 允许注入 currentUserId，仅用于测试隔离。未来接入认�
 | verification_status | DEMO、VERIFIED、UNVERIFIED |
 | ranking_source_type | DEMO、OFFICIAL、MEDIA、COMMUNITY |
 | singing_status | CAN_SING、REGULARLY_SING、PRACTICING、WANT_TO_LEARN |
+| list_type | TOP_LIST、SINGING_LIST |
+| list_visibility | PRIVATE、PUBLIC |
 
 ### 7.2 users
 
 | 字段 | 类型 | 约束或用途 |
 | --- | --- | --- |
 | id | uuid | 主键 |
+| username | text | 可空；真实账户必须设置，小写且唯一；demo/test fixture 可为空 |
 | display_name | text | 非空 |
 | created_at | timestamptz | 非空，默认 now() |
 | updated_at | timestamptz | 非空，默认 now() |
 
-删除用户会级联删除其 Top 10 和 Singing List 项。
+删除用户会级联删除其密码凭据、Session、榜单设置、Top 10 和 Singing List 项。
 
-### 7.3 songs
+### 7.3 password_credentials
+
+| 字段 | 类型 | 约束或用途 |
+| --- | --- | --- |
+| user_id | uuid | 主键和 users 外键，删除用户时级联 |
+| password_hash | text | 版本化 scrypt 哈希；不通过 API 或日志输出 |
+| created_at / updated_at | timestamptz | 非空，默认 now() |
+
+### 7.4 auth_sessions
+
+| 字段 | 类型 | 约束或用途 |
+| --- | --- | --- |
+| id | uuid | 主键 |
+| user_id | uuid | users 外键，删除用户时级联 |
+| token_hash | text | 随机 Cookie token 的 SHA-256 哈希，唯一 |
+| expires_at | timestamptz | 七天绝对过期时间 |
+| created_at / updated_at | timestamptz | 非空，默认 now() |
+
+### 7.5 user_list_settings
+
+以 `(user_id, list_type)` 为复合主键。visibility 默认为 PRIVATE；缺少记录时 Service 也按 PRIVATE 处理。注册事务会创建 TOP_LIST 和 SINGING_LIST 两条私密设置。
+
+### 7.6 songs
 
 | 字段 | 类型 | 约束或用途 |
 | --- | --- | --- |
@@ -251,7 +283,7 @@ createApp 允许注入 currentUserId，仅用于测试隔离。未来接入认�
 
 normalized_title 与 normalized_artist 组成唯一索引。当前 Seed 使用 trim 后的 locale lowercase 生成标准化值。被榜单或个人列表引用的歌曲使用 restrict 删除规则。
 
-### 7.4 rankings
+### 7.7 rankings
 
 | 字段 | 类型 | 约束或用途 |
 | --- | --- | --- |
@@ -267,7 +299,7 @@ normalized_title 与 normalized_artist 组成唯一索引。当前 Seed 使用 t
 
 公开读取接口只返回 is_published 为 true 的榜单。删除榜单会级联删除 ranking_entries。
 
-### 7.5 ranking_entries
+### 7.8 ranking_entries
 
 | 字段 | 类型 | 约束或用途 |
 | --- | --- | --- |
@@ -283,7 +315,7 @@ normalized_title 与 normalized_artist 组成唯一索引。当前 Seed 使用 t
 - 同一榜单不能重复 rank。
 - 同一榜单不能重复 song_id。
 
-### 7.6 user_top_list_entries
+### 7.9 user_top_list_entries
 
 | 字段 | 类型 | 约束或用途 |
 | --- | --- | --- |
@@ -303,7 +335,7 @@ normalized_title 与 normalized_artist 组成唯一索引。当前 Seed 使用 t
 
 用户与 position 的唯一约束由迁移补充为 DEFERRABLE INITIALLY DEFERRED。重排和删除压缩事务会显式执行 SET CONSTRAINTS ALL DEFERRED，以允许同一事务内交换位置。
 
-### 7.7 singing_list_entries
+### 7.10 singing_list_entries
 
 | 字段 | 类型 | 约束或用途 |
 | --- | --- | --- |
@@ -316,7 +348,7 @@ normalized_title 与 normalized_artist 组成唯一索引。当前 Seed 使用 t
 
 同一用户和歌曲只能有一条记录。写入使用 upsert，冲突时更新 status、note 和 updated_at。列表按 updated_at 倒序返回。
 
-### 7.8 Migration 与 Seed
+### 7.11 Migration 与 Seed
 
 Schema 源文件是 packages/database/src/schema.ts。修改后先生成迁移，再人工检查 SQL，最后应用迁移。不要手工修改已经在共享环境执行过的历史迁移。
 
@@ -328,8 +360,9 @@ Schema 源文件是 packages/database/src/schema.ts。修改后先生成迁移�
 - 创建或更新 30 个固定榜单位置。
 - 可以重复执行。
 - 不创建、删除或覆盖 Top 10 和 Singing List 数据。
+- 不为 demo 用户创建 username、密码凭据、Session 或公开设置。
 
-修改 DEMO_USER_ID 后必须重新运行 Seed，否则个人列表写入会因用户外键不存在而失败。
+DEMO_USER_ID 只控制 demo fixture，不再参与普通请求的当前用户解析。
 
 ## 8. REST API 总览
 
@@ -339,6 +372,12 @@ Schema 源文件是 packages/database/src/schema.ts。修改后先生成迁移�
 | GET | /api/rankings | 200 | 获取所有已发布榜单 |
 | GET | /api/rankings/:rankingId | 200 | 获取榜单详情及过滤后的条目 |
 | GET | /api/songs | 200 | 搜索或列出歌曲 |
+| POST | /api/auth/register | 201 | 注册并创建 Session |
+| POST | /api/auth/login | 200 | 密码登录并创建 Session |
+| POST | /api/auth/logout | 204 | 撤销当前 Session 并清除 Cookie |
+| GET | /api/auth/session | 200 | 获取当前用户或 null |
+| GET | /api/me/list-settings | 200 | 获取两个个人榜单的有效可见性 |
+| PATCH | /api/me/lists/:listType/visibility | 200 | 修改一个个人榜单的可见性 |
 | GET | /api/me/top-list | 200 | 获取当前用户 Top 10 |
 | POST | /api/me/top-list/items | 201 | 添加 Top 10 项 |
 | PATCH | /api/me/top-list/order | 200 | 持久化完整 Top 10 顺序 |
@@ -346,6 +385,9 @@ Schema 源文件是 packages/database/src/schema.ts。修改后先生成迁移�
 | GET | /api/me/singing-list | 200 | 获取或按状态过滤演唱列表 |
 | PUT | /api/me/singing-list/items/:songId | 200 | 新增或更新演唱项目 |
 | DELETE | /api/me/singing-list/items/:songId | 204 | 删除演唱项目 |
+| GET | /api/users/:username | 200 | 获取至少包含一个公开榜单的用户资料 |
+| GET | /api/users/:username/top-list | 200 | 获取公开 Top 10 |
+| GET | /api/users/:username/singing-list | 200 | 获取不含备注的公开 Singing List |
 
 ## 9. API 数据类型
 
@@ -377,6 +419,14 @@ RankingDetail 在 Ranking 基础上增加 sourceUrl（string 或 null）和 entr
 ### 9.4 SingingListEntry
 
 包含 Song 全部字段，以及非空 singing_status 类型的 status 和 string 或 null 类型的 note。
+
+### 9.5 Auth 与公开类型
+
+- AuthUser：id、username、displayName。
+- AuthSession：`{ user: AuthUser | null }`。
+- ListSettings：`{ topList: PRIVATE | PUBLIC, singingList: PRIVATE | PUBLIC }`。
+- PublicProfile：username、displayName 和 ListSettings。
+- PublicSingingListEntry：Song 与 status；刻意不定义 note。
 
 ## 10. API 详细参考
 
@@ -584,6 +634,16 @@ Path 参数 songId：必填 UUID。
 - 204：删除成功。
 - 400 INVALID_REQUEST：songId 不是 UUID。
 - 404 SINGING_LIST_ITEM_NOT_FOUND：歌曲不在当前用户演唱列表。
+
+### 10.12 Authentication 与可见性
+
+注册 Body 为 username、displayName、password；成功返回 `{ user: AuthUser }` 并设置七天 Cookie。登录 Body 为 username、password，使用相同成功响应。用户名由 Contract trim 并转小写。退出始终清除 Cookie，有有效 token 时同时删除数据库 Session。
+
+GET /api/auth/session 始终返回 200；未登录、过期或无效 Session 的 user 为 null。认证、个人数据与公开个人页/列表响应都禁用 HTTP 缓存，避免 Session 或可见性变更被旧缓存遮蔽。
+
+GET /api/me/list-settings 返回两个有效设置。PATCH `/api/me/lists/top-list/visibility` 或 `/api/me/lists/singing-list/visibility` 的 Body 为 `{ "visibility": "PRIVATE" | "PUBLIC" }`，使用 upsert 并返回完整 ListSettings。
+
+GET `/api/users/:username` 仅当至少一个列表公开时返回 PublicProfile。两个公开列表端点各自验证设置；Private 和不存在统一返回 404。公开 Singing List 的 SQL Projection 从源头排除 note，而不是先查询后在路由删除字段。
 - 500 INTERNAL_ERROR：数据库或未知错误。
 
 ## 11. API 通用约定
@@ -612,19 +672,28 @@ Path 参数 songId：必填 UUID。
 | --- | --- | --- |
 | 400 | INVALID_REQUEST | Zod 校验失败 |
 | 400 | TOP_LIST_ORDER_MISMATCH | 重排集合与当前 Top 10 不一致 |
+| 401 | AUTH_REQUIRED | /api/me 请求没有有效 Session |
+| 401 | INVALID_CREDENTIALS | 用户名不存在或密码错误；二者使用相同响应 |
+| 403 | INVALID_ORIGIN | Unsafe 请求 Origin 不匹配 APP_ORIGIN |
 | 404 | RANKING_NOT_FOUND | 榜单不存在或未发布 |
+| 404 | PUBLIC_PROFILE_NOT_FOUND | 用户没有任何公开榜单或不存在 |
+| 404 | PUBLIC_LIST_NOT_FOUND | 指定榜单未公开或用户不存在 |
 | 404 | SONG_NOT_FOUND | 写入目标歌曲不存在 |
 | 404 | TOP_LIST_ITEM_NOT_FOUND | 删除不存在的 Top 10 项 |
 | 404 | SINGING_LIST_ITEM_NOT_FOUND | 删除不存在的演唱项目 |
 | 409 | TOP_LIST_DUPLICATE | 重复添加 Top 10 歌曲 |
 | 409 | TOP_LIST_CAPACITY_REACHED | Top 10 已满 |
+| 409 | USERNAME_TAKEN | 注册用户名冲突 |
+| 429 | AUTH_RATE_LIMITED | 单进程窗口内认证尝试过多 |
 | 500 | INTERNAL_ERROR | 未识别的运行时或数据库错误 |
 
 ### 11.4 身份和权限
 
-当前没有认证。所有 /api/me 请求都使用服务进程启动时解析到的 DEMO_USER_ID。任何能访问本地 API 的客户端都能读写该用户的个人列表。
+所有 /api/me 请求必须携带有效的 HttpOnly Session Cookie。数据库 Session 只保存随机 token 的 SHA-256 哈希；过期或退出后的 Session 会被拒绝。Service 查询继续以服务端解析的 userId 限定，客户端不能提交替代 userId。
 
-在部署到非本地环境之前，必须增加认证、授权、跨站请求保护策略、速率限制、生产日志和秘密管理。
+Unsafe 请求必须携带与 APP_ORIGIN 完全匹配的 Origin，显式 cross-site Fetch Metadata 也会被拒绝。注册和登录使用内存速率限制；多实例或公网部署前必须替换为共享限流存储，并补充 TLS、反向代理信任、安全响应头和运维秘密管理。
+
+公开接口只在对应 user_list_settings 为 PUBLIC 时返回数据；Private 和不存在统一返回 404。公开 Singing List Projection 不包含 note。
 
 ### 11.5 并发和幂等性
 
@@ -638,15 +707,18 @@ Path 参数 songId：必填 UUID。
 
 ### 12.1 页面和数据流
 
-App.tsx 负责加载榜单列表、歌曲全集、活动榜单、Top 10 和当前筛选下的 Singing List；保存搜索词与筛选状态；集中发起写操作；写入成功后失效 top-list 和所有 singing-list Query；并用 Snackbar 展示结果。
+App.tsx 先解析 `/` 或 `/u/:username` 页面。主页独立加载公共榜单与 Session；只有 Session 含用户时才加载个人数据。登录、退出和认证失效会取消并删除 `personal` 前缀缓存，避免跨用户复用。写入成功后失效当前用户的 Top 10 和 Singing List Query，并用 Snackbar 展示结果。
 
 主要 Query Key：
 
 - rankings
 - songs
 - ranking + rankingId + q + artist + releaseYear
-- top-list
-- singing-list + status
+- auth-session
+- personal + userId + top-list
+- personal + userId + singing-list + status
+- personal + userId + list-settings
+- public-profile + username + 可选列表类型
 
 ### 12.2 RankingPanel
 
@@ -673,14 +745,22 @@ App.tsx 负责加载榜单列表、歌曲全集、活动榜单、Top 10 和当�
 - 备注输入使用 multiline standard TextField，HTML maxLength 为 300。
 - 状态和 Top 10 成员资格互相独立。
 
-### 12.5 响应式布局
+### 12.5 认证与公开页
 
-- 小于 lg：主区域为单列，榜单在前，个人列表在后。
+- 顶栏在匿名状态显示 Sign in/Register，在登录状态显示账户菜单。
+- 登录注册共用 AuthDialog，关闭时清除密码 state。
+- 每个个人榜单卡片独立显示 VisibilityControl；切换到 Public 前要求确认。
+- `/u/:username` 只请求服务端已批准的公开 Projection。
+- Singing List 公开页显示状态但不支持编辑，也不接收 note 字段。
+
+### 12.6 响应式布局
+
+- 小于 lg：主区域为单列，登录提示或个人列表在前，公共榜单在后，避免个人功能被 25 条榜单内容推到页面底部。
 - lg 及以上：约 1.6fr / 0.85fr 的两列布局。
 - Ranking 行操作在 xs 下纵向排列，在 sm 及以上横向排列。
 - Singing 状态 Chip 允许换行。
 
-### 12.6 视觉与无障碍
+### 12.7 视觉与无障碍
 
 - 只提供亮色主题和 Warm Archive 配色。
 - 标题优先使用 Iowan Old Style / Palatino 系统衬线字体。
@@ -689,25 +769,33 @@ App.tsx 负责加载榜单列表、歌曲全集、活动榜单、Top 10 和当�
 - 状态选择使用 aria-pressed。
 - 编辑按钮使用 aria-expanded 和 aria-controls。
 - 搜索结果数量使用 aria-live。
+- 登录对话框具有关联标题、原生表单提交和 autocomplete 提示。
+- Visibility Select 有可访问标签，公开确认说明公开字段范围。
 
 ## 13. 后端工程说明
 
 ### 13.1 app.ts
 
-负责创建 Express 应用、设置 32 KB JSON Body 限制、生成 requestId、记录完成日志、注册路由、执行 Zod 校验并挂载统一错误处理。createApp 可接受可选 currentUserId，用于测试隔离。
+负责创建 Express 应用、设置 32 KB JSON Body 限制、生成 requestId、记录完成日志、执行 Origin 防护、注册认证/公开/私有路由、执行 Zod 校验并挂载统一错误处理。createApp 可接受 currentUserId、allowedOrigin、authRateLimit 和 enforceOrigin 测试选项；普通入口使用安全默认值。
 
-### 13.2 services.ts
+### 13.2 auth.ts 与 current-user.ts
+
+auth.ts 负责 scrypt 密码格式、等时校验、原子注册、Session 创建/查询/撤销。current-user.ts 只解析 Cookie 并把已认证内部用户写入 response.locals。二者不向日志或 API 返回哈希/token。
+
+### 13.3 services.ts
 
 负责数据库 Projection、榜单和歌曲读取、歌曲存在性检查、Top 10 容量与去重、事务重排、删除后位置压缩，以及 Singing List 状态过滤和 upsert。路由层不应复制这些业务规则。
 
-### 13.3 errors.ts
+services.ts 还负责列表可见性 upsert、缺失设置默认私密、公开资料门控，以及公开 Singing List 的无备注 Projection。
+
+### 13.4 errors.ts
 
 - ZodError 映射为 400 INVALID_REQUEST。
 - AppError 使用自身 status、code 和 message。
-- 其他错误记录结构化日志，并返回 500 INTERNAL_ERROR 和 requestId。
+- 其他错误只记录不含原始错误消息的结构化错误类型，并返回 500 INTERNAL_ERROR 和 requestId，防止数据库参数中的敏感哈希进入日志。
 - asyncRoute 把异步异常交给 Express 错误 Middleware。
 
-### 13.4 index.ts
+### 13.5 index.ts
 
 - 默认监听 3001。
 - production 模式提供 apps/web/dist。
@@ -722,19 +810,19 @@ npm run typecheck 会先构建 contracts 和 database，再执行所有 workspac
 
 ### 14.2 前端组件测试
 
-当前有 2 个测试文件、5 项测试，覆盖 RankingPanel 的搜索、筛选和添加按钮，以及 SingingListPanel 的展开编辑、状态 Chip、备注保存和列表筛选。
+当前有 5 个测试文件、11 项测试，覆盖匿名/登录/退出缓存状态、公开路由、RankingPanel、SingingListPanel、登录注册对话框，以及公开前确认和备注私密提示。
 
 ### 14.3 API 集成测试
 
-当前有 4 项 Supertest 测试并使用真实 PostgreSQL，覆盖搜索与精确筛选、Top 10 重复和容量限制、原子重排与位置压缩，以及 Singing List 与 Top 10 的独立性。
+当前有 11 项 Supertest 测试并使用真实 PostgreSQL。除既有榜单和列表规则外，还覆盖注册、Session 恢复/退出/过期、用户名规范化与冲突、非枚举登录错误、Origin 防护、速率限制、用户隔离、默认私密、公开 Projection 和 demo fixture 保留。
 
-API 测试通过 createApp 注入固定测试用户。beforeAll 创建该用户，beforeEach 清空该测试用户的列表，afterAll 删除该用户并关闭连接。测试不应读写 demo 用户的个人列表。
+既有业务规则测试通过 createApp 注入固定测试用户；认证测试使用真实 Cookie Agent 和动态账户。beforeEach/afterAll 只删除测试用户名和固定测试用户。测试不应读写 demo 用户的个人列表。
 
 ### 14.4 Playwright E2E
 
-当前 1 条关键流程覆盖搜索、添加两首 Top 10、上移排序、添加 Singing List、展开 Compact Ledger 编辑器、选择 Practicing、保存，以及刷新后的持久化验证。
+当前 1 条关键流程覆盖页面注册、退出、密码登录、添加 Top 10/Singing List、设置状态与私密备注、刷新恢复 Session、分别公开列表、再次退出，以及匿名读取公开页且看不到备注。
 
-playwright.config.ts 使用独立固定 E2E 用户、端口 3101、production 形态 Express 服务和 reuseExistingServer: false。启动前使用该 E2E 用户 ID 执行 Seed。E2E 只清理该用户的个人列表，不应影响 demo 用户。
+playwright.config.ts 使用端口 3101、production 形态 Express 服务和 reuseExistingServer: false。启动前执行 build、Migration 和公共 Seed，并把 APP_ORIGIN 指向 3101。测试注册带时间戳的唯一用户，结束后级联删除该账户；不影响 demo 用户。
 
 ### 14.5 完整验证
 
@@ -751,6 +839,13 @@ npm run test:e2e
 
 当前已有：
 
+- 用户名/密码注册登录，密码使用带独立 salt 的版本化 scrypt 哈希。
+- 至少 256 位随机 Session token，数据库只保存 SHA-256 哈希，七天过期并支持退出撤销。
+- HttpOnly、SameSite=Lax、host-only Cookie；HTTPS APP_ORIGIN 下使用 Secure 与 __Host- 前缀。
+- /api/me 统一认证与 userId 授权边界，私有响应使用 Cache-Control: private, no-store。
+- Unsafe 请求 Origin/Fetch Metadata 防护和注册/登录单进程速率限制。
+- 非枚举登录错误、缺失用户 dummy scrypt 校验和不含敏感原始错误消息的日志。
+- Public/Private 默认拒绝策略和公开 Singing List 无备注 Projection。
 - Path、Query 和 Body 的 Zod 校验。
 - 搜索词和筛选字符串最长 120 字符。
 - 备注最长 300 字符。
@@ -762,7 +857,7 @@ npm run test:e2e
 - 结构化请求日志和未知错误 requestId。
 - 进程信号触发的数据库优雅关闭。
 
-当前缺少认证、授权、CSRF、速率限制、安全响应头策略、生产 CORS 策略、审计日志、运行时指标、Tracing、告警、独立测试数据库，以及备份和恢复 Runbook。apps/api 虽声明了 cors 依赖，但当前 app.ts 没有挂载 CORS Middleware；开发模式依靠 Vite 代理，生产形态使用同源请求。
+当前仍缺少分布式速率限制、完整安全响应头策略、登录审计日志、运行时指标、Tracing、告警、独立测试数据库，以及备份和恢复 Runbook。应用刻意不开放跨源认证请求：开发模式依靠 Vite 代理，生产形态使用同源请求。公网或多实例部署前必须补齐 TLS/代理配置和共享限流存储。
 
 ### 15.1 依赖审计基线
 
@@ -867,7 +962,7 @@ E2E 不复用已有服务器；3101 被占用时应先定位占用者。
 
 | 项目 | 当前状态 | 建议 |
 | --- | --- | --- |
-| 身份认证 | 所有请求映射到单一 demo 用户 | 非本地使用前必须实现 |
+| SSO 与账户恢复 | 当前只有本地用户名/密码，未实现 SSO、邮箱验证或密码重置 | 按 AUTHENTICATION_DESIGN 的 issuer/sub 身份模型向前扩展 |
 | 活动榜单选择 | 前端直接使用榜单数组第一项 | 多榜单前增加显式选择和稳定排序 |
 | Singing 成员判断 | 状态筛选后，排行榜只知道当前筛选结果中的成员 | 将完整成员集合与筛选展示数据分开 |
 | API 分页 | songs 与榜单详情没有服务端分页 | 数据规模扩大前设计统一分页 |
@@ -875,7 +970,7 @@ E2E 不复用已有服务器；3101 被占用时应先定位占用者。
 | 非标准请求错误 | malformed JSON、Body 过大和未知 API 路径未统一为 JSON 格式 | 增加解析错误和 API 404 Middleware |
 | Request ID | 只在未知 500 响应中返回 | 需要完整追踪时加入响应 Header |
 | 测试数据库 | 测试仍使用本地 PostgreSQL | CI 或多人开发前提供独立数据库 |
-| E2E 用户记录 | Seed 保留固定 E2E 用户行 | 可接受；个人列表会被清理 |
+| 认证限流 | 当前为单进程内存窗口 | 多实例或公网部署前迁移到共享存储 |
 | 依赖漏洞 | 6 项未自动修复 | 分别验证 Drizzle 与 Vite 升级 |
 | 前端包体积 | 611.28 KB，gzip 190.82 KB | 有真实性能目标后再优化 |
 | API 文档 | 当前为手工维护 | API 增长后考虑 OpenAPI |
@@ -887,9 +982,13 @@ E2E 不复用已有服务器；3101 被占用时应先定位占用者。
 | 使用 npm workspaces | 维持包边界和单仓库开发体验 |
 | 共享 Zod contracts | 统一请求输入校验和枚举类型 |
 | Service 显式接收 userId | 为未来替换 demo 用户解析器保留迁移路径 |
+| 账户、密码凭据和 Session 分表 | 支持凭据隔离，并让未来 SSO 复用内部用户与 Session |
+| SSO 未来使用 issuer + subject | 避免把可变 email 当作外部身份主键 |
+| 列表设置缺失时默认 Private | 迁移和异常状态下 fail closed，避免旧数据意外公开 |
+| 公开 Singing List 排除 note | 公开歌曲/状态而不泄露用户私人记录 |
 | Top 10 使用延迟唯一约束 | 允许事务内安全交换和压缩 position |
 | Singing List 使用 upsert | 新增和编辑共享写入路径 |
-| E2E 使用专用用户和端口 | 防止清空 demo 数据或误复用开发服务器 |
+| E2E 动态注册用户并使用专用端口 | 验证真实认证流程，结束后只删除自己创建的账户 |
 | Vite 与 React 插件精确锁定 | 避免已复现的开发服务器 HTTP 500 |
 | 当前不拆分前端 Bundle | 本地 V1 暂时没有性能目标 |
 
@@ -897,5 +996,6 @@ E2E 不复用已有服务器；3101 被占用时应先定位占用者。
 
 | 日期 | 代码基线 | 内容 |
 | --- | --- | --- |
+| 2026-09-10 | 当前工作树 | 实现用户名/密码认证、数据库 Session、多用户隔离、Public/Private 个人榜单、公开资料页和未来 SSO 边界 |
 | 2026-09-10 | 当前工作树 | 新增首次本地运行指南与认证开发交接入口，并将首次依赖安装统一为 npm ci |
 | 2026-09-10 | 9ce4a1c | 创建工程师指南，记录 V1 架构、数据模型、API、测试、安全基线和维护规则 |

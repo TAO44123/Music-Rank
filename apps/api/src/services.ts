@@ -1,7 +1,7 @@
 import { and, asc, desc, eq, ilike, or, sql } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
-import { db, rankingEntries, rankings, singingListEntries, songs, userTopListEntries } from '@music-rank/database';
-import type { SingingStatus } from '@music-rank/contracts';
+import { db, rankingEntries, rankings, singingListEntries, songs, userListSettings, users, userTopListEntries } from '@music-rank/database';
+import type { ListType, ListVisibility, SingingStatus } from '@music-rank/contracts';
 import { AppError } from './errors.js';
 
 const songProjection = {
@@ -165,4 +165,73 @@ export async function removeSingingListItem(userId: string, songId: string) {
   if (deleted.length === 0) {
     throw new AppError(404, 'SINGING_LIST_ITEM_NOT_FOUND', 'Song is not in My Singing List');
   }
+}
+
+export type EffectiveListSettings = {
+  topList: ListVisibility;
+  singingList: ListVisibility;
+};
+
+export async function getListSettings(userId: string): Promise<EffectiveListSettings> {
+  const settings = await db.select({ listType: userListSettings.listType, visibility: userListSettings.visibility })
+    .from(userListSettings)
+    .where(eq(userListSettings.userId, userId));
+  return {
+    topList: settings.find(({ listType }) => listType === 'TOP_LIST')?.visibility ?? 'PRIVATE',
+    singingList: settings.find(({ listType }) => listType === 'SINGING_LIST')?.visibility ?? 'PRIVATE'
+  };
+}
+
+export async function updateListVisibility(userId: string, listType: ListType, visibility: ListVisibility): Promise<EffectiveListSettings> {
+  await db.insert(userListSettings).values({ userId, listType, visibility })
+    .onConflictDoUpdate({
+      target: [userListSettings.userId, userListSettings.listType],
+      set: { visibility, updatedAt: new Date() }
+    });
+  return getListSettings(userId);
+}
+
+async function getUserByUsername(username: string) {
+  const [user] = await db.select({ id: users.id, username: users.username, displayName: users.displayName })
+    .from(users)
+    .where(eq(users.username, username))
+    .limit(1);
+  return user?.username ? { id: user.id, username: user.username, displayName: user.displayName } : null;
+}
+
+async function requirePublicList(username: string, listType: ListType) {
+  const user = await getUserByUsername(username);
+  if (!user) throw new AppError(404, 'PUBLIC_LIST_NOT_FOUND', 'Public list not found');
+  const [setting] = await db.select({ visibility: userListSettings.visibility })
+    .from(userListSettings)
+    .where(and(eq(userListSettings.userId, user.id), eq(userListSettings.listType, listType)))
+    .limit(1);
+  if (setting?.visibility !== 'PUBLIC') {
+    throw new AppError(404, 'PUBLIC_LIST_NOT_FOUND', 'Public list not found');
+  }
+  return user;
+}
+
+export async function getPublicProfile(username: string) {
+  const user = await getUserByUsername(username);
+  if (!user) throw new AppError(404, 'PUBLIC_PROFILE_NOT_FOUND', 'Public profile not found');
+  const settings = await getListSettings(user.id);
+  if (settings.topList !== 'PUBLIC' && settings.singingList !== 'PUBLIC') {
+    throw new AppError(404, 'PUBLIC_PROFILE_NOT_FOUND', 'Public profile not found');
+  }
+  return { username: user.username, displayName: user.displayName, lists: settings };
+}
+
+export async function getPublicTopList(username: string) {
+  const user = await requirePublicList(username, 'TOP_LIST');
+  return getTopList(user.id);
+}
+
+export async function getPublicSingingList(username: string) {
+  const user = await requirePublicList(username, 'SINGING_LIST');
+  return db.select({ status: singingListEntries.status, ...songProjection })
+    .from(singingListEntries)
+    .innerJoin(songs, eq(singingListEntries.songId, songs.id))
+    .where(eq(singingListEntries.userId, user.id))
+    .orderBy(desc(singingListEntries.updatedAt));
 }

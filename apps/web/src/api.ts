@@ -4,6 +4,12 @@ export type RankingDetail = Ranking & { sourceUrl: string | null; entries: Array
 export type TopListEntry = Song & { position: number };
 export type SingingStatus = 'CAN_SING' | 'REGULARLY_SING' | 'PRACTICING' | 'WANT_TO_LEARN';
 export type SingingListEntry = Song & { status: SingingStatus; note: string | null };
+export type PublicSingingListEntry = Song & { status: SingingStatus };
+export type AuthUser = { id: string; username: string; displayName: string };
+export type AuthSession = { user: AuthUser | null };
+export type ListVisibility = 'PRIVATE' | 'PUBLIC';
+export type ListSettings = { topList: ListVisibility; singingList: ListVisibility };
+export type PublicProfile = { username: string; displayName: string; lists: ListSettings };
 
 export class ApiError extends Error {
   constructor(public readonly status: number, public readonly code: string, message: string) {

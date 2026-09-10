@@ -1,7 +1,7 @@
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import { Box, Button, Chip, Collapse, IconButton, List, ListItem, Paper, Stack, TextField, Tooltip, Typography, useTheme } from '@mui/material';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import type { SingingListEntry, SingingStatus } from '../api';
 import { singingStatuses, statusLabels } from '../status';
 
@@ -78,18 +78,19 @@ type SingingListPanelProps = {
   onFilterChange: (filter: SingingStatus | 'ALL') => void;
   onSave: (songId: string, status: SingingStatus, note: string) => void;
   onRemove: (songId: string) => void;
+  headerAction?: ReactNode;
 };
 
-export function SingingListPanel({ entries, filter, onFilterChange, onSave, onRemove }: SingingListPanelProps) {
+export function SingingListPanel({ entries, filter, onFilterChange, onSave, onRemove, headerAction }: SingingListPanelProps) {
   const theme = useTheme();
 
   return <Paper component="section" sx={{ p: 2.5 }} aria-labelledby="singing-list-heading">
-    <Stack direction="row" justifyContent="space-between" alignItems="flex-end" gap={2}>
+    <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'stretch', sm: 'center' }} gap={2}>
       <Box>
         <Typography variant="overline" color="secondary.main" fontWeight={800}>Practice library</Typography>
         <Typography id="singing-list-heading" variant="h2" fontSize="1.45rem">My Singing List</Typography>
       </Box>
-      <Typography variant="body2" color="text.secondary" fontWeight={700}>{entries.length} {entries.length === 1 ? 'song' : 'songs'}</Typography>
+      <Stack direction="row" alignItems="center" justifyContent="space-between" gap={1}><Typography variant="body2" color="text.secondary" fontWeight={700}>{entries.length} {entries.length === 1 ? 'song' : 'songs'}</Typography>{headerAction}</Stack>
     </Stack>
     <Stack direction="row" flexWrap="wrap" useFlexGap gap={0.75} mt={2} mb={0.5} aria-label="Filter singing list by status">
       <Chip label="All" size="small" clickable onClick={() => onFilterChange('ALL')} aria-pressed={filter === 'ALL'} color={filter === 'ALL' ? 'primary' : 'default'} variant={filter === 'ALL' ? 'filled' : 'outlined'} sx={{ fontWeight: 700 }} />
