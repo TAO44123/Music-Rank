@@ -8,10 +8,10 @@
 | 目标读者 | 负责开发、测试、排障和后续维护的工程师 |
 | 当前产品版本 | Version 1，本地单用户演示应用 |
 | 最后更新日期 | 2026-09-10（America/New_York） |
-| 最后核对的代码提交 | d9bfabb（feat: implement Music Rank v1） |
+| 最后核对的代码提交 | 9ce4a1c（feat: implement Music Rank v1） |
 | 事实来源 | 当前仓库代码、配置、迁移和自动化测试 |
 
-这份文档描述系统现在如何工作。产品目标和范围以 [PROJECT_SPEC_ZH.md](PROJECT_SPEC_ZH.md) 与 [PROJECT_SPEC_EN.md](PROJECT_SPEC_EN.md) 为准；历史交接信息以 [IMPLEMENTATION_HANDOFF.md](IMPLEMENTATION_HANDOFF.md) 和 [SESSION_HANDOFF.md](SESSION_HANDOFF.md) 为准。若文档与代码不一致，应先核对代码和测试，再更新本文档。
+这份文档描述系统现在如何工作。首次在本机配置和运行项目时，先执行 [LOCAL_FIRST_RUN_GUIDE.md](LOCAL_FIRST_RUN_GUIDE.md)；产品目标和范围以 [PROJECT_SPEC_ZH.md](PROJECT_SPEC_ZH.md) 与 [PROJECT_SPEC_EN.md](PROJECT_SPEC_EN.md) 为准；历史交接信息以 [IMPLEMENTATION_HANDOFF.md](IMPLEMENTATION_HANDOFF.md) 和 [SESSION_HANDOFF.md](SESSION_HANDOFF.md) 为准。若文档与代码不一致，应先核对代码和测试，再更新本文档。
 
 ### 1.1 维护规则
 
@@ -119,6 +119,7 @@ Vite 7.2.1 和 @vitejs/plugin-react 5.1.1 是有意锁定的组合。此前更�
 | packages/database/migrations | 已跟踪的 SQL 迁移与 Drizzle 元数据 |
 | e2e | Playwright 关键流程 |
 | docs | 产品、交接和工程文档 |
+| docs/LOCAL_FIRST_RUN_GUIDE.md | 新成员或 Agent 的首次环境检查、配置、启动和验证 Runbook |
 | playwright.config.ts | E2E 专用用户、端口和 Web Server |
 | docker-compose.yml | 本地 PostgreSQL 服务和持久卷 |
 
@@ -149,7 +150,7 @@ Vite 7.2.1 和 @vitejs/plugin-react 5.1.1 是有意锁定的组合。此前更�
 
 ~~~bash
 cp .env.example .env
-npm install
+npm ci
 npm run db:up
 npm run db:migrate
 npm run db:seed
@@ -896,4 +897,5 @@ E2E 不复用已有服务器；3101 被占用时应先定位占用者。
 
 | 日期 | 代码基线 | 内容 |
 | --- | --- | --- |
-| 2026-09-10 | d9bfabb | 创建工程师指南，记录 V1 架构、数据模型、API、测试、安全基线和维护规则 |
+| 2026-09-10 | 当前工作树 | 新增首次本地运行指南与认证开发交接入口，并将首次依赖安装统一为 npm ci |
+| 2026-09-10 | 9ce4a1c | 创建工程师指南，记录 V1 架构、数据模型、API、测试、安全基线和维护规则 |

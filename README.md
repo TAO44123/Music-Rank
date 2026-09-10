@@ -14,7 +14,7 @@ The ranking is explicitly **Demo Data**. It is a set of product fixtures, not an
 
 ```bash
 cp .env.example .env
-npm install
+npm ci
 npm run db:up
 npm run db:migrate
 npm run db:seed
@@ -56,6 +56,8 @@ All `/api/me` requests are resolved to the seeded demo user in one middleware lo
 
 ## Documentation
 
+- [First Local Run Guide](docs/LOCAL_FIRST_RUN_GUIDE.md): environment checks, configuration, startup, health checks, full verification, troubleshooting, and Agent handoff rules.
+- [Current Session Handoff](docs/SESSION_HANDOFF.md): repository state and the approved focus, open decisions, implementation sequence, and acceptance checklist for the next development session.
 - [Engineering Guide](docs/ENGINEERING_GUIDE.md): current architecture, API reference, data model, testing strategy, operational notes, and maintenance rules.
 - [Chinese Product Specification](docs/PROJECT_SPEC_ZH.md): approved Version 1 product specification in Chinese.
 - [English Product Specification](docs/PROJECT_SPEC_EN.md): approved Version 1 product specification in English.
