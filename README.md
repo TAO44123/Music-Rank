@@ -54,6 +54,12 @@ Use `.env.example` as the template. `DEMO_USER_ID` is centrally configured in `p
 
 All `/api/me` requests are resolved to the seeded demo user in one middleware location. Services receive the user ID as an argument so authentication can replace the resolver later without changing personal-list data models.
 
+## Documentation
+
+- [Engineering Guide](docs/ENGINEERING_GUIDE.md): current architecture, API reference, data model, testing strategy, operational notes, and maintenance rules.
+- [Chinese Product Specification](docs/PROJECT_SPEC_ZH.md): approved Version 1 product specification in Chinese.
+- [English Product Specification](docs/PROJECT_SPEC_EN.md): approved Version 1 product specification in English.
+
 ## Scope
 
-Version 1 intentionally excludes accounts, multiple users, remote deployment, social features, audio or lyrics, video ingestion, OCR, AI extraction, and admin tooling. See [PROJECT_SPEC_EN.md](PROJECT_SPEC_EN.md) for the approved baseline.
+Version 1 intentionally excludes accounts, multiple users, remote deployment, social features, audio or lyrics, video ingestion, OCR, AI extraction, and admin tooling. See [PROJECT_SPEC_EN.md](docs/PROJECT_SPEC_EN.md) for the approved baseline.
