@@ -5,6 +5,7 @@ import { ApiError, request, type AuthSession, type AuthUser, type ListSettings, 
 import { AccountActions } from '../components/AccountActions';
 import { AuthDialog, type AuthMode } from '../components/AuthDialog';
 import { Brand } from '../components/Brand';
+import { TabNav } from '../components/TabNav';
 import { listSettingsQueryOptions, queryKeys, sessionQueryOptions } from '../queries';
 
 export type ListTypePath = 'top-list' | 'singing-list';
@@ -127,6 +128,7 @@ export function AppShellProvider({ children, chrome = true }: { children: ReactN
 
   return <AppShellContext.Provider value={value}>
     {chrome && <Brand action={accountAction} />}
+    {chrome && <TabNav />}
     {children}
     <AuthDialog open={authDialog.open} initialMode={authDialog.mode} isPending={authMutation.isPending} error={authMutation.error instanceof ApiError ? authMutation.error.message : authMutation.isError ? 'Something went wrong. Please try again.' : null} onClose={() => setAuthDialog((current) => ({ ...current, open: false }))} onSubmit={(input) => authMutation.mutate(input)} />
     <Snackbar open={Boolean(notice)} autoHideDuration={3500} onClose={() => setNotice(null)} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}><Alert severity={notice?.severity} onClose={() => setNotice(null)} variant="filled">{notice?.message}</Alert></Snackbar>
