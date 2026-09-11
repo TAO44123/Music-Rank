@@ -1,17 +1,15 @@
 import LockOutlineIcon from '@mui/icons-material/LockOutline';
-import { Alert, Box, Button, CircularProgress, Container, Paper, Snackbar, Stack, Typography } from '@mui/material';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Alert, Box, Button, CircularProgress, Container, Paper, Stack, Typography } from '@mui/material';
+import { useQuery } from '@tanstack/react-query';
 import { createRoute } from '@tanstack/react-router';
 import { useEffect, useMemo, useState } from 'react';
-import { ApiError, request, type AuthSession, type AuthUser, type ListSettings, type ListVisibility, type SingingStatus } from '../api';
-import { AccountActions } from '../components/AccountActions';
-import { AuthDialog, type AuthMode } from '../components/AuthDialog';
-import { Brand } from '../components/Brand';
+import { ApiError, type SingingStatus } from '../api';
 import { RankingPanel } from '../components/RankingPanel';
 import { SingingListPanel } from '../components/SingingListPanel';
 import { TopListPanel } from '../components/TopListPanel';
 import { VisibilityControl, VisibilityStatus } from '../components/VisibilityControl';
-import { listSettingsQueryOptions, queryKeys, rankingQueryOptions, rankingsQueryOptions, sessionQueryOptions, singingListQueryOptions, songsQueryOptions, topListQueryOptions } from '../queries';
+import { listSettingsQueryOptions, rankingQueryOptions, rankingsQueryOptions, singingListQueryOptions, songsQueryOptions, topListQueryOptions } from '../queries';
+import { useAppShell } from '../shell/AppShellContext';
 import { Route as rootRoute } from './__root';
 
 export const Route = createRoute({ getParentRoute: () => rootRoute, path: '/', component: HomePage });
@@ -30,16 +28,12 @@ function AccountLoadingPanel() {
 }
 
 function HomePage() {
-  const client = useQueryClient();
+  const { user, isSessionLoading, isSessionError, requireUser, openAuth, notify, mutate, setVisibility, isVisibilityPending, onUnauthorized } = useAppShell();
   const [query, setQuery] = useState('');
   const [artistFilter, setArtistFilter] = useState('ALL');
   const [releaseYearFilter, setReleaseYearFilter] = useState<number | 'ALL'>('ALL');
   const [filter, setFilter] = useState<SingingStatus | 'ALL'>('ALL');
-  const [authDialog, setAuthDialog] = useState<{ open: boolean; mode: AuthMode }>({ open: false, mode: 'login' });
-  const [notice, setNotice] = useState<{ severity: 'success' | 'error'; message: string } | null>(null);
 
-  const sessionQuery = useQuery(sessionQueryOptions());
-  const user = sessionQuery.data?.user ?? null;
   const rankingsQuery = useQuery(rankingsQueryOptions());
   const songsQuery = useQuery(songsQueryOptions());
   const rankingId = rankingsQuery.data?.[0]?.id;
@@ -48,67 +42,10 @@ function HomePage() {
   const singingQuery = useQuery(singingListQueryOptions(user, filter));
   const settingsQuery = useQuery(listSettingsQueryOptions(user));
 
-  const clearPersonalData = async () => {
-    await client.cancelQueries({ queryKey: queryKeys.personal });
-    client.removeQueries({ queryKey: queryKeys.personal });
-  };
-  const loseAuthentication = async () => {
-    await client.cancelQueries({ queryKey: queryKeys.personal });
-    client.setQueriesData({ queryKey: queryKeys.personal }, undefined);
-    client.setQueryData<AuthSession>(queryKeys.session, { user: null });
-    await new Promise<void>((resolve) => {
-      setTimeout(resolve, 0);
-    });
-    client.removeQueries({ queryKey: queryKeys.personal });
-  };
-
   useEffect(() => {
     const errors = [topQuery.error, singingQuery.error, settingsQuery.error];
-    if (errors.some((error) => error instanceof ApiError && error.status === 401)) void loseAuthentication();
-  }, [topQuery.error, singingQuery.error, settingsQuery.error]);
-
-  const authMutation = useMutation({
-    mutationFn: ({ mode, ...input }: { mode: AuthMode; username: string; displayName?: string; password: string }) => request<{ user: AuthUser }>(mode === 'register' ? '/api/auth/register' : '/api/auth/login', { method: 'POST', body: JSON.stringify(input) }),
-    onSuccess: async ({ user: authenticatedUser }) => {
-      await clearPersonalData();
-      client.setQueryData<AuthSession>(queryKeys.session, { user: authenticatedUser });
-      setAuthDialog((current) => ({ ...current, open: false }));
-      setNotice({ severity: 'success', message: `Welcome, ${authenticatedUser.displayName}` });
-    }
-  });
-  const openAuth = (mode: AuthMode) => {
-    authMutation.reset();
-    setAuthDialog({ open: true, mode });
-  };
-  const logoutMutation = useMutation({
-    mutationFn: () => request<void>('/api/auth/logout', { method: 'POST' }),
-    onSuccess: async () => {
-      await loseAuthentication();
-      setNotice({ severity: 'success', message: 'Signed out' });
-    },
-    onError: (error) => setNotice({ severity: 'error', message: error instanceof ApiError ? error.message : 'Could not sign out. Please try again.' })
-  });
-
-  const invalidatePersonalLists = () => Promise.all([
-    client.invalidateQueries({ queryKey: user ? queryKeys.topList(user.id) : queryKeys.personal }),
-    client.invalidateQueries({ queryKey: user ? ['personal', user.id, 'singing-list'] : queryKeys.personal })
-  ]);
-  const mutation = useMutation({
-    mutationFn: ({ path, options }: { path: string; options?: RequestInit }) => request<unknown>(path, options),
-    onSuccess: async () => { await invalidatePersonalLists(); setNotice({ severity: 'success', message: 'Saved successfully' }); },
-    onError: (error) => {
-      if (error instanceof ApiError && error.status === 401) void loseAuthentication();
-      setNotice({ severity: 'error', message: error instanceof ApiError ? error.message : 'Something went wrong. Please try again.' });
-    }
-  });
-  const visibilityMutation = useMutation({
-    mutationFn: ({ listType, visibility }: { listType: 'top-list' | 'singing-list'; visibility: ListVisibility }) => request<ListSettings>(`/api/me/lists/${listType}/visibility`, { method: 'PATCH', body: JSON.stringify({ visibility }) }),
-    onSuccess: (settings) => {
-      if (user) client.setQueryData(queryKeys.listSettings(user.id), settings);
-      setNotice({ severity: 'success', message: 'List visibility updated' });
-    },
-    onError: (error) => setNotice({ severity: 'error', message: error instanceof ApiError ? error.message : 'Could not update visibility' })
-  });
+    if (errors.some((error) => error instanceof ApiError && error.status === 401)) void onUnauthorized();
+  }, [topQuery.error, singingQuery.error, settingsQuery.error, onUnauthorized]);
 
   const topEntries = topQuery.data ?? [];
   const singingEntries = singingQuery.data ?? [];
@@ -117,30 +54,22 @@ function HomePage() {
   const releaseYears = useMemo(() => Array.from(new Set((songsQuery.data ?? []).flatMap((song) => song.releaseYear === null ? [] : [song.releaseYear]))).sort((left, right) => right - left), [songsQuery.data]);
   const topSongIds = useMemo(() => new Set(topEntries.map((entry) => entry.id)), [topEntries]);
   const singingSongIds = useMemo(() => new Set(singingEntries.map((entry) => entry.id)), [singingEntries]);
-  const requireUser = (action: () => void) => user ? action() : openAuth('login');
-  const addTop = (songId: string) => requireUser(() => mutation.mutate({ path: '/api/me/top-list/items', options: { method: 'POST', body: JSON.stringify({ songId }) } }));
-  const addSinging = (songId: string) => requireUser(() => mutation.mutate({ path: `/api/me/singing-list/items/${songId}`, options: { method: 'PUT', body: JSON.stringify({ status: 'WANT_TO_LEARN' }) } }));
-  const reorderTop = (orderedSongIds: string[]) => mutation.mutate({ path: '/api/me/top-list/order', options: { method: 'PATCH', body: JSON.stringify({ orderedSongIds }) } });
-  const saveSinging = (songId: string, status: SingingStatus, note: string) => mutation.mutate({ path: `/api/me/singing-list/items/${songId}`, options: { method: 'PUT', body: JSON.stringify({ status, note }) } });
+  const addTop = (songId: string) => requireUser(() => mutate('/api/me/top-list/items', { method: 'POST', body: JSON.stringify({ songId }) }));
+  const addSinging = (songId: string) => requireUser(() => mutate(`/api/me/singing-list/items/${songId}`, { method: 'PUT', body: JSON.stringify({ status: 'WANT_TO_LEARN' }) }));
+  const reorderTop = (orderedSongIds: string[]) => mutate('/api/me/top-list/order', { method: 'PATCH', body: JSON.stringify({ orderedSongIds }) });
+  const saveSinging = (songId: string, status: SingingStatus, note: string) => mutate(`/api/me/singing-list/items/${songId}`, { method: 'PUT', body: JSON.stringify({ status, note }) });
   const publicUrl = user ? `${window.location.origin}/u/${user.username}` : '';
+  const shareNotice = (method: 'shared' | 'copied') => notify('success', method === 'shared' ? 'Public profile shared' : 'Public profile link copied');
 
-  const accountAction = sessionQuery.isLoading ? <CircularProgress size={22} aria-label="Loading account" /> : user
-    ? <AccountActions user={user} onLogout={() => logoutMutation.mutate()} />
-    : <Stack direction="row" spacing={1}><Button onClick={() => openAuth('login')}>Sign in</Button><Button variant="contained" onClick={() => openAuth('register')}>Register</Button></Stack>;
-
-  return <><Brand action={accountAction} />
-    <Box component="main" sx={{ py: { xs: 2, md: 4 } }}><Container maxWidth="xl"><Stack spacing={2}>
-      {sessionQuery.isError && <Alert severity="warning">Account status could not be loaded. Public rankings are still available.</Alert>}
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: 'minmax(0, 1.6fr) minmax(360px, 0.85fr)' }, gap: 2.5, alignItems: 'start' }}>
-        <Box sx={{ order: { xs: 2, lg: 1 } }}><RankingPanel ranking={rankingQuery.data} isLoading={rankingsQuery.isLoading || rankingQuery.isLoading} query={query} onQueryChange={setQuery} artistFilter={artistFilter} onArtistFilterChange={setArtistFilter} releaseYearFilter={releaseYearFilter} onReleaseYearFilterChange={setReleaseYearFilter} artists={artists} releaseYears={releaseYears} topSongIds={topSongIds} singingSongIds={singingSongIds} topAtCapacity={topEntries.length >= 10} onAddTop={addTop} onAddSinging={addSinging} /></Box>
-        <Box sx={{ order: { xs: 1, lg: 2 } }}>{sessionQuery.isLoading ? <AccountLoadingPanel /> : user ? <Stack spacing={2.5}>
-          <TopListPanel entries={topEntries} onReorder={reorderTop} onRemove={(songId) => mutation.mutate({ path: `/api/me/top-list/items/${songId}`, options: { method: 'DELETE' } })} statusLabel={<VisibilityStatus label="Top 10" visibility={settings.topList} />} headerAction={<VisibilityControl label="Top 10" visibility={settings.topList} publicUrl={publicUrl} disabled={visibilityMutation.isPending} onChange={(visibility) => visibilityMutation.mutate({ listType: 'top-list', visibility })} onShareComplete={(method) => setNotice({ severity: 'success', message: method === 'shared' ? 'Public profile shared' : 'Public profile link copied' })} />} />
-          <SingingListPanel entries={singingEntries} filter={filter} onFilterChange={setFilter} onSave={saveSinging} onRemove={(songId) => mutation.mutate({ path: `/api/me/singing-list/items/${songId}`, options: { method: 'DELETE' } })} statusLabel={<VisibilityStatus label="Singing List" visibility={settings.singingList} />} headerAction={<VisibilityControl label="Singing List" visibility={settings.singingList} publicUrl={publicUrl} privateNotes disabled={visibilityMutation.isPending} onChange={(visibility) => visibilityMutation.mutate({ listType: 'singing-list', visibility })} onShareComplete={(method) => setNotice({ severity: 'success', message: method === 'shared' ? 'Public profile shared' : 'Public profile link copied' })} />} />
-          {(topQuery.isLoading || singingQuery.isLoading || settingsQuery.isLoading) && <Stack direction="row" alignItems="center" gap={1} color="text.secondary"><CircularProgress size={16} /> Loading your lists</Stack>}
-        </Stack> : <SignedOutPanel onSignIn={() => openAuth('login')} onRegister={() => openAuth('register')} />}</Box>
-      </Box>
-    </Stack></Container></Box>
-    <AuthDialog open={authDialog.open} initialMode={authDialog.mode} isPending={authMutation.isPending} error={authMutation.error instanceof ApiError ? authMutation.error.message : authMutation.isError ? 'Something went wrong. Please try again.' : null} onClose={() => setAuthDialog((current) => ({ ...current, open: false }))} onSubmit={(input) => authMutation.mutate(input)} />
-    <Snackbar open={Boolean(notice)} autoHideDuration={3500} onClose={() => setNotice(null)} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}><Alert severity={notice?.severity} onClose={() => setNotice(null)} variant="filled">{notice?.message}</Alert></Snackbar>
-  </>;
+  return <Box component="main" sx={{ py: { xs: 2, md: 4 } }}><Container maxWidth="xl"><Stack spacing={2}>
+    {isSessionError && <Alert severity="warning">Account status could not be loaded. Public rankings are still available.</Alert>}
+    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: 'minmax(0, 1.6fr) minmax(360px, 0.85fr)' }, gap: 2.5, alignItems: 'start' }}>
+      <Box sx={{ order: { xs: 2, lg: 1 } }}><RankingPanel ranking={rankingQuery.data} isLoading={rankingsQuery.isLoading || rankingQuery.isLoading} query={query} onQueryChange={setQuery} artistFilter={artistFilter} onArtistFilterChange={setArtistFilter} releaseYearFilter={releaseYearFilter} onReleaseYearFilterChange={setReleaseYearFilter} artists={artists} releaseYears={releaseYears} topSongIds={topSongIds} singingSongIds={singingSongIds} topAtCapacity={topEntries.length >= 10} onAddTop={addTop} onAddSinging={addSinging} /></Box>
+      <Box sx={{ order: { xs: 1, lg: 2 } }}>{isSessionLoading ? <AccountLoadingPanel /> : user ? <Stack spacing={2.5}>
+        <TopListPanel entries={topEntries} onReorder={reorderTop} onRemove={(songId) => mutate(`/api/me/top-list/items/${songId}`, { method: 'DELETE' })} statusLabel={<VisibilityStatus label="Top 10" visibility={settings.topList} />} headerAction={<VisibilityControl label="Top 10" visibility={settings.topList} publicUrl={publicUrl} disabled={isVisibilityPending} onChange={(visibility) => setVisibility('top-list', visibility)} onShareComplete={shareNotice} />} />
+        <SingingListPanel entries={singingEntries} filter={filter} onFilterChange={setFilter} onSave={saveSinging} onRemove={(songId) => mutate(`/api/me/singing-list/items/${songId}`, { method: 'DELETE' })} statusLabel={<VisibilityStatus label="Singing List" visibility={settings.singingList} />} headerAction={<VisibilityControl label="Singing List" visibility={settings.singingList} publicUrl={publicUrl} privateNotes disabled={isVisibilityPending} onChange={(visibility) => setVisibility('singing-list', visibility)} onShareComplete={shareNotice} />} />
+        {(topQuery.isLoading || singingQuery.isLoading || settingsQuery.isLoading) && <Stack direction="row" alignItems="center" gap={1} color="text.secondary"><CircularProgress size={16} /> Loading your lists</Stack>}
+      </Stack> : <SignedOutPanel onSignIn={() => openAuth('login')} onRegister={() => openAuth('register')} />}</Box>
+    </Box>
+  </Stack></Container></Box>;
 }

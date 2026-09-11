@@ -1,6 +1,7 @@
 import { Alert, Box, Button, CssBaseline, Stack, Typography } from '@mui/material';
 import type { QueryClient } from '@tanstack/react-query';
 import { Outlet, createRootRouteWithContext, useRouterState } from '@tanstack/react-router';
+import { AppShellProvider } from '../shell/AppShellContext';
 
 export interface RouterContext { queryClient: QueryClient }
 
@@ -10,7 +11,9 @@ export const Route = createRootRouteWithContext<RouterContext>()({
 });
 
 function RootLayout() {
-  return <><CssBaseline /><Outlet /></>;
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const isPublicProfile = pathname.startsWith('/u/');
+  return <><CssBaseline /><AppShellProvider chrome={!isPublicProfile}><Outlet /></AppShellProvider></>;
 }
 
 function NotFound() {
