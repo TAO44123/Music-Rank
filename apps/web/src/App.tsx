@@ -3,6 +3,7 @@ import { Alert, Box, Button, Chip, CircularProgress, Container, CssBaseline, Lis
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useState } from 'react';
 import { ApiError, request, type AuthSession, type AuthUser, type ListSettings, type ListVisibility, type PublicProfile, type PublicSingingListEntry, type Ranking, type RankingDetail, type SingingListEntry, type SingingStatus, type Song, type TopListEntry } from './api';
+import { listSettingsQueryOptions, publicProfileQueryOptions, publicSingingListQueryOptions, publicTopListQueryOptions, queryKeys, rankingQueryOptions, rankingsQueryOptions, sessionQueryOptions, singingListQueryOptions, songsQueryOptions, topListQueryOptions } from './queries';
 import { AccountActions } from './components/AccountActions';
 import { AuthDialog, type AuthMode } from './components/AuthDialog';
 import { Brand } from './components/Brand';
@@ -11,30 +12,6 @@ import { SingingListPanel } from './components/SingingListPanel';
 import { TopListPanel } from './components/TopListPanel';
 import { VisibilityControl, VisibilityStatus } from './components/VisibilityControl';
 import { statusLabels } from './status';
-
-const queryKeys = {
-  session: ['auth-session'] as const,
-  rankings: ['rankings'] as const,
-  songs: ['songs'] as const,
-  ranking: (id: string, q: string, artist: string, releaseYear: number | 'ALL') => ['ranking', id, q, artist, releaseYear] as const,
-  personal: ['personal'] as const,
-  signedOut: (resource: string, detail?: string) => ['signed-out', resource, detail ?? 'all'] as const,
-  topList: (userId: string) => ['personal', userId, 'top-list'] as const,
-  singingList: (userId: string, status: string) => ['personal', userId, 'singing-list', status] as const,
-  listSettings: (userId: string) => ['personal', userId, 'list-settings'] as const,
-  publicProfile: (username: string) => ['public-profile', username] as const,
-  publicTopList: (username: string) => ['public-profile', username, 'top-list'] as const,
-  publicSingingList: (username: string) => ['public-profile', username, 'singing-list'] as const
-};
-
-function getRankingPath(rankingId: string, query: string, artist: string, releaseYear: number | 'ALL') {
-  const parameters = new URLSearchParams();
-  if (query) parameters.set('q', query);
-  if (artist !== 'ALL') parameters.set('artist', artist);
-  if (releaseYear !== 'ALL') parameters.set('releaseYear', String(releaseYear));
-  const queryString = parameters.toString();
-  return `/api/rankings/${rankingId}${queryString ? `?${queryString}` : ''}`;
-}
 
 function SignedOutPanel({ onSignIn, onRegister }: { onSignIn: () => void; onRegister: () => void }) {
   return <Paper component="aside" sx={{ p: 3, textAlign: 'center' }}>
@@ -58,15 +35,15 @@ function HomePage() {
   const [authDialog, setAuthDialog] = useState<{ open: boolean; mode: AuthMode }>({ open: false, mode: 'login' });
   const [notice, setNotice] = useState<{ severity: 'success' | 'error'; message: string } | null>(null);
 
-  const sessionQuery = useQuery({ queryKey: queryKeys.session, queryFn: () => request<AuthSession>('/api/auth/session'), retry: false });
+  const sessionQuery = useQuery(sessionQueryOptions());
   const user = sessionQuery.data?.user ?? null;
-  const rankingsQuery = useQuery({ queryKey: queryKeys.rankings, queryFn: () => request<Ranking[]>('/api/rankings') });
-  const songsQuery = useQuery({ queryKey: queryKeys.songs, queryFn: () => request<Song[]>('/api/songs') });
+  const rankingsQuery = useQuery(rankingsQueryOptions());
+  const songsQuery = useQuery(songsQueryOptions());
   const rankingId = rankingsQuery.data?.[0]?.id;
-  const rankingQuery = useQuery({ queryKey: queryKeys.ranking(rankingId ?? 'pending', query, artistFilter, releaseYearFilter), queryFn: () => request<RankingDetail>(getRankingPath(rankingId!, query, artistFilter, releaseYearFilter)), enabled: Boolean(rankingId) });
-  const topQuery = useQuery({ queryKey: user ? queryKeys.topList(user.id) : queryKeys.signedOut('top-list'), queryFn: () => request<TopListEntry[]>('/api/me/top-list'), enabled: Boolean(user), retry: false });
-  const singingQuery = useQuery({ queryKey: user ? queryKeys.singingList(user.id, filter) : queryKeys.signedOut('singing-list', filter), queryFn: () => request<SingingListEntry[]>(filter === 'ALL' ? '/api/me/singing-list' : `/api/me/singing-list?status=${filter}`), enabled: Boolean(user), retry: false });
-  const settingsQuery = useQuery({ queryKey: user ? queryKeys.listSettings(user.id) : queryKeys.signedOut('list-settings'), queryFn: () => request<ListSettings>('/api/me/list-settings'), enabled: Boolean(user), retry: false });
+  const rankingQuery = useQuery(rankingQueryOptions(rankingId, query, artistFilter, releaseYearFilter));
+  const topQuery = useQuery(topListQueryOptions(user));
+  const singingQuery = useQuery(singingListQueryOptions(user, filter));
+  const settingsQuery = useQuery(listSettingsQueryOptions(user));
 
   const clearPersonalData = async () => {
     await client.cancelQueries({ queryKey: queryKeys.personal });
@@ -166,10 +143,10 @@ function HomePage() {
 }
 
 function PublicProfilePage({ username }: { username: string }) {
-  const profileQuery = useQuery({ queryKey: queryKeys.publicProfile(username), queryFn: () => request<PublicProfile>(`/api/users/${encodeURIComponent(username)}`), retry: false });
+  const profileQuery = useQuery(publicProfileQueryOptions(username));
   const profile = profileQuery.data;
-  const topQuery = useQuery({ queryKey: queryKeys.publicTopList(username), queryFn: () => request<TopListEntry[]>(`/api/users/${encodeURIComponent(username)}/top-list`), enabled: profile?.lists.topList === 'PUBLIC', retry: false });
-  const singingQuery = useQuery({ queryKey: queryKeys.publicSingingList(username), queryFn: () => request<PublicSingingListEntry[]>(`/api/users/${encodeURIComponent(username)}/singing-list`), enabled: profile?.lists.singingList === 'PUBLIC', retry: false });
+  const topQuery = useQuery(publicTopListQueryOptions(username, profile?.lists.topList === 'PUBLIC'));
+  const singingQuery = useQuery(publicSingingListQueryOptions(username, profile?.lists.singingList === 'PUBLIC'));
 
   return <><CssBaseline /><Brand action={<Button href="/" variant="outlined">Back to ranking</Button>} />
     <Box component="main" sx={{ py: { xs: 3, md: 5 } }}><Container maxWidth="md">
