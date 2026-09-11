@@ -41,11 +41,14 @@ The seed is idempotent. You can run `npm run db:seed` again without duplicating 
 | `npm run test` | Run unit, component, and integration tests. |
 | `npm run test:e2e` | Run the Playwright critical workflow. |
 | `npm run build` | Build all workspaces. |
-| `NODE_ENV=production APP_ORIGIN=http://localhost:3001 PORT=3001 npm run start` | Run the production-shaped Express server, which serves the built web app and API from one origin. |
+| `npm run start` | Run the built API using the values in your `.env`. |
+| `npm run build && npm run start:prod` | Run the production-shaped Express server, which serves the built web app and API from one origin. |
 
 ## Environment
 
 Use `.env.example` as the template. `APP_ORIGIN` must exactly match the browser origin used for state-changing requests; its default development value is `http://localhost:5173`. `DEMO_USER_ID` is used only to preserve the credential-free seeded demo fixture.
+
+`npm run start:prod` reads the production-shaped values from the tracked `config/production.env` through Node's `--env-file`, so the command carries no shell-specific syntax and behaves identically in bash, zsh, PowerShell, and cmd.exe. That file holds only `NODE_ENV`, `PORT`, and `APP_ORIGIN`; secrets such as `DATABASE_URL` still come from your untracked `.env`. Variables already present in the environment take precedence over the file, so `PORT=3002 npm run start:prod` (bash or zsh) and `$env:PORT=3002; npm run start:prod` (PowerShell) both override the port.
 
 ## Architecture
 
