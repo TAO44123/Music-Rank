@@ -1,11 +1,11 @@
-import AccountCircleOutlinedIcon from '@mui/icons-material/AccountCircleOutlined';
 import LockOutlineIcon from '@mui/icons-material/LockOutline';
-import LogoutIcon from '@mui/icons-material/Logout';
-import { Alert, AppBar, Box, Button, Chip, CircularProgress, Container, CssBaseline, Divider, List, ListItem, ListItemText, Menu, MenuItem, Paper, Snackbar, Stack, Toolbar, Typography } from '@mui/material';
+import { Alert, Box, Button, Chip, CircularProgress, Container, CssBaseline, List, ListItem, ListItemText, Paper, Snackbar, Stack, Typography } from '@mui/material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useMemo, useState, type MouseEvent, type ReactNode } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ApiError, request, type AuthSession, type AuthUser, type ListSettings, type ListVisibility, type PublicProfile, type PublicSingingListEntry, type Ranking, type RankingDetail, type SingingListEntry, type SingingStatus, type Song, type TopListEntry } from './api';
+import { AccountActions } from './components/AccountActions';
 import { AuthDialog, type AuthMode } from './components/AuthDialog';
+import { Brand } from './components/Brand';
 import { RankingPanel } from './components/RankingPanel';
 import { SingingListPanel } from './components/SingingListPanel';
 import { TopListPanel } from './components/TopListPanel';
@@ -36,15 +36,6 @@ function getRankingPath(rankingId: string, query: string, artist: string, releas
   return `/api/rankings/${rankingId}${queryString ? `?${queryString}` : ''}`;
 }
 
-function Brand({ action }: { action?: ReactNode }) {
-  return <AppBar position="static" elevation={0} color="transparent" sx={{ borderBottom: 1, borderColor: 'divider', bgcolor: 'background.default' }}>
-    <Container maxWidth="xl"><Toolbar disableGutters sx={{ minHeight: 66 }}><Stack direction="row" justifyContent="space-between" alignItems="center" width="100%" gap={2}>
-      <Box component="a" href="/" sx={{ color: 'inherit', textDecoration: 'none', minWidth: 0 }}><Typography variant="h1" fontSize="1.45rem">Music Rank</Typography><Typography variant="caption" color="text.secondary" sx={{ display: { xs: 'none', sm: 'block' } }}>Build a personal map of the songs you keep returning to.</Typography></Box>
-      {action}
-    </Stack></Toolbar></Container>
-  </AppBar>;
-}
-
 function SignedOutPanel({ onSignIn, onRegister }: { onSignIn: () => void; onRegister: () => void }) {
   return <Paper component="aside" sx={{ p: 3, textAlign: 'center' }}>
     <LockOutlineIcon color="secondary" sx={{ fontSize: 38 }} />
@@ -56,18 +47,6 @@ function SignedOutPanel({ onSignIn, onRegister }: { onSignIn: () => void; onRegi
 
 function AccountLoadingPanel() {
   return <Paper component="aside" sx={{ p: 4 }}><Stack direction="row" alignItems="center" justifyContent="center" gap={1.25} color="text.secondary"><CircularProgress size={20} /> Loading your account</Stack></Paper>;
-}
-
-function AccountActions({ user, onLogout }: { user: AuthUser; onLogout: () => void }) {
-  const [anchor, setAnchor] = useState<HTMLElement | null>(null);
-  return <>
-    <Button startIcon={<AccountCircleOutlinedIcon />} onClick={(event: MouseEvent<HTMLButtonElement>) => setAnchor(event.currentTarget)} aria-controls={anchor ? 'account-menu' : undefined} aria-haspopup="true" aria-expanded={anchor ? 'true' : undefined}>@{user.username}</Button>
-    <Menu id="account-menu" anchorEl={anchor} open={Boolean(anchor)} onClose={() => setAnchor(null)}>
-      <MenuItem component="a" href={`/u/${user.username}`}>View public profile</MenuItem>
-      <Divider />
-      <MenuItem onClick={() => { setAnchor(null); onLogout(); }}><LogoutIcon fontSize="small" sx={{ mr: 1 }} />Sign out</MenuItem>
-    </Menu>
-  </>;
 }
 
 function HomePage() {
