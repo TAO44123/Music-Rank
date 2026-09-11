@@ -3,6 +3,7 @@ import { Alert, Box, Button, CircularProgress, Container, Paper, Stack, Typograp
 import { useQuery } from '@tanstack/react-query';
 import { createRoute } from '@tanstack/react-router';
 import { useEffect, useMemo, useState } from 'react';
+import { z } from 'zod';
 import { ApiError, type SingingStatus } from '../api';
 import { RankingPanel } from '../components/RankingPanel';
 import { SingingListPanel } from '../components/SingingListPanel';
@@ -12,7 +13,18 @@ import { listSettingsQueryOptions, rankingQueryOptions, rankingsQueryOptions, si
 import { useAppShell } from '../shell/AppShellContext';
 import { Route as rootRoute } from './__root';
 
-export const Route = createRoute({ getParentRoute: () => rootRoute, path: '/', component: HomePage });
+const rankingSearchSchema = z.object({
+  signin: z.boolean().optional().catch(undefined)
+});
+
+export type RankingSearch = z.infer<typeof rankingSearchSchema>;
+
+export const Route = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/',
+  component: HomePage,
+  validateSearch: (search: Record<string, unknown>): RankingSearch => rankingSearchSchema.parse(search)
+});
 
 function SignedOutPanel({ onSignIn, onRegister }: { onSignIn: () => void; onRegister: () => void }) {
   return <Paper component="aside" sx={{ p: 3, textAlign: 'center' }}>
@@ -33,6 +45,14 @@ function HomePage() {
   const [artistFilter, setArtistFilter] = useState('ALL');
   const [releaseYearFilter, setReleaseYearFilter] = useState<number | 'ALL'>('ALL');
   const [filter, setFilter] = useState<SingingStatus | 'ALL'>('ALL');
+  const { signin } = Route.useSearch();
+  const navigate = Route.useNavigate();
+
+  useEffect(() => {
+    if (!signin) return;
+    openAuth('login');
+    void navigate({ search: (current) => ({ ...current, signin: undefined }), replace: true });
+  }, [signin, openAuth, navigate]);
 
   const rankingsQuery = useQuery(rankingsQueryOptions());
   const songsQuery = useQuery(songsQueryOptions());
