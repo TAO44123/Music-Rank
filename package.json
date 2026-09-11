@@ -23,6 +23,7 @@
     "test": "npm run test --workspaces --if-present",
     "build": "npm run build --workspace @music-rank/contracts && npm run build --workspace @music-rank/database && npm run build --workspace @music-rank/api && npm run build --workspace @music-rank/web",
     "start": "npm run start --workspace @music-rank/api",
+    "start:prod": "node --env-file=config/production.env apps/api/dist/index.js",
     "test:e2e": "playwright test"
   },
   "devDependencies": {

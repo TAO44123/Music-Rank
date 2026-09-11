@@ -187,11 +187,16 @@ npm run dev
 | npm run test | 运行所有 Vitest 测试 |
 | npm run build | 构建 contracts、database、API 和 Web |
 | npm run test:e2e | 构建并运行 Playwright 关键流程 |
-| npm run start | 启动已构建的 API |
+| npm run start | 启动已构建的 API，使用 .env 中的值 |
+| npm run start:prod | 以生产形态启动已构建的 API，读取 config/production.env |
 
 ### 5.5 生产形态的本地运行
 
-先执行 npm run build，再使用 NODE_ENV=production、APP_ORIGIN 和 PORT 启动 npm run start。生产模式下 Express 从 apps/web/dist 提供静态资源，并将非 API 路径回退到 index.html。APP_ORIGIN 应设置为最终浏览器访问 Origin，例如本地同源形态为 http://localhost:3001。
+先执行 npm run build，再执行 npm run start:prod。生产模式下 Express 从 apps/web/dist 提供静态资源，并将非 API 路径回退到 index.html。APP_ORIGIN 应设置为最终浏览器访问 Origin，例如本地同源形态为 http://localhost:3001。
+
+NODE_ENV、PORT 和 APP_ORIGIN 来自随仓库提交的 config/production.env，由 Node 的 --env-file 加载。这里刻意不使用 `VAR=value command` 这种 POSIX 前缀写法：它只有 POSIX shell 认识，在 Windows 的 cmd.exe 下会报 `'NODE_ENV' is not recognized`，PowerShell 下同样是解析错误。npm script 里不含任何 shell 特有语法，bash、zsh、PowerShell 和 cmd.exe 行为一致。
+
+config/production.env 只放 NODE_ENV、PORT 和 APP_ORIGIN，不含机密；DATABASE_URL 等仍来自未跟踪的 .env，由 dotenv 在进程内加载。已存在的环境变量优先级高于 --env-file，因此临时改端口仍然可行。
 
 当前项目没有正式部署配置、反向代理配置、TLS、进程守护或运行时监控。
 
