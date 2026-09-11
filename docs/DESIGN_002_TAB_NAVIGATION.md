@@ -121,7 +121,7 @@ follows:
 | Component | Disposition |
 | --- | --- |
 | `AccountActions` | Moves to `src/components/AccountActions.tsx`, used by the top bar. |
-| `VisibilityStatus` | Moves to `src/components/VisibilityStatus.tsx`, used by both personal pages. |
+| `VisibilityStatus` | No move needed. It is already exported from `src/components/VisibilityControl.tsx`; both personal pages import it from there. |
 | `SignedOutPanel` | Deleted. It filled the right column for anonymous visitors; with the column gone, the tabs hidden, and the guard redirecting, no anonymous visitor can reach a surface that would render it. |
 | `AccountLoadingPanel` | Deleted. It covered the window where the session was still loading inside the right column. The guards now resolve the session before either personal page renders, so the state it represented no longer exists. |
 
