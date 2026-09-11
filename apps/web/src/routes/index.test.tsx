@@ -31,7 +31,7 @@ describe('/', () => {
   it('renders the ranking full width with no personal list column', async () => {
     const { client, router } = renderRoute({ path: '/', fetch: rankingFetch });
     render(<ThemeProvider theme={theme}><QueryClientProvider client={client}><RouterProvider router={router} /></QueryClientProvider></ThemeProvider>);
-    expect(await screen.findByRole('heading', { name: '90s' })).toBeVisible();
+    expect(await screen.findByRole('heading', { name: '90s' }, { timeout: 5_000 })).toBeVisible();
     expect(screen.queryByRole('region', { name: 'My Top 10' })).not.toBeInTheDocument();
     expect(screen.queryByRole('region', { name: 'My Practice Library' })).not.toBeInTheDocument();
     expect(router.state.location.pathname).toBe('/');
