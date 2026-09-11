@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { ThemeProvider } from '@mui/material/styles';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { RouterProvider } from '@tanstack/react-router';
@@ -51,5 +51,29 @@ describe('/', () => {
     render(<ThemeProvider theme={theme}><QueryClientProvider client={client}><RouterProvider router={router} /></QueryClientProvider></ThemeProvider>);
     expect(await screen.findByRole('heading', { name: '90s' })).toBeVisible();
     expect(fetchMock.mock.calls.map(([path]) => String(path)).some((path) => path.startsWith('/api/me/'))).toBe(false);
+  });
+
+  it('applies filters from the URL on load', async () => {
+    const { client, router } = renderRoute({ path: '/?q=%E9%82%A3%E8%8B%B1&year=1993', fetch: rankingFetch });
+    render(<ThemeProvider theme={theme}><QueryClientProvider client={client}><RouterProvider router={router} /></QueryClientProvider></ThemeProvider>);
+    expect(await screen.findByLabelText('Search songs or artists')).toHaveValue('那英');
+    expect(router.state.location.search).toEqual({ q: '那英', year: 1993 });
+  });
+
+  it('writes filter changes into the URL without stacking history entries', async () => {
+    const { client, router } = renderRoute({ path: '/', fetch: rankingFetch });
+    render(<ThemeProvider theme={theme}><QueryClientProvider client={client}><RouterProvider router={router} /></QueryClientProvider></ThemeProvider>);
+    const field = await screen.findByLabelText('Search songs or artists');
+    const lengthBefore = router.history.length;
+    fireEvent.change(field, { target: { value: '涛声' } });
+    await waitFor(() => expect(router.state.location.search).toEqual({ q: '涛声' }));
+    expect(router.history.length).toBe(lengthBefore);
+  });
+
+  it('degrades an invalid year to unfiltered while keeping the valid text filter', async () => {
+    const { client, router } = renderRoute({ path: '/?q=%E9%82%A3%E8%8B%B1&year=banana', fetch: rankingFetch });
+    render(<ThemeProvider theme={theme}><QueryClientProvider client={client}><RouterProvider router={router} /></QueryClientProvider></ThemeProvider>);
+    expect(await screen.findByLabelText('Search songs or artists')).toHaveValue('那英');
+    expect(router.state.location.search).toEqual({ q: '那英' });
   });
 });

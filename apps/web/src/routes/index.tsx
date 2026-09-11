@@ -1,7 +1,7 @@
 import { Alert, Box, Container, Stack } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import { createRoute } from '@tanstack/react-router';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo } from 'react';
 import { z } from 'zod';
 import { ApiError } from '../api';
 import { RankingPanel } from '../components/RankingPanel';
@@ -10,6 +10,9 @@ import { useAppShell } from '../shell/AppShellContext';
 import { Route as rootRoute } from './__root';
 
 const rankingSearchSchema = z.object({
+  q: z.string().trim().min(1).optional().catch(undefined),
+  artist: z.string().trim().min(1).optional().catch(undefined),
+  year: z.coerce.number().int().min(1900).max(2100).optional().catch(undefined),
   signin: z.boolean().optional().catch(undefined)
 });
 
@@ -24,11 +27,15 @@ export const Route = createRoute({
 
 function HomePage() {
   const { user, isSessionError, requireUser, openAuth, mutate, onUnauthorized } = useAppShell();
-  const [query, setQuery] = useState('');
-  const [artistFilter, setArtistFilter] = useState('ALL');
-  const [releaseYearFilter, setReleaseYearFilter] = useState<number | 'ALL'>('ALL');
-  const { signin } = Route.useSearch();
+  const { q, artist, year, signin } = Route.useSearch();
   const navigate = Route.useNavigate();
+  const query = q ?? '';
+  const artistFilter = artist ?? 'ALL';
+  const releaseYearFilter = year ?? 'ALL';
+  const setSearch = (patch: Partial<RankingSearch>) => void navigate({ search: (current) => ({ ...current, ...patch }), replace: true });
+  const setQuery = (value: string) => setSearch({ q: value || undefined });
+  const setArtistFilter = (value: string) => setSearch({ artist: value === 'ALL' ? undefined : value });
+  const setReleaseYearFilter = (value: number | 'ALL') => setSearch({ year: value === 'ALL' ? undefined : value });
 
   useEffect(() => {
     if (!signin) return;
