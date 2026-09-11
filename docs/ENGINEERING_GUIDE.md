@@ -7,8 +7,8 @@
 | 文档性质 | 持续维护的工程实现说明 |
 | 目标读者 | 负责开发、测试、排障和后续维护的工程师 |
 | 当前产品版本 | Version 1 + 认证扩展，本地多用户应用 |
-| 最后更新日期 | 2026-09-10（America/New_York） |
-| 最后核对的代码提交 | 当前工作树（认证与公开榜单实现） |
+| 最后更新日期 | 2026-09-11（America/New_York） |
+| 最后核对的代码提交 | 当前工作树（DESIGN-002 三 Tab 导航与客户端路由） |
 | 事实来源 | 当前仓库代码、配置、迁移和自动化测试 |
 
 这份文档描述系统现在如何工作。首次在本机配置和运行项目时，先执行 [LOCAL_FIRST_RUN_GUIDE.md](LOCAL_FIRST_RUN_GUIDE.md)；产品目标和范围以 [PROJECT_SPEC_ZH.md](PROJECT_SPEC_ZH.md) 与 [PROJECT_SPEC_EN.md](PROJECT_SPEC_EN.md) 为准；历史交接信息以 [IMPLEMENTATION_HANDOFF.md](IMPLEMENTATION_HANDOFF.md) 和 [SESSION_HANDOFF.md](SESSION_HANDOFF.md) 为准。若文档与代码不一致，应先核对代码和测试，再更新本文档。
@@ -29,9 +29,9 @@
 
 ## 2. 系统概览
 
-Music Rank 是一个本地运行的全栈演示应用。用户可以浏览一份明确标记为 Demo Data 的 1990 年代中国大陆流行歌曲虚构榜单，维护个人 Top 10，并维护带演唱状态和备注的 Singing List。
+Music Rank 是一个本地运行的全栈演示应用。用户可以浏览一份明确标记为 Demo Data 的 1990 年代中国大陆流行歌曲虚构榜单，维护个人 Top 10，并维护带演唱状态和备注的 Practice Library。
 
-应用支持本地用户名/密码注册登录、PostgreSQL Session、多用户隔离，以及分别公开或隐藏 Top 10 和 Singing List。匿名用户仍可浏览公共歌曲榜单。
+应用支持本地用户名/密码注册登录、PostgreSQL Session、多用户隔离，以及分别公开或隐藏 Top 10 和 Practice Library。匿名用户仍可浏览公共歌曲榜单。
 
 ~~~mermaid
 flowchart LR
@@ -53,11 +53,11 @@ flowchart LR
 - 歌手精确筛选和发行年份精确筛选。
 - 每页 25 首的前端分页。
 - 最多 10 首、可持久化排序的 My Top 10。
-- 独立于 Top 10 的 My Singing List。
+- 独立于 Top 10 的 My Practice Library。
 - 四种演唱状态和最长 300 字符的纯文本备注。
 - 本地数据库迁移、幂等种子、组件测试、API 集成测试和 Playwright E2E。
 - 用户注册、登录、七天持久 Session 和退出撤销。
-- 默认私密且可独立公开的 Top 10 与 Singing List；公开 Singing List 不包含备注。
+- 默认私密且可独立公开的 Top 10 与 Practice Library；公开 Practice Library 不包含备注。
 
 当前不包含：
 
@@ -107,9 +107,12 @@ Vite 7.2.1 和 @vitejs/plugin-react 5.1.1 是有意锁定的组合。此前更�
 | 路径 | 职责 |
 | --- | --- |
 | apps/web | React/Vite 前端 |
-| apps/web/src/App.tsx | 页面组合、查询、Mutation 和缓存失效 |
+| apps/web/src/router.tsx | 路由树、Router 工厂和类型声明合并 |
+| apps/web/src/routes | 四个路由模块：`__root` 布局、`/`、`/personal`、`/practice`、`/u/$username` |
+| apps/web/src/shell/AppShellContext.tsx | Session、认证对话框、Snackbar 和全部 Mutation 的唯一持有者 |
+| apps/web/src/queries.ts | queryOptions 工厂，供组件与路由守卫共用同一份定义 |
 | apps/web/src/api.ts | 前端 API 类型、请求封装和 ApiError |
-| apps/web/src/components | Ranking、Top 10、Singing List UI |
+| apps/web/src/components | Ranking、Top 10、Practice Library 和 TabNav UI |
 | apps/web/src/theme.ts | Material UI 主题和状态颜色 |
 | apps/api | Express API |
 | apps/api/src/app.ts | Middleware、路由注册和请求校验入口 |
@@ -712,7 +715,24 @@ Unsafe 请求必须携带与 APP_ORIGIN 完全匹配的 Origin，显式 cross-si
 
 ### 12.1 页面和数据流
 
-App.tsx 先解析 `/` 或 `/u/:username` 页面。主页独立加载公共榜单与 Session；只有 Session 含用户时才加载个人数据。登录、退出和认证失效会取消、清空并删除 `personal` 前缀缓存，避免跨用户复用。未登录时禁用的个人 Query 使用独立 `signed-out` 前缀，不能继续占用 `personal` 命名空间，否则 Query Observer 可能在退出后的重渲染中重新创建刚被删除的私人缓存项。写入成功后失效当前用户的 Top 10 和 Singing List Query，并用 Snackbar 展示结果。
+前端使用 TanStack Router 的 Code-based 路由树，共四条路由：
+
+| 路径 | 页面 | Tab 栏 | 需要 Session |
+| --- | --- | --- | --- |
+| `/` | The Ranking，全宽榜单 | 有 | 否 |
+| `/personal` | Personal Ranking，My Top 10 | 有 | 是 |
+| `/practice` | Practice Library | 有 | 是 |
+| `/u/$username` | 公开资料页 | 无 | 否 |
+
+`__root` 是布局路由，通过 AppShellProvider 持有 Session Query、认证对话框、Snackbar 和三个 Mutation，页面组件用 useAppShell 取用，避免穿过 Outlet 的 Prop 传递。公开资料页用 `chrome={false}` 跳过顶栏和 Tab 栏，保留自己的"Back to ranking"入口。
+
+`/personal` 与 `/practice` 各自在 beforeLoad 里 `ensureQueryData(sessionQueryOptions())`，无用户则重定向到 `/` 并带上 `signin` Search 参数以弹出登录框。守卫只挂在这两条路由上，`/` 和 `/u/$username` 不等待 Session，匿名首屏不被认证往返拖慢。守卫与组件必须共用 queries.ts 的同一个 queryOptions 对象，否则守卫写入的缓存项组件读不到。
+
+beforeLoad 只在导航时执行，因此 Session 在页面内失效时需要显式 `router.invalidate()` 让守卫重新求值；这一步放在 loseAuthentication 里。主动登出走另一条路径：先导航回 `/` 再清除 Session，否则守卫会把刚选择登出的用户立刻重定向并要求登录。
+
+登录、退出和认证失效会取消、清空并删除 `personal` 前缀缓存，避免跨用户复用。未登录时禁用的个人 Query 使用独立 `signed-out` 前缀，不能继续占用 `personal` 命名空间，否则 Query Observer 可能在退出后的重渲染中重新创建刚被删除的私人缓存项。写入成功后失效当前用户的 Top 10 和 Practice Library Query，并用 Snackbar 展示结果。
+
+榜单页的搜索词、歌手和年份筛选保存在 URL Search 参数（`q`、`artist`、`year`），用 zod 校验，每个字段各自 `.catch(undefined)`，因此单个非法值只降级自身而不会丢弃其余筛选。筛选变更使用 `replace: true`，避免每敲一个字符压一条历史记录。空值以 undefined 写入，从 URL 中移除而非序列化成空串。
 
 主要 Query Key：
 
@@ -726,7 +746,13 @@ App.tsx 先解析 `/` 或 `/u/:username` 页面。主页独立加载公共榜单
 - personal + userId + list-settings
 - public-profile + username + 可选列表类型
 
-### 12.2 RankingPanel
+### 12.2 术语分界
+
+DESIGN-002 起，用户可见文案统一使用 Practice Library：Tab 名称、页面标题、可见性控件、公开资料页分区，以及 API 错误消息文本。
+
+数据契约保持 `singing`/`SINGING` 不变，本文档在描述这些位置时也沿用原名：`/api/me/singing-list/*` 与 `/api/users/:username/singing-list` 路径、`SINGING_LIST` 列表类型枚举、`singing_list_entries` 表、ListSettings 的 `singingList` 字段、`SINGING_LIST_ITEM_NOT_FOUND` 错误码，以及 SingingListPanel 组件标识符。改动这些是破坏性变更，不属于本次范围。
+
+### 12.3 RankingPanel
 
 - 搜索、歌手或年份变化时回到第 1 页。
 - Clear 只清除歌手和年份，不清除搜索词。
@@ -734,7 +760,7 @@ App.tsx 先解析 `/` 或 `/u/:username` 页面。主页独立加载公共榜单
 - Top 10 已满时禁用尚未加入歌曲的 Add Top 10。
 - 操作按钮使用固定宽度保持行对齐。
 
-### 12.3 TopListPanel
+### 12.4 TopListPanel
 
 - 使用 dnd-kit PointerSensor 和 KeyboardSensor。
 - PointerSensor 需要移动 6 像素才开始拖动。
@@ -742,7 +768,7 @@ App.tsx 先解析 `/` 或 `/u/:username` 页面。主页独立加载公共榜单
 - 每次重排向 API 提交完整 orderedSongIds。
 - 标题下方通过 statusLabel 插槽显示当前 Public/Private 小标签；右侧只保留数量和紧凑操作按钮。
 
-### 12.4 SingingListPanel
+### 12.5 SingingListPanel
 
 - 顶部状态 Chip 控制服务端筛选。
 - 折叠行显示状态色条、歌曲、歌手、可选备注预览、状态、编辑和删除。
@@ -753,7 +779,7 @@ App.tsx 先解析 `/` 或 `/u/:username` 页面。主页独立加载公共榜单
 - 状态和 Top 10 成员资格互相独立。
 - 与 TopListPanel 一样，标题下方显示可见性标签，数量和操作按钮保持在标题区右侧。
 
-### 12.5 认证与公开页
+### 12.6 认证与公开页
 
 - 顶栏在匿名状态显示 Sign in/Register，在登录状态显示账户菜单。
 - 登录注册共用 AuthDialog，关闭时清除密码 state。
@@ -761,16 +787,19 @@ App.tsx 先解析 `/` 或 `/u/:username` 页面。主页独立加载公共榜单
 - 点击闭合锁切换到 Public 前必须确认；点击打开锁可直接恢复 Private。
 - Public 状态显示弯曲箭头分享按钮。浏览器支持 Web Share API 时打开原生分享面板；不可用或调用失败时复制 `/u/:username` 链接。用户主动取消系统分享时不触发复制降级。
 - `/u/:username` 只请求服务端已批准的公开 Projection。
-- Singing List 公开页显示状态但不支持编辑，也不接收 note 字段。
+- Practice Library 公开页显示状态但不支持编辑，也不接收 note 字段。
 
-### 12.6 响应式布局
+### 12.7 响应式布局
 
-- 小于 lg：主区域为单列，登录提示或个人列表在前，公共榜单在后，避免个人功能被 25 条榜单内容推到页面底部。
-- lg 及以上：约 1.6fr / 0.85fr 的两列布局。
+- 三个页面均为全宽单列。DESIGN-002 之前的 1.6fr / 0.85fr 两列布局已移除，个人列表改为独立路由。
+- TabNav 始终使用 MUI `Tabs` 的 `fullWidth` 变体；`sm` 断点通过 `flex: '0 0 auto'` 让整行收缩为自然宽度并左对齐。同一个 Tabs 实例贯穿所有断点，不做变体切换，避免 Tab 列表重新挂载。
+- Tab 文案有长短两套，同时存在于 DOM 中，由 `sx` 断点切换 `display`：小于 `sm` 显示 Ranking / Personal / Practice，`sm` 及以上显示 The Ranking / Personal Ranking / Practice Library。不使用 `useMediaQuery`，它首帧返回 false 会导致桌面端闪一下短文案。
+- TabNav 容器高度固定为 52px，Session 解析完成后另外两个 Tab 出现时不会推动下方内容。
 - Ranking 行操作在 xs 下纵向排列，在 sm 及以上横向排列。
-- Singing 状态 Chip 允许换行。
+- Practice Library 状态 Chip 允许换行。
+- 375px 实测：三个 Tab 等宽各约 114px，三个页面横向溢出均为 0。
 
-### 12.7 视觉与无障碍
+### 12.8 视觉与无障碍
 
 - 只提供亮色主题和 Warm Archive 配色。
 - 标题优先使用 Iowan Old Style / Palatino 系统衬线字体。
@@ -831,7 +860,7 @@ npm run typecheck 会先构建 contracts 和 database，再执行所有 workspac
 
 ### 14.4 Playwright E2E
 
-当前 1 条关键流程覆盖页面注册、退出、密码登录、添加 Top 10/Singing List、设置状态与私密备注、刷新恢复 Session、通过锁按钮分别公开列表并验证标题下方 Public 标签、再次退出，以及匿名读取公开页且看不到备注。
+当前 1 条关键流程覆盖：匿名时两个个人 Tab 不存在、注册、退出、密码登录后 Tab 出现、搜索写入 URL Search 参数、添加 Top 10 与 Practice Library、经 Tab 跳转到 `/personal` 和 `/practice`、设置状态与私密备注、刷新后仍停在 `/practice`、通过锁按钮分别公开列表并验证标题下方 Public 标签、后退回 `/personal` 且选中态正确、登出后落在 `/` 且不弹登录框、匿名深链接 `/personal` 被重定向并弹出登录框，以及匿名读取公开页时无 Tab 栏且看不到备注。
 
 playwright.config.ts 使用端口 3101、production 形态 Express 服务和 reuseExistingServer: false。启动前执行 build、Migration 和公共 Seed，并把 APP_ORIGIN 指向 3101。测试注册带时间戳的唯一用户，结束后级联删除该账户；不影响 demo 用户。
 
@@ -975,7 +1004,7 @@ E2E 不复用已有服务器；3101 被占用时应先定位占用者。
 | --- | --- | --- |
 | SSO 与账户恢复 | 当前只有本地用户名/密码，未实现 SSO、邮箱验证或密码重置 | 按 AUTHENTICATION_DESIGN 的 issuer/sub 身份模型向前扩展 |
 | 活动榜单选择 | 前端直接使用榜单数组第一项 | 多榜单前增加显式选择和稳定排序 |
-| Singing 成员判断 | 状态筛选后，排行榜只知道当前筛选结果中的成员 | 将完整成员集合与筛选展示数据分开 |
+| ~~Singing 成员判断~~ | 已解决（DESIGN-002）：状态筛选随 Practice Library 移到 `/practice`，榜单页固定以 `ALL` 读取完整成员集合 | — |
 | API 分页 | songs 与榜单详情没有服务端分页 | 数据规模扩大前设计统一分页 |
 | 错误映射 | 未识别数据库约束错误返回 500 | 补充稳定业务错误映射 |
 | 非标准请求错误 | malformed JSON、Body 过大和未知 API 路径未统一为 JSON 格式 | 增加解析错误和 API 404 Middleware |
@@ -1007,6 +1036,7 @@ E2E 不复用已有服务器；3101 被占用时应先定位占用者。
 
 | 日期 | 代码基线 | 内容 |
 | --- | --- | --- |
+| 2026-09-11 | 当前工作树 | 实现 DESIGN-002：TanStack Router 客户端路由、三 Tab 响应式导航、受守卫的 `/personal` 与 `/practice`、榜单筛选进 URL Search 参数、Singing List 更名为 Practice Library |
 | 2026-09-10 | 40b8ff1 之后的工作树 | 将可见性选择框改为开/闭锁按钮与标题下状态标签，增加原生分享/复制降级，并隔离 signed-out 与 personal Query Key |
 | 2026-09-10 | 40b8ff1 | 实现用户名/密码认证、数据库 Session、多用户隔离、Public/Private 个人榜单、公开资料页和未来 SSO 边界 |
 | 2026-09-10 | 当前工作树 | 新增首次本地运行指南与认证开发交接入口，并将首次依赖安装统一为 npm ci |

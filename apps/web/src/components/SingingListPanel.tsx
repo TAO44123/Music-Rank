@@ -48,7 +48,7 @@ function SingingItem({ entry, onSave, onRemove }: SingingItemProps) {
           <IconButton aria-label={`Edit ${entry.title}`} aria-expanded={isEditing} aria-controls={`singing-editor-${entry.id}`} size="small" color="primary" onClick={() => setIsEditing((value) => !value)} sx={{ border: 0 }}><EditOutlinedIcon fontSize="small" /></IconButton>
         </Tooltip>
         <Tooltip title={`Remove ${entry.title}`}>
-          <IconButton aria-label={`Remove ${entry.title} from My Singing List`} size="small" color="primary" onClick={() => onRemove(entry.id)} sx={{ border: 0 }}><DeleteOutlineIcon fontSize="small" /></IconButton>
+          <IconButton aria-label={`Remove ${entry.title} from My Practice Library`} size="small" color="primary" onClick={() => onRemove(entry.id)} sx={{ border: 0 }}><DeleteOutlineIcon fontSize="small" /></IconButton>
         </Tooltip>
       </Stack>
     </Box>
@@ -89,12 +89,12 @@ export function SingingListPanel({ entries, filter, onFilterChange, onSave, onRe
     <Stack direction="row" justifyContent="space-between" alignItems="center" gap={2}>
       <Box>
         <Typography variant="overline" color="secondary.main" fontWeight={800}>Practice library</Typography>
-        <Typography id="singing-list-heading" variant="h2" fontSize="1.45rem">My Singing List</Typography>
+        <Typography id="singing-list-heading" variant="h2" fontSize="1.45rem">My Practice Library</Typography>
         {statusLabel && <Box mt={0.75}>{statusLabel}</Box>}
       </Box>
       <Stack direction="row" alignItems="center" gap={1}><Typography variant="body2" color="text.secondary" fontWeight={700}>{entries.length} {entries.length === 1 ? 'song' : 'songs'}</Typography>{headerAction}</Stack>
     </Stack>
-    <Stack direction="row" flexWrap="wrap" useFlexGap gap={0.75} mt={2} mb={0.5} aria-label="Filter singing list by status">
+    <Stack direction="row" flexWrap="wrap" useFlexGap gap={0.75} mt={2} mb={0.5} aria-label="Filter practice library by status">
       <Chip label="All" size="small" clickable onClick={() => onFilterChange('ALL')} aria-pressed={filter === 'ALL'} color={filter === 'ALL' ? 'primary' : 'default'} variant={filter === 'ALL' ? 'filled' : 'outlined'} sx={{ fontWeight: 700 }} />
       {singingStatuses.map((status) => {
         const statusColor = theme.palette.statusColors[status];

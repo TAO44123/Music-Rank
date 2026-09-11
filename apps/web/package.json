@@ -18,8 +18,10 @@
     "@mui/material": "^7.3.5",
     "@music-rank/contracts": "*",
     "@tanstack/react-query": "^5.90.10",
+    "@tanstack/react-router": "^1.170.35",
     "react": "^19.2.0",
-    "react-dom": "^19.2.0"
+    "react-dom": "^19.2.0",
+    "zod": "^4.6.2"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.9.1",

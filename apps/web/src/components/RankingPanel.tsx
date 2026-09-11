@@ -85,7 +85,7 @@ export function RankingPanel({ ranking, isLoading, query, onQueryChange, artistF
           const inSinging = singingSongIds.has(entry.id);
           return <ListItem key={entry.id} divider alignItems="center" sx={{ px: 0, py: 1.4, gap: 1.5 }} secondaryAction={<Stack direction={{ xs: 'column', sm: 'row' }} spacing={0.75} alignItems="stretch">
             <Button variant={inTop ? 'outlined' : 'contained'} disabled={inTop || (!inTop && topAtCapacity)} startIcon={<AddIcon />} onClick={() => onAddTop(entry.id)} sx={{ width: 144, justifyContent: 'center' }}>{inTop ? 'In Top 10' : 'Add Top 10'}</Button>
-            <Button variant="outlined" disabled={inSinging} startIcon={<MicNoneIcon />} onClick={() => onAddSinging(entry.id)} sx={{ width: 164, justifyContent: 'center' }}>{inSinging ? 'In Singing List' : 'Add Singing'}</Button>
+            <Button variant="outlined" disabled={inSinging} startIcon={<MicNoneIcon />} onClick={() => onAddSinging(entry.id)} sx={{ width: 164, justifyContent: 'center' }}>{inSinging ? 'In Practice Library' : 'Add Practice'}</Button>
           </Stack>}>
             <Typography component="span" color="primary.main" fontWeight={800} sx={{ width: 34, fontSize: '1.1rem' }}>{entry.rank}</Typography>
             <ListItemText primary={entry.title} secondary={`${entry.artist}${entry.releaseYear ? ` · ${entry.releaseYear}` : ''}`} primaryTypographyProps={{ fontWeight: 700 }} sx={{ pr: { xs: 0, sm: 25 } }} />

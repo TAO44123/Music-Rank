@@ -62,7 +62,7 @@ export function VisibilityControl({ label, visibility, publicUrl, privateNotes, 
       <DialogContent>
         <Stack spacing={1.5}>
           <Typography>Anyone with your public profile address will be able to see the songs{label === 'Top 10' ? ' and their order' : ' and singing statuses'}.</Typography>
-          {privateNotes && <Alert severity="info">Your Singing List notes always remain private.</Alert>}
+          {privateNotes && <Alert severity="info">Your Practice Library notes always remain private.</Alert>}
         </Stack>
       </DialogContent>
       <DialogActions><Button onClick={() => setConfirming(false)}>Keep private</Button><Button variant="contained" onClick={publish}>Make public</Button></DialogActions>
