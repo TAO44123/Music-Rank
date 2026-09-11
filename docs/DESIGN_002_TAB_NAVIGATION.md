@@ -1,7 +1,7 @@
 ---
 design_id: DESIGN-002
 title: Tab Navigation and Client Routing
-status: Draft
+status: Implemented
 author: chance
 created: 2026-09-11
 updated: 2026-09-11
@@ -336,3 +336,4 @@ copy.
 | 日期 | 作者 | 变更 | Commit |
 | --- | --- | --- | --- |
 | 2026-09-11 | chance | 初稿：三 tab 导航、TanStack Router 客户端路由、榜单筛选进 URL、Practice Library 术语统一 | — |
+| 2026-09-11 | chance | 按 PLAN-002 实现完成，14 节验收标准全部通过。实现期补充：第 9 节"会话页内失效"需要显式 `router.invalidate()`（beforeLoad 只在导航时执行），且主动登出必须先导航再清会话；第 10 节改名表补入 RankingPanel 按钮文案与 `services.ts` 错误消息 | b1f9d98 |

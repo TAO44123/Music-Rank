@@ -1,7 +1,7 @@
 ---
 plan_id: PLAN-002
 title: Tab Navigation and Client Routing Implementation Plan
-status: Ready
+status: Completed
 author: chance
 created: 2026-09-11
 updated: 2026-09-11
@@ -13,7 +13,7 @@ related:
 
 # Tab Navigation and Client Routing Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Replace the single-page layout with three full-width destinations — The Ranking, Personal Ranking, Practice Library — reachable from a responsive tab bar and each addressable by URL.
 
@@ -71,12 +71,12 @@ Pure moves with no behavior change. They come first so later tasks import stable
   - `export function Brand({ action }: { action?: ReactNode }): JSX.Element`
   - `export function AccountActions({ user, onLogout }: { user: AuthUser; onLogout: () => void }): JSX.Element`
 
-- [ ] **Step 1: Run the existing suite to record the baseline**
+- [x] **Step 1: Run the existing suite to record the baseline**
 
 Run: `npm run test --workspace @music-rank/web`
 Expected: PASS. Record the number of passing tests; Step 5 must match it.
 
-- [ ] **Step 2: Create `apps/web/src/components/Brand.tsx`**
+- [x] **Step 2: Create `apps/web/src/components/Brand.tsx`**
 
 ```tsx
 import { AppBar, Box, Container, Stack, Toolbar, Typography } from '@mui/material';
@@ -92,7 +92,7 @@ export function Brand({ action }: { action?: ReactNode }) {
 }
 ```
 
-- [ ] **Step 3: Create `apps/web/src/components/AccountActions.tsx`**
+- [x] **Step 3: Create `apps/web/src/components/AccountActions.tsx`**
 
 ```tsx
 import AccountCircleOutlinedIcon from '@mui/icons-material/AccountCircleOutlined';
@@ -114,7 +114,7 @@ export function AccountActions({ user, onLogout }: { user: AuthUser; onLogout: (
 }
 ```
 
-- [ ] **Step 4: Delete both definitions from `App.tsx` and import them instead**
+- [x] **Step 4: Delete both definitions from `App.tsx` and import them instead**
 
 Remove the `Brand` and `AccountActions` function bodies. Add:
 
@@ -125,7 +125,7 @@ import { Brand } from './components/Brand';
 
 Then remove the now-unused imports from the `@mui/material` and `@mui/icons-material` import lines: `AccountCircleOutlinedIcon`, `LogoutIcon`, `AppBar`, `Menu`, `MenuItem`, `Toolbar`, `Divider`, and the `MouseEvent` type import. Leave every other import in place — `Box`, `Button`, `Container`, `Stack`, and `Typography` are still used elsewhere in the file.
 
-- [ ] **Step 5: Verify nothing changed**
+- [x] **Step 5: Verify nothing changed**
 
 Run: `npm run test --workspace @music-rank/web`
 Expected: PASS with the same test count as Step 1.
@@ -133,7 +133,7 @@ Expected: PASS with the same test count as Step 1.
 Run: `npm run build --workspace @music-rank/contracts && npm run typecheck --workspace @music-rank/web`
 Expected: no output, exit 0.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add apps/web/src/components/Brand.tsx apps/web/src/components/AccountActions.tsx apps/web/src/App.tsx
@@ -161,7 +161,7 @@ Route guards and components must resolve queries from one definition, otherwise 
   - `topListQueryOptions(user: AuthUser | null)`, `singingListQueryOptions(user: AuthUser | null, filter: SingingStatus | 'ALL')`, `listSettingsQueryOptions(user: AuthUser | null)`
   - `publicProfileQueryOptions(username: string)`, `publicTopListQueryOptions(username: string, enabled: boolean)`, `publicSingingListQueryOptions(username: string, enabled: boolean)`
 
-- [ ] **Step 1: Create `apps/web/src/queries.ts`**
+- [x] **Step 1: Create `apps/web/src/queries.ts`**
 
 ```ts
 import { queryOptions } from '@tanstack/react-query';
@@ -249,7 +249,7 @@ export const publicSingingListQueryOptions = (username: string, enabled: boolean
 });
 ```
 
-- [ ] **Step 2: Replace the inline definitions in `App.tsx`**
+- [x] **Step 2: Replace the inline definitions in `App.tsx`**
 
 Delete the local `queryKeys` object and `getRankingPath` function. Import from `./queries` instead, and rewrite each `useQuery` call to spread its options factory. For example:
 
@@ -272,12 +272,12 @@ const topQuery = useQuery(publicTopListQueryOptions(username, profile?.lists.top
 const singingQuery = useQuery(publicSingingListQueryOptions(username, profile?.lists.singingList === 'PUBLIC'));
 ```
 
-- [ ] **Step 3: Verify behavior is unchanged**
+- [x] **Step 3: Verify behavior is unchanged**
 
 Run: `npm run test --workspace @music-rank/web`
 Expected: PASS, same count as Task 1 Step 1. The existing test `keeps personal endpoints disabled for anonymous visitors` asserts no `/api/me/*` request fires while signed out, which is exactly the `enabled` wiring this task moved.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add apps/web/src/queries.ts apps/web/src/App.tsx
@@ -302,7 +302,7 @@ The router replaces the `pathname` regex. Page composition does not change yet, 
   - `export function createAppRouter(queryClient: QueryClient, history?: RouterHistory)`
   - `export function renderRoute(options: { path?: string; fetch: (path: string, init?: RequestInit) => Promise<Response> }): { client: QueryClient; fetchMock: Mock; router: ReturnType<typeof createAppRouter> }`
 
-- [ ] **Step 1: Add the dependencies**
+- [x] **Step 1: Add the dependencies**
 
 ```bash
 npm install --workspace @music-rank/web @tanstack/react-router@^1.170.35 zod@^4.1.12
@@ -310,7 +310,7 @@ npm install --workspace @music-rank/web @tanstack/react-router@^1.170.35 zod@^4.
 
 `zod` is declared explicitly rather than relied on through workspace hoisting from `@music-rank/contracts`; it is used directly by Task 9.
 
-- [ ] **Step 2: Write the failing routing test**
+- [x] **Step 2: Write the failing routing test**
 
 Replace the whole of `apps/web/src/App.test.tsx` with `apps/web/src/routes/routing.test.tsx`:
 
@@ -360,12 +360,12 @@ function jsonResponse(body: unknown, status = 200) {
 }
 ```
 
-- [ ] **Step 3: Run it to verify it fails**
+- [x] **Step 3: Run it to verify it fails**
 
 Run: `npm run test --workspace @music-rank/web -- routing`
 Expected: FAIL — `Cannot find module '../test/renderRoute'`.
 
-- [ ] **Step 4: Create the test helper `apps/web/src/test/renderRoute.tsx`**
+- [x] **Step 4: Create the test helper `apps/web/src/test/renderRoute.tsx`**
 
 ```tsx
 import { QueryClient } from '@tanstack/react-query';
@@ -382,7 +382,7 @@ export function renderRoute({ path = '/', fetch }: { path?: string; fetch: (path
 }
 ```
 
-- [ ] **Step 5: Create `apps/web/src/routes/__root.tsx`**
+- [x] **Step 5: Create `apps/web/src/routes/__root.tsx`**
 
 Move `HomePage`'s shell markup here; the page body stays in `index.tsx` for now by rendering `<Outlet />`. Copy `SignedOutPanel`, `AccountLoadingPanel`, and `VisibilityStatus` usage into `index.tsx` unchanged — they are removed in Task 7.
 
@@ -414,7 +414,7 @@ function NotFound() {
 
 The layout stays this thin in Task 3 on purpose. `Brand`, `TabNav`, the auth dialog, and the snackbar move up in Task 4, after routing itself is proven.
 
-- [ ] **Step 6: Create `apps/web/src/routes/index.tsx` and `apps/web/src/routes/u.$username.tsx`**
+- [x] **Step 6: Create `apps/web/src/routes/index.tsx` and `apps/web/src/routes/u.$username.tsx`**
 
 Move the `HomePage` function body verbatim from `App.tsx` into `index.tsx`, and `PublicProfilePage` into `u.$username.tsx`. Neither body changes; only the export shape does. In `index.tsx`:
 
@@ -443,7 +443,7 @@ function PublicProfilePage() {
 
 The `try`/`catch` around `decodeURIComponent` in the old `App.tsx` is dropped: TanStack Router decodes path parameters and never hands the component a malformed escape sequence.
 
-- [ ] **Step 7: Create `apps/web/src/router.tsx`**
+- [x] **Step 7: Create `apps/web/src/router.tsx`**
 
 ```tsx
 import { createRouter, type RouterHistory } from '@tanstack/react-router';
@@ -463,7 +463,7 @@ declare module '@tanstack/react-router' {
 }
 ```
 
-- [ ] **Step 8: Rewrite `apps/web/src/main.tsx`**
+- [x] **Step 8: Rewrite `apps/web/src/main.tsx`**
 
 ```tsx
 import { StrictMode } from 'react';
@@ -479,7 +479,7 @@ const router = createAppRouter(queryClient);
 createRoot(document.getElementById('root')!).render(<StrictMode><ThemeProvider theme={theme}><QueryClientProvider client={queryClient}><RouterProvider router={router} /></QueryClientProvider></ThemeProvider></StrictMode>);
 ```
 
-- [ ] **Step 9: Delete `App.tsx` and run the tests**
+- [x] **Step 9: Delete `App.tsx` and run the tests**
 
 ```bash
 git rm apps/web/src/App.tsx apps/web/src/App.test.tsx
@@ -488,12 +488,12 @@ git rm apps/web/src/App.tsx apps/web/src/App.test.tsx
 Run: `npm run test --workspace @music-rank/web`
 Expected: PASS, including both new routing tests.
 
-- [ ] **Step 10: Verify in the browser**
+- [x] **Step 10: Verify in the browser**
 
 Run: `npm run dev`, open `http://localhost:5173/`, then `http://localhost:5173/u/<a public username>`, then press Back.
 Expected: the ranking renders, the profile renders, Back returns to the ranking without a full page reload.
 
-- [ ] **Step 11: Commit**
+- [x] **Step 11: Commit**
 
 ```bash
 git add apps/web/src apps/web/package.json package-lock.json
@@ -516,7 +516,7 @@ git commit -m "feat: replace pathname matching with a TanStack Router route tree
   - `export function useAppShell(): AppShell` — throws `Error('useAppShell must be used inside AppShellProvider')` when no provider is mounted.
   - `export function AppShellProvider({ children }: { children: ReactNode }): JSX.Element`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```tsx
 import { cleanup, render, screen } from '@testing-library/react';
@@ -538,12 +538,12 @@ describe('useAppShell', () => {
 });
 ```
 
-- [ ] **Step 2: Run it to verify it fails**
+- [x] **Step 2: Run it to verify it fails**
 
 Run: `npm run test --workspace @music-rank/web -- AppShellContext`
 Expected: FAIL — `Cannot find module './AppShellContext'`.
 
-- [ ] **Step 3: Create `apps/web/src/shell/AppShellContext.tsx`**
+- [x] **Step 3: Create `apps/web/src/shell/AppShellContext.tsx`**
 
 Move these out of `index.tsx` unchanged in behavior: `authDialog` and `notice` state, `sessionQuery`, `clearPersonalData`, `loseAuthentication`, the 401 `useEffect`, `authMutation`, `openAuth`, `logoutMutation`, `invalidatePersonalLists`, `mutation`, `visibilityMutation`, and `requireUser`. The provider renders `Brand`, `AuthDialog`, `Snackbar`, and `children`.
 
@@ -559,7 +559,7 @@ export function useAppShell(): AppShell {
 
 The context value is memoized with `useMemo` keyed on `user`, `sessionQuery.isLoading`, and `visibilityMutation.isPending`, so page components do not re-render on every unrelated shell state change.
 
-- [ ] **Step 4: Wrap `<Outlet />` in `__root.tsx`**
+- [x] **Step 4: Wrap `<Outlet />` in `__root.tsx`**
 
 ```tsx
 function RootLayout() {
@@ -569,18 +569,18 @@ function RootLayout() {
 
 Remove `<CssBaseline />` and `<Brand ... />` from `index.tsx` and `u.$username.tsx`; both now inherit them from the layout. `u.$username.tsx` keeps its own `Brand` action ("Back to ranking") by rendering its own `Brand` — see Task 8 Step 6, which makes the layout skip its chrome on that route.
 
-- [ ] **Step 5: Consume the context in `index.tsx`**
+- [x] **Step 5: Consume the context in `index.tsx`**
 
 ```tsx
 const { user, isSessionLoading, requireUser, notify, mutate, setVisibility, isVisibilityPending } = useAppShell();
 ```
 
-- [ ] **Step 6: Run the tests**
+- [x] **Step 6: Run the tests**
 
 Run: `npm run test --workspace @music-rank/web`
 Expected: PASS, including the new `useAppShell` test and both Task 3 routing tests.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add apps/web/src/shell apps/web/src/routes
@@ -599,7 +599,7 @@ git commit -m "refactor: own shell state in the root layout route"
 - Consumes: `sessionQueryOptions`, `topListQueryOptions`, `listSettingsQueryOptions` (Task 2); `useAppShell` (Task 4).
 - Produces: `Route` for `/personal`; a `signin` search parameter on `/` that other guards reuse.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```tsx
 import { cleanup, render, screen } from '@testing-library/react';
@@ -650,12 +650,12 @@ describe('/personal', () => {
 });
 ```
 
-- [ ] **Step 2: Run to verify they fail**
+- [x] **Step 2: Run to verify they fail**
 
 Run: `npm run test --workspace @music-rank/web -- personal`
 Expected: FAIL — the router has no `/personal` route, so the not-found component renders.
 
-- [ ] **Step 3: Declare the `signin` search parameter on `/`**
+- [x] **Step 3: Declare the `signin` search parameter on `/`**
 
 In `routes/index.tsx`:
 
@@ -690,7 +690,7 @@ useEffect(() => {
 }, [signin]);
 ```
 
-- [ ] **Step 4: Create `apps/web/src/routes/personal.tsx`**
+- [x] **Step 4: Create `apps/web/src/routes/personal.tsx`**
 
 ```tsx
 import { createRoute, redirect } from '@tanstack/react-router';
@@ -730,16 +730,16 @@ function PersonalRankingPage() {
 }
 ```
 
-- [ ] **Step 5: Register the route**
+- [x] **Step 5: Register the route**
 
 In `router.tsx`, import `Route as personalRoute` from `./routes/personal` and add it to `rootRoute.addChildren([indexRoute, personalRoute, publicProfileRoute])`.
 
-- [ ] **Step 6: Run the tests**
+- [x] **Step 6: Run the tests**
 
 Run: `npm run test --workspace @music-rank/web`
 Expected: PASS, including both `/personal` tests.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add apps/web/src/routes apps/web/src/router.tsx
@@ -758,18 +758,18 @@ git commit -m "feat: add the guarded personal ranking route"
 - Consumes: `sessionQueryOptions`, `singingListQueryOptions`, `listSettingsQueryOptions` (Task 2); `useAppShell` (Task 4); the `signin` search parameter (Task 5).
 - Produces: `Route` for `/practice`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Same shape as Task 5 Step 1, with these differences: the path is `/practice`; the authenticated case stubs `/api/me/singing-list` returning `[]` and `/api/me/list-settings`; the authenticated assertion is `expect(await screen.findByRole('heading', { name: 'My Singing List' })).toBeVisible()`; and `expect(router.state.location.pathname).toBe('/practice')`.
 
 The heading is still "My Singing List" at this point. Task 10 renames it and updates this assertion to "My Practice Library".
 
-- [ ] **Step 2: Run to verify they fail**
+- [x] **Step 2: Run to verify they fail**
 
 Run: `npm run test --workspace @music-rank/web -- practice`
 Expected: FAIL — no `/practice` route exists.
 
-- [ ] **Step 3: Create `apps/web/src/routes/practice.tsx`**
+- [x] **Step 3: Create `apps/web/src/routes/practice.tsx`**
 
 ```tsx
 import { createRoute, redirect } from '@tanstack/react-router';
@@ -816,16 +816,16 @@ function PracticeLibraryPage() {
 
 The `label` values stay "Singing List" here and change in Task 10, so this task's diff is routing only.
 
-- [ ] **Step 4: Register the route**
+- [x] **Step 4: Register the route**
 
 In `router.tsx`, add `practiceRoute` to `rootRoute.addChildren([indexRoute, personalRoute, practiceRoute, publicProfileRoute])`.
 
-- [ ] **Step 5: Run the tests**
+- [x] **Step 5: Run the tests**
 
 Run: `npm run test --workspace @music-rank/web`
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add apps/web/src/routes apps/web/src/router.tsx
@@ -844,7 +844,7 @@ git commit -m "feat: add the guarded practice library route"
 - Consumes: everything from Tasks 4–6.
 - Produces: a ranking page with no personal-list column. `SignedOutPanel` and `AccountLoadingPanel` cease to exist.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```tsx
 it('renders the ranking full width with no personal list column', async () => {
@@ -866,12 +866,12 @@ it('renders the ranking full width with no personal list column', async () => {
 });
 ```
 
-- [ ] **Step 2: Run to verify it fails**
+- [x] **Step 2: Run to verify it fails**
 
 Run: `npm run test --workspace @music-rank/web -- index`
 Expected: FAIL — both personal regions are still in the document.
 
-- [ ] **Step 3: Strip the second column out of `index.tsx`**
+- [x] **Step 3: Strip the second column out of `index.tsx`**
 
 Replace the two-column grid with a single full-width panel:
 
@@ -886,12 +886,12 @@ return <Box component="main" sx={{ py: { xs: 2, md: 4 } }}><Container maxWidth="
 
 Delete the `SignedOutPanel` and `AccountLoadingPanel` functions and their `LockOutlineIcon` import. Neither is reachable: the column is gone, Task 8 hides the personal tabs from anonymous visitors, and Tasks 5–6 redirect direct navigation.
 
-- [ ] **Step 4: Run the tests**
+- [x] **Step 4: Run the tests**
 
 Run: `npm run test --workspace @music-rank/web`
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add apps/web/src/routes/index.tsx apps/web/src/routes/index.test.tsx
@@ -910,7 +910,7 @@ git commit -m "feat: render the ranking full width"
 - Consumes: `useAppShell` (Task 4); the `/personal` and `/practice` routes (Tasks 5–6).
 - Produces: `export function TabNav(): JSX.Element | null`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```tsx
 import { cleanup, render, screen } from '@testing-library/react';
@@ -986,12 +986,12 @@ describe('TabNav', () => {
 });
 ```
 
-- [ ] **Step 2: Run to verify they fail**
+- [x] **Step 2: Run to verify they fail**
 
 Run: `npm run test --workspace @music-rank/web -- TabNav`
 Expected: FAIL — `Cannot find module './TabNav'`.
 
-- [ ] **Step 3: Create `apps/web/src/components/TabNav.tsx`**
+- [x] **Step 3: Create `apps/web/src/components/TabNav.tsx`**
 
 ```tsx
 import { Box, Container, Tab, Tabs } from '@mui/material';
@@ -1030,7 +1030,7 @@ export function TabNav() {
 
 `current` falls back to `/` when the pathname matches no visible tab, because MUI warns when `Tabs` receives a `value` that no `Tab` declares.
 
-- [ ] **Step 4: Render it in the shell, except on the public profile**
+- [x] **Step 4: Render it in the shell, except on the public profile**
 
 In `AppShellContext.tsx`, render `<Brand action={...} />` then `<TabNav />` above `{children}`. Give `TabNav` a stable box height so the row does not resize when the two personal tabs appear after the session resolves — the `minHeight: 52` above applies in both states because the container renders even with one tab.
 
@@ -1046,12 +1046,12 @@ function RootLayout() {
 
 When `chrome` is `false`, the provider renders `children` plus the dialog and snackbar, but neither `Brand` nor `TabNav`. `u.$username.tsx` keeps rendering its own `Brand` with the "Back to ranking" action, as it does today.
 
-- [ ] **Step 5: Run the tests**
+- [x] **Step 5: Run the tests**
 
 Run: `npm run test --workspace @music-rank/web`
 Expected: PASS.
 
-- [ ] **Step 6: Check both breakpoints in the browser**
+- [x] **Step 6: Check both breakpoints in the browser**
 
 Run `npm run dev`, sign in, then in DevTools device mode:
 - At 375px: three equal-width tabs read Ranking / Personal / Practice with no horizontal scrollbar.
@@ -1059,7 +1059,7 @@ Run `npm run dev`, sign in, then in DevTools device mode:
 - Sign out: only The Ranking remains, and the bar keeps its height.
 - Middle-click "Personal Ranking": it opens in a new tab at `/personal`.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add apps/web/src/components/TabNav.tsx apps/web/src/components/TabNav.test.tsx apps/web/src/shell/AppShellContext.tsx apps/web/src/routes/__root.tsx apps/web/src/routes/u.$username.tsx
@@ -1078,7 +1078,7 @@ git commit -m "feat: add the responsive primary tab navigation"
 - Consumes: the `signin` parameter and `validateSearch` wiring from Task 5.
 - Produces: `RankingSearch = { q?: string; artist?: string; year?: number; signin?: boolean }`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```tsx
 it('applies filters from the URL on load', async () => {
@@ -1108,12 +1108,12 @@ it('degrades an invalid year to unfiltered while keeping the valid text filter',
 
 `rankingFetch` is the same stub used in Task 7 Step 1, extracted to a module-level function in this file.
 
-- [ ] **Step 2: Run to verify they fail**
+- [x] **Step 2: Run to verify they fail**
 
 Run: `npm run test --workspace @music-rank/web -- index`
 Expected: FAIL — filters are still React state, so `router.state.location.search` stays empty.
 
-- [ ] **Step 3: Extend the schema**
+- [x] **Step 3: Extend the schema**
 
 ```tsx
 const rankingSearchSchema = z.object({
@@ -1124,7 +1124,7 @@ const rankingSearchSchema = z.object({
 });
 ```
 
-- [ ] **Step 4: Replace the three `useState` calls with search-parameter reads and writes**
+- [x] **Step 4: Replace the three `useState` calls with search-parameter reads and writes**
 
 ```tsx
 const { q, artist, year } = Route.useSearch();
@@ -1143,16 +1143,16 @@ Assigning `undefined` removes the parameter from the URL rather than serializing
 
 `RankingPanel`'s props are unchanged: it still receives `query`, `onQueryChange`, `artistFilter`, `onArtistFilterChange`, `releaseYearFilter`, and `onReleaseYearFilterChange` with the same types.
 
-- [ ] **Step 5: Run the tests**
+- [x] **Step 5: Run the tests**
 
 Run: `npm run test --workspace @music-rank/web`
 Expected: PASS.
 
-- [ ] **Step 6: Verify in the browser**
+- [x] **Step 6: Verify in the browser**
 
 Open `http://localhost:5173/?q=%E9%82%A3%E8%8B%B1&year=1993`. The search field shows 那英 and the year filter shows 1993. Clear both; the address returns to `/`. Press Back once; you leave the ranking rather than stepping back through each keystroke.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add apps/web/src/routes/index.tsx apps/web/src/routes/index.test.tsx
@@ -1184,20 +1184,20 @@ Spec section 10 lists the copy changes. Two occurrences found during planning ar
 | `u.$username.tsx` | `Singing List` heading | `Practice Library` |
 | `services.ts:166` | `Song is not in My Singing List` | `Song is not in My Practice Library` |
 
-- [ ] **Step 1: Update the assertions first**
+- [x] **Step 1: Update the assertions first**
 
 In `practice.test.tsx`, change the authenticated assertion to `screen.findByRole('heading', { name: 'My Practice Library' })`. In `VisibilityControl.test.tsx`, replace the three `Singing List` label fixtures with `Practice Library`. In `apps/api/src/app.test.ts`, update any assertion on the `SINGING_LIST_ITEM_NOT_FOUND` message text.
 
-- [ ] **Step 2: Run to verify they fail**
+- [x] **Step 2: Run to verify they fail**
 
 Run: `npm run test --workspace @music-rank/web && npm run test --workspace @music-rank/api`
 Expected: FAIL on the renamed assertions.
 
-- [ ] **Step 3: Apply every replacement in the table**
+- [x] **Step 3: Apply every replacement in the table**
 
 The error code `SINGING_LIST_ITEM_NOT_FOUND` does not change — it is a contract consumed by the client; only its human-readable message does.
 
-- [ ] **Step 4: Verify no user-facing occurrence remains**
+- [x] **Step 4: Verify no user-facing occurrence remains**
 
 ```bash
 grep -rn "Singing List" apps packages e2e --include=*.ts --include=*.tsx
@@ -1205,12 +1205,12 @@ grep -rn "Singing List" apps packages e2e --include=*.ts --include=*.tsx
 
 Expected: no matches outside identifiers such as `SingingListPanel`, `SingingListEntry`, `singingListQueryOptions`, and `SINGING_LIST_ITEM_NOT_FOUND`.
 
-- [ ] **Step 5: Run the tests**
+- [x] **Step 5: Run the tests**
 
 Run: `npm run test --workspace @music-rank/web && npm run test --workspace @music-rank/api`
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add apps/web/src apps/api/src
@@ -1228,7 +1228,7 @@ git commit -m "feat: rename the singing list to Practice Library in user-facing 
 - Consumes: every task above.
 - Produces: nothing consumed by later tasks; this is the final gate.
 
-- [ ] **Step 1: Update the spec for the new navigation**
+- [x] **Step 1: Update the spec for the new navigation**
 
 Four changes:
 
@@ -1268,7 +1268,7 @@ The edit steps at lines 42–45 stay, but they now run on `/practice`, so move t
 
 4. Line 64's public-profile region becomes `{ name: 'Practice Library' }`.
 
-- [ ] **Step 2: Add a deep-link and back/forward case**
+- [x] **Step 2: Add a deep-link and back/forward case**
 
 Append to the spec, after sign-out:
 
@@ -1278,7 +1278,7 @@ await expect(page).toHaveURL('/');
 await expect(page.getByRole('dialog', { name: 'Sign in to Music Rank' })).toBeVisible();
 ```
 
-- [ ] **Step 3: Run the full verification**
+- [x] **Step 3: Run the full verification**
 
 ```bash
 npm run typecheck
@@ -1289,7 +1289,7 @@ npm run test:e2e
 
 Expected: all four pass. The database container must be running (`npm run db:up`) and the dev servers must be stopped, since Playwright starts its own.
 
-- [ ] **Step 4: Walk the acceptance criteria**
+- [x] **Step 4: Walk the acceptance criteria**
 
 Confirm each of the seven criteria in spec section 14 by hand, including the 375px and 1280px checks and the production-shaped server:
 
@@ -1299,11 +1299,11 @@ NODE_ENV=production APP_ORIGIN=http://localhost:3001 PORT=3001 npm run start
 
 Then load `/personal` and `/practice` directly against port 3001 to confirm the Express SPA fallback serves them.
 
-- [ ] **Step 5: Update the engineering guide**
+- [x] **Step 5: Update the engineering guide**
 
 `docs/ENGINEERING_GUIDE.md` section 1.1 requires updating the guide in the same change as the code. Update the architecture section to describe the route tree, the guard, and the tab bar, and refresh "最后更新日期" and "最后核对的代码提交".
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add e2e/music-rank.spec.ts docs/ENGINEERING_GUIDE.md
@@ -1323,3 +1323,4 @@ git commit -m "test: cover tab navigation and guarded routes end to end"
 | 日期 | 作者 | 变更 | Commit |
 | --- | --- | --- | --- |
 | 2026-09-11 | chance | 初稿：11 个任务，覆盖 DESIGN-002 全部范围 | — |
+| 2026-09-11 | chance | 11 个任务全部完成并验证。执行期偏离：① `chrome` 开关从 Task 8 提前到 Task 4，避免公开页出现两个 Brand 的破损中间态；② AppShell 增加 `onUnauthorized`，401 检测留在页面（shell 拿不到页面的 Query 错误）；③ 新增 `router.invalidate()` 让会话页内失效时守卫重新求值，登出改为先导航再清会话，否则刚登出就被要求登录；④ 修复 `playwright.config.ts` 的 Windows 不兼容（POSIX env 前缀改为 `webServer.env`）；⑤ 榜单页去掉 `filter` 状态与 `settingsQuery`，固定以 `ALL` 读取演唱成员集合 | b1f9d98 |
