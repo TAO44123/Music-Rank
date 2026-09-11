@@ -1,17 +1,20 @@
 import LockOutlineIcon from '@mui/icons-material/LockOutline';
-import { Alert, Box, Button, Chip, CircularProgress, Container, CssBaseline, List, ListItem, ListItemText, Paper, Snackbar, Stack, Typography } from '@mui/material';
+import { Alert, Box, Button, CircularProgress, Container, Paper, Snackbar, Stack, Typography } from '@mui/material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { createRoute } from '@tanstack/react-router';
 import { useEffect, useMemo, useState } from 'react';
-import { ApiError, request, type AuthSession, type AuthUser, type ListSettings, type ListVisibility, type PublicProfile, type PublicSingingListEntry, type Ranking, type RankingDetail, type SingingListEntry, type SingingStatus, type Song, type TopListEntry } from './api';
-import { listSettingsQueryOptions, publicProfileQueryOptions, publicSingingListQueryOptions, publicTopListQueryOptions, queryKeys, rankingQueryOptions, rankingsQueryOptions, sessionQueryOptions, singingListQueryOptions, songsQueryOptions, topListQueryOptions } from './queries';
-import { AccountActions } from './components/AccountActions';
-import { AuthDialog, type AuthMode } from './components/AuthDialog';
-import { Brand } from './components/Brand';
-import { RankingPanel } from './components/RankingPanel';
-import { SingingListPanel } from './components/SingingListPanel';
-import { TopListPanel } from './components/TopListPanel';
-import { VisibilityControl, VisibilityStatus } from './components/VisibilityControl';
-import { statusLabels } from './status';
+import { ApiError, request, type AuthSession, type AuthUser, type ListSettings, type ListVisibility, type SingingStatus } from '../api';
+import { AccountActions } from '../components/AccountActions';
+import { AuthDialog, type AuthMode } from '../components/AuthDialog';
+import { Brand } from '../components/Brand';
+import { RankingPanel } from '../components/RankingPanel';
+import { SingingListPanel } from '../components/SingingListPanel';
+import { TopListPanel } from '../components/TopListPanel';
+import { VisibilityControl, VisibilityStatus } from '../components/VisibilityControl';
+import { listSettingsQueryOptions, queryKeys, rankingQueryOptions, rankingsQueryOptions, sessionQueryOptions, singingListQueryOptions, songsQueryOptions, topListQueryOptions } from '../queries';
+import { Route as rootRoute } from './__root';
+
+export const Route = createRoute({ getParentRoute: () => rootRoute, path: '/', component: HomePage });
 
 function SignedOutPanel({ onSignIn, onRegister }: { onSignIn: () => void; onRegister: () => void }) {
   return <Paper component="aside" sx={{ p: 3, textAlign: 'center' }}>
@@ -125,7 +128,7 @@ function HomePage() {
     ? <AccountActions user={user} onLogout={() => logoutMutation.mutate()} />
     : <Stack direction="row" spacing={1}><Button onClick={() => openAuth('login')}>Sign in</Button><Button variant="contained" onClick={() => openAuth('register')}>Register</Button></Stack>;
 
-  return <><CssBaseline /><Brand action={accountAction} />
+  return <><Brand action={accountAction} />
     <Box component="main" sx={{ py: { xs: 2, md: 4 } }}><Container maxWidth="xl"><Stack spacing={2}>
       {sessionQuery.isError && <Alert severity="warning">Account status could not be loaded. Public rankings are still available.</Alert>}
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: 'minmax(0, 1.6fr) minmax(360px, 0.85fr)' }, gap: 2.5, alignItems: 'start' }}>
@@ -140,33 +143,4 @@ function HomePage() {
     <AuthDialog open={authDialog.open} initialMode={authDialog.mode} isPending={authMutation.isPending} error={authMutation.error instanceof ApiError ? authMutation.error.message : authMutation.isError ? 'Something went wrong. Please try again.' : null} onClose={() => setAuthDialog((current) => ({ ...current, open: false }))} onSubmit={(input) => authMutation.mutate(input)} />
     <Snackbar open={Boolean(notice)} autoHideDuration={3500} onClose={() => setNotice(null)} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}><Alert severity={notice?.severity} onClose={() => setNotice(null)} variant="filled">{notice?.message}</Alert></Snackbar>
   </>;
-}
-
-function PublicProfilePage({ username }: { username: string }) {
-  const profileQuery = useQuery(publicProfileQueryOptions(username));
-  const profile = profileQuery.data;
-  const topQuery = useQuery(publicTopListQueryOptions(username, profile?.lists.topList === 'PUBLIC'));
-  const singingQuery = useQuery(publicSingingListQueryOptions(username, profile?.lists.singingList === 'PUBLIC'));
-
-  return <><CssBaseline /><Brand action={<Button href="/" variant="outlined">Back to ranking</Button>} />
-    <Box component="main" sx={{ py: { xs: 3, md: 5 } }}><Container maxWidth="md">
-      {profileQuery.isLoading ? <Stack alignItems="center" py={10}><CircularProgress aria-label="Loading public profile" /></Stack>
-        : profileQuery.isError || !profile ? <Alert severity="info"><Typography fontWeight={800}>Public profile not found</Typography>This user has no public lists, or the address is incorrect.</Alert>
-          : <Stack spacing={3}>
-            <Box><Typography variant="overline" color="secondary.main" fontWeight={800}>Public profile</Typography><Typography variant="h1" fontSize={{ xs: '2rem', md: '2.65rem' }}>{profile.displayName}</Typography><Typography color="text.secondary">@{profile.username}</Typography></Box>
-            {profile.lists.topList === 'PUBLIC' && <Paper component="section" sx={{ p: 3 }} aria-labelledby="public-top-heading"><Stack direction="row" justifyContent="space-between" alignItems="center"><Typography id="public-top-heading" variant="h2" fontSize="1.55rem">Top 10</Typography><Chip label="Public" color="success" size="small" /></Stack>{topQuery.isLoading ? <CircularProgress size={20} sx={{ mt: 3 }} /> : <List disablePadding sx={{ mt: 1 }}>{(topQuery.data ?? []).map((entry) => <ListItem key={entry.id} divider disableGutters><Typography color="primary.main" fontWeight={800} sx={{ width: 34 }}>{entry.position}</Typography><ListItemText primary={entry.title} secondary={entry.artist} primaryTypographyProps={{ fontWeight: 700 }} /></ListItem>)}</List>}</Paper>}
-            {profile.lists.singingList === 'PUBLIC' && <Paper component="section" sx={{ p: 3 }} aria-labelledby="public-singing-heading"><Stack direction="row" justifyContent="space-between" alignItems="center"><Box><Typography id="public-singing-heading" variant="h2" fontSize="1.55rem">Singing List</Typography><Typography variant="body2" color="text.secondary">Personal notes stay private.</Typography></Box><Chip label="Public" color="success" size="small" /></Stack>{singingQuery.isLoading ? <CircularProgress size={20} sx={{ mt: 3 }} /> : <List disablePadding sx={{ mt: 1 }}>{(singingQuery.data ?? []).map((entry) => <ListItem key={entry.id} divider disableGutters><ListItemText primary={entry.title} secondary={entry.artist} primaryTypographyProps={{ fontWeight: 700 }} /><Chip label={statusLabels[entry.status]} size="small" variant="outlined" /></ListItem>)}</List>}</Paper>}
-          </Stack>}
-    </Container></Box>
-  </>;
-}
-
-export default function App() {
-  const publicProfileMatch = window.location.pathname.match(/^\/u\/([^/]+)\/?$/);
-  if (!publicProfileMatch) return <HomePage />;
-  try {
-    return <PublicProfilePage username={decodeURIComponent(publicProfileMatch[1])} />;
-  } catch {
-    return <PublicProfilePage username="" />;
-  }
 }
