@@ -18,7 +18,8 @@ test('registers, authenticates, publishes, and anonymously reads personal lists'
 
   await page.goto('/');
   await expect(page.getByRole('heading', { name: 'Music Rank' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Your lists are private to you' })).toBeVisible();
+  await expect(page.getByRole('tab', { name: /Personal Ranking/ })).toHaveCount(0);
+  await expect(page.getByRole('tab', { name: /Practice Library/ })).toHaveCount(0);
 
   await page.getByRole('button', { name: 'Register' }).click();
   await page.getByLabel('Username').fill(username);
@@ -34,33 +35,56 @@ test('registers, authenticates, publishes, and anonymously reads personal lists'
   await page.getByLabel('Password').fill(password);
   await page.getByRole('button', { name: 'Sign in' }).last().click();
   await expect(page.getByRole('button', { name: `@${username}` })).toBeVisible();
+  await expect(page.getByRole('tab', { name: /Personal Ranking/ })).toBeVisible();
+  await expect(page.getByRole('tab', { name: /Practice Library/ })).toBeVisible();
 
   await page.getByLabel('Search songs or artists').fill('涛声依旧');
+  await expect(page).toHaveURL(/\?q=/);
   await expect(page.getByText('涛声依旧')).toBeVisible();
   await page.getByRole('button', { name: 'Add Top 10' }).click();
-  await page.getByRole('button', { name: 'Add Singing' }).click();
+  await page.getByRole('button', { name: 'Add Practice' }).click();
+
+  await page.getByRole('tab', { name: /Personal Ranking/ }).click();
+  await expect(page).toHaveURL(/\/personal$/);
+  await expect(page.getByRole('region', { name: 'My Top 10' }).getByText('涛声依旧')).toBeVisible();
+  await page.getByRole('button', { name: 'Top 10 is private. Make public' }).click();
+  await page.getByRole('button', { name: 'Make public' }).click();
+  await expect(page.getByLabel('Top 10 visibility: public')).toBeVisible();
+
+  await page.getByRole('tab', { name: /Practice Library/ }).click();
+  await expect(page).toHaveURL(/\/practice$/);
   await page.getByRole('button', { name: 'Edit 涛声依旧' }).click();
   await page.getByLabel('Singing status').getByRole('button', { name: 'Practicing' }).click();
   await page.getByLabel('Note').fill('This remains private.');
   await page.getByRole('button', { name: 'Save changes' }).click();
   await page.reload();
-  await expect(page.getByRole('region', { name: 'My Top 10' }).getByText('涛声依旧')).toBeVisible();
-  const singingEntry = page.getByRole('region', { name: 'My Singing List' }).getByRole('listitem').filter({ hasText: '涛声依旧' });
-  await expect(singingEntry.getByText('Practicing', { exact: true })).toBeVisible();
+  await expect(page).toHaveURL(/\/practice$/);
+  const practiceEntry = page.getByRole('region', { name: 'My Practice Library' }).getByRole('listitem').filter({ hasText: '涛声依旧' });
+  await expect(practiceEntry.getByText('Practicing', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Practice Library is private. Make public' }).click();
+  await expect(page.getByText('Your Practice Library notes always remain private.')).toBeVisible();
+  await page.getByRole('button', { name: 'Make public' }).click();
+  await expect(page.getByLabel('Practice Library visibility: public')).toBeVisible();
 
-  await page.getByRole('button', { name: 'Top 10 is private. Make public' }).click();
-  await page.getByRole('button', { name: 'Make public' }).click();
-  await expect(page.getByLabel('Top 10 visibility: public')).toBeVisible();
-  await page.getByRole('button', { name: 'Singing List is private. Make public' }).click();
-  await expect(page.getByText('Your Singing List notes always remain private.')).toBeVisible();
-  await page.getByRole('button', { name: 'Make public' }).click();
-  await expect(page.getByLabel('Singing List visibility: public')).toBeVisible();
+  await page.goBack();
+  await expect(page).toHaveURL(/\/personal$/);
+  await expect(page.getByRole('tab', { name: /Personal Ranking/ })).toHaveAttribute('aria-selected', 'true');
 
   await page.getByRole('button', { name: `@${username}` }).click();
   await page.getByRole('menuitem', { name: 'Sign out' }).click();
+  await expect(page).toHaveURL(/\/$/);
+  await expect(page.getByRole('dialog', { name: 'Sign in to Music Rank' })).toHaveCount(0);
+  await expect(page.getByRole('tab', { name: /Personal Ranking/ })).toHaveCount(0);
+
+  await page.goto('/personal');
+  await expect(page).toHaveURL(/\/$/);
+  await expect(page.getByRole('dialog', { name: 'Sign in to Music Rank' })).toBeVisible();
+  await page.getByRole('button', { name: 'Cancel' }).click();
+
   await page.goto(`/u/${username}`);
   await expect(page.getByRole('heading', { name: 'E2E Listener' })).toBeVisible();
+  await expect(page.getByRole('navigation', { name: 'Primary' })).toHaveCount(0);
   await expect(page.getByRole('region', { name: 'Top 10' }).getByText('涛声依旧')).toBeVisible();
-  await expect(page.getByRole('region', { name: 'Singing List' }).getByText('Practicing')).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Practice Library' }).getByText('Practicing')).toBeVisible();
   await expect(page.getByText('This remains private.')).not.toBeVisible();
 });

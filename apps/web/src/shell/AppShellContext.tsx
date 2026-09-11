@@ -6,6 +6,7 @@ import { AccountActions } from '../components/AccountActions';
 import { AuthDialog, type AuthMode } from '../components/AuthDialog';
 import { Brand } from '../components/Brand';
 import { TabNav } from '../components/TabNav';
+import { useRouter } from '@tanstack/react-router';
 import { listSettingsQueryOptions, queryKeys, sessionQueryOptions } from '../queries';
 
 export type ListTypePath = 'top-list' | 'singing-list';
@@ -33,6 +34,7 @@ export function useAppShell(): AppShell {
 
 export function AppShellProvider({ children, chrome = true }: { children: ReactNode; chrome?: boolean }) {
   const client = useQueryClient();
+  const router = useRouter();
   const [authDialog, setAuthDialog] = useState<{ open: boolean; mode: AuthMode }>({ open: false, mode: 'login' });
   const [notice, setNotice] = useState<{ severity: 'success' | 'error'; message: string } | null>(null);
 
@@ -54,7 +56,11 @@ export function AppShellProvider({ children, chrome = true }: { children: ReactN
       setTimeout(resolve, 0);
     });
     client.removeQueries({ queryKey: queryKeys.personal });
-  }, [client]);
+    // beforeLoad only runs on navigation, so a session lost while standing on a
+    // guarded route would otherwise leave the visitor there. Invalidating makes
+    // every matched route re-evaluate its guard against the cleared session.
+    await router.invalidate();
+  }, [client, router]);
 
   const authMutation = useMutation({
     mutationFn: ({ mode, ...input }: { mode: AuthMode; username: string; displayName?: string; password: string }) => request<{ user: AuthUser }>(mode === 'register' ? '/api/auth/register' : '/api/auth/login', { method: 'POST', body: JSON.stringify(input) }),
@@ -74,6 +80,10 @@ export function AppShellProvider({ children, chrome = true }: { children: ReactN
   const logoutMutation = useMutation({
     mutationFn: () => request<void>('/api/auth/logout', { method: 'POST' }),
     onSuccess: async () => {
+      // Leave any guarded route while still authenticated. Clearing the session
+      // first would make the guard redirect and prompt for sign-in, which is the
+      // wrong response to someone who just chose to sign out.
+      await router.navigate({ to: '/', search: {} });
       await loseAuthentication();
       setNotice({ severity: 'success', message: 'Signed out' });
     },
