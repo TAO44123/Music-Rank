@@ -32,7 +32,7 @@ describe('/practice', () => {
     expect(router.state.location.pathname).toBe('/');
   });
 
-  it('renders the singing list for an authenticated visitor', async () => {
+  it('renders the practice library for an authenticated visitor', async () => {
     const { client, router } = renderRoute({
       path: '/practice',
       fetch: (path) => {
@@ -43,7 +43,7 @@ describe('/practice', () => {
       }
     });
     render(<ThemeProvider theme={theme}><QueryClientProvider client={client}><RouterProvider router={router} /></QueryClientProvider></ThemeProvider>);
-    expect(await screen.findByRole('heading', { name: 'My Singing List' })).toBeVisible();
+    expect(await screen.findByRole('heading', { name: 'My Practice Library' })).toBeVisible();
     expect(router.state.location.pathname).toBe('/practice');
   });
 });

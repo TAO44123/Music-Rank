@@ -41,7 +41,7 @@ describe('client routing', () => {
     render(<ThemeProvider theme={theme}><QueryClientProvider client={client}><RouterProvider router={router} /></QueryClientProvider></ThemeProvider>);
     expect(await screen.findByRole('heading', { name: 'Listener One' })).toBeVisible();
     expect(await screen.findByRole('region', { name: 'Top 10' })).toHaveTextContent('涛声依旧');
-    expect(screen.queryByRole('region', { name: 'Singing List' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Practice Library' })).not.toBeInTheDocument();
   });
 
   it('renders a not-found page for an unknown path', async () => {

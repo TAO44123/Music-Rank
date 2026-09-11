@@ -163,7 +163,7 @@ export async function removeSingingListItem(userId: string, songId: string) {
     .where(and(eq(singingListEntries.userId, userId), eq(singingListEntries.songId, songId)))
     .returning({ songId: singingListEntries.songId });
   if (deleted.length === 0) {
-    throw new AppError(404, 'SINGING_LIST_ITEM_NOT_FOUND', 'Song is not in My Singing List');
+    throw new AppError(404, 'SINGING_LIST_ITEM_NOT_FOUND', 'Song is not in My Practice Library');
   }
 }
 

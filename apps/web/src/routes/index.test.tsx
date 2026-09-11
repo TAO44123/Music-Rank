@@ -33,7 +33,7 @@ describe('/', () => {
     render(<ThemeProvider theme={theme}><QueryClientProvider client={client}><RouterProvider router={router} /></QueryClientProvider></ThemeProvider>);
     expect(await screen.findByRole('heading', { name: '90s' })).toBeVisible();
     expect(screen.queryByRole('region', { name: 'My Top 10' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('region', { name: 'My Singing List' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'My Practice Library' })).not.toBeInTheDocument();
     expect(router.state.location.pathname).toBe('/');
   });
 

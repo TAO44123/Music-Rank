@@ -35,8 +35,8 @@ function PracticeLibraryPage() {
       onFilterChange={setFilter}
       onSave={(songId, status, note) => mutate(`/api/me/singing-list/items/${songId}`, { method: 'PUT', body: JSON.stringify({ status, note }) })}
       onRemove={(songId) => mutate(`/api/me/singing-list/items/${songId}`, { method: 'DELETE' })}
-      statusLabel={<VisibilityStatus label="Singing List" visibility={settings.singingList} />}
-      headerAction={<VisibilityControl label="Singing List" visibility={settings.singingList} publicUrl={publicUrl} privateNotes disabled={isVisibilityPending} onChange={(visibility) => setVisibility('singing-list', visibility)} onShareComplete={shareNotice} />}
+      statusLabel={<VisibilityStatus label="Practice Library" visibility={settings.singingList} />}
+      headerAction={<VisibilityControl label="Practice Library" visibility={settings.singingList} publicUrl={publicUrl} privateNotes disabled={isVisibilityPending} onChange={(visibility) => setVisibility('singing-list', visibility)} onShareComplete={shareNotice} />}
     />
   </Container></Box>;
 }

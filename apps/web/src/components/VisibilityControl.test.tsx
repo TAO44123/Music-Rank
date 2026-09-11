@@ -9,10 +9,10 @@ afterEach(cleanup);
 describe('VisibilityControl', () => {
   it('requires confirmation before publishing and explains private notes', () => {
     const onChange = vi.fn();
-    render(<ThemeProvider theme={theme}><VisibilityControl label="Singing List" visibility="PRIVATE" publicUrl="http://localhost/u/listener" privateNotes onChange={onChange} onShareComplete={vi.fn()} /></ThemeProvider>);
-    fireEvent.click(screen.getByRole('button', { name: 'Singing List is private. Make public' }));
+    render(<ThemeProvider theme={theme}><VisibilityControl label="Practice Library" visibility="PRIVATE" publicUrl="http://localhost/u/listener" privateNotes onChange={onChange} onShareComplete={vi.fn()} /></ThemeProvider>);
+    fireEvent.click(screen.getByRole('button', { name: 'Practice Library is private. Make public' }));
     expect(onChange).not.toHaveBeenCalled();
-    expect(screen.getByText('Your Singing List notes always remain private.')).toBeVisible();
+    expect(screen.getByText('Your Practice Library notes always remain private.')).toBeVisible();
     fireEvent.click(screen.getByRole('button', { name: 'Make public' }));
     expect(onChange).toHaveBeenCalledWith('PUBLIC');
   });
