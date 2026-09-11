@@ -1,7 +1,7 @@
-import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import LockOutlineIcon from '@mui/icons-material/LockOutline';
-import PublicIcon from '@mui/icons-material/Public';
-import { Alert, Button, Dialog, DialogActions, DialogContent, DialogTitle, FormControl, IconButton, InputLabel, MenuItem, Select, Stack, Tooltip, Typography } from '@mui/material';
+import LockOpenOutlinedIcon from '@mui/icons-material/LockOpenOutlined';
+import ReplyOutlinedIcon from '@mui/icons-material/ReplyOutlined';
+import { Alert, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Stack, Tooltip, Typography } from '@mui/material';
 import { useState } from 'react';
 import type { ListVisibility } from '../api';
 
@@ -12,36 +12,50 @@ type VisibilityControlProps = {
   privateNotes?: boolean;
   disabled?: boolean;
   onChange: (visibility: ListVisibility) => void;
-  onCopied: () => void;
+  onShareComplete: (method: 'shared' | 'copied') => void;
 };
 
-export function VisibilityControl({ label, visibility, publicUrl, privateNotes, disabled, onChange, onCopied }: VisibilityControlProps) {
+export function VisibilityStatus({ label, visibility }: { label: string; visibility: ListVisibility }) {
+  const isPublic = visibility === 'PUBLIC';
+  return <Chip aria-label={`${label} visibility: ${isPublic ? 'public' : 'private'}`} label={isPublic ? 'Public' : 'Private'} size="small" variant="outlined" sx={{ height: 22, color: isPublic ? '#4E7650' : 'text.secondary', borderColor: isPublic ? '#A9C5AA' : 'divider', bgcolor: isPublic ? 'rgba(78, 118, 80, 0.08)' : 'background.default', fontSize: '0.7rem', fontWeight: 800, letterSpacing: '0.03em', '& .MuiChip-label': { px: 1 } }} />;
+}
+
+export function VisibilityControl({ label, visibility, publicUrl, privateNotes, disabled, onChange, onShareComplete }: VisibilityControlProps) {
   const [confirming, setConfirming] = useState(false);
   const controlId = label.toLowerCase().replaceAll(' ', '-');
-  const choose = (next: ListVisibility) => {
-    if (next === visibility) return;
-    if (next === 'PUBLIC') setConfirming(true);
+  const toggleVisibility = () => {
+    if (visibility === 'PRIVATE') setConfirming(true);
     else onChange('PRIVATE');
   };
   const publish = () => {
     setConfirming(false);
     onChange('PUBLIC');
   };
-  const copyLink = async () => {
+  const shareLink = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: `${label} on Music Rank`, url: publicUrl });
+        onShareComplete('shared');
+        return;
+      } catch (error) {
+        if (error instanceof DOMException && error.name === 'AbortError') return;
+      }
+    }
     await navigator.clipboard.writeText(publicUrl);
-    onCopied();
+    onShareComplete('copied');
   };
+  const visibilityAction = `${label} is ${visibility === 'PUBLIC' ? 'public. Make private' : 'private. Make public'}`;
 
   return <>
     <Stack direction="row" spacing={0.5} alignItems="center">
-      <FormControl size="small" sx={{ minWidth: 116 }}>
-        <InputLabel id={`${controlId}-visibility-label`}>Visibility</InputLabel>
-        <Select labelId={`${controlId}-visibility-label`} label="Visibility" value={visibility} disabled={disabled} onChange={(event) => choose(event.target.value as ListVisibility)} startAdornment={visibility === 'PUBLIC' ? <PublicIcon fontSize="small" sx={{ mr: 0.75 }} /> : <LockOutlineIcon fontSize="small" sx={{ mr: 0.75 }} />}>
-          <MenuItem value="PRIVATE">Private</MenuItem>
-          <MenuItem value="PUBLIC">Public</MenuItem>
-        </Select>
-      </FormControl>
-      {visibility === 'PUBLIC' && <Tooltip title={`Copy ${label} public link`}><IconButton aria-label={`Copy ${label} public link`} size="small" onClick={() => void copyLink()}><ContentCopyIcon fontSize="small" /></IconButton></Tooltip>}
+      <Tooltip title={visibilityAction}>
+        <span>
+          <IconButton aria-label={visibilityAction} aria-pressed={visibility === 'PUBLIC'} size="small" disabled={disabled} onClick={toggleVisibility} sx={{ width: 36, height: 36, color: visibility === 'PUBLIC' ? '#4E7650' : 'text.secondary', borderColor: visibility === 'PUBLIC' ? '#8FB291' : 'divider', bgcolor: visibility === 'PUBLIC' ? 'rgba(78, 118, 80, 0.10)' : 'background.default', '&:hover': { bgcolor: visibility === 'PUBLIC' ? 'rgba(78, 118, 80, 0.18)' : 'action.hover' } }}>
+            {visibility === 'PUBLIC' ? <LockOpenOutlinedIcon fontSize="small" /> : <LockOutlineIcon fontSize="small" />}
+          </IconButton>
+        </span>
+      </Tooltip>
+      {visibility === 'PUBLIC' && <Tooltip title={`Share ${label}`}><IconButton aria-label={`Share ${label}`} size="small" onClick={() => void shareLink()}><ReplyOutlinedIcon fontSize="small" sx={{ transform: 'scaleX(-1)' }} /></IconButton></Tooltip>}
     </Stack>
     <Dialog open={confirming} onClose={() => setConfirming(false)} aria-labelledby={`${controlId}-publish-title`}>
       <DialogTitle id={`${controlId}-publish-title`}>Make {label} public?</DialogTitle>

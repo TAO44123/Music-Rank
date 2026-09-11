@@ -79,18 +79,20 @@ type SingingListPanelProps = {
   onSave: (songId: string, status: SingingStatus, note: string) => void;
   onRemove: (songId: string) => void;
   headerAction?: ReactNode;
+  statusLabel?: ReactNode;
 };
 
-export function SingingListPanel({ entries, filter, onFilterChange, onSave, onRemove, headerAction }: SingingListPanelProps) {
+export function SingingListPanel({ entries, filter, onFilterChange, onSave, onRemove, headerAction, statusLabel }: SingingListPanelProps) {
   const theme = useTheme();
 
   return <Paper component="section" sx={{ p: 2.5 }} aria-labelledby="singing-list-heading">
-    <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'stretch', sm: 'center' }} gap={2}>
+    <Stack direction="row" justifyContent="space-between" alignItems="center" gap={2}>
       <Box>
         <Typography variant="overline" color="secondary.main" fontWeight={800}>Practice library</Typography>
         <Typography id="singing-list-heading" variant="h2" fontSize="1.45rem">My Singing List</Typography>
+        {statusLabel && <Box mt={0.75}>{statusLabel}</Box>}
       </Box>
-      <Stack direction="row" alignItems="center" justifyContent="space-between" gap={1}><Typography variant="body2" color="text.secondary" fontWeight={700}>{entries.length} {entries.length === 1 ? 'song' : 'songs'}</Typography>{headerAction}</Stack>
+      <Stack direction="row" alignItems="center" gap={1}><Typography variant="body2" color="text.secondary" fontWeight={700}>{entries.length} {entries.length === 1 ? 'song' : 'songs'}</Typography>{headerAction}</Stack>
     </Stack>
     <Stack direction="row" flexWrap="wrap" useFlexGap gap={0.75} mt={2} mb={0.5} aria-label="Filter singing list by status">
       <Chip label="All" size="small" clickable onClick={() => onFilterChange('ALL')} aria-pressed={filter === 'ALL'} color={filter === 'ALL' ? 'primary' : 'default'} variant={filter === 'ALL' ? 'filled' : 'outlined'} sx={{ fontWeight: 700 }} />

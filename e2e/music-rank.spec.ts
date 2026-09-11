@@ -48,14 +48,13 @@ test('registers, authenticates, publishes, and anonymously reads personal lists'
   const singingEntry = page.getByRole('region', { name: 'My Singing List' }).getByRole('listitem').filter({ hasText: '涛声依旧' });
   await expect(singingEntry.getByText('Practicing', { exact: true })).toBeVisible();
 
-  const visibilitySelectors = page.getByRole('combobox', { name: 'Visibility' });
-  await visibilitySelectors.nth(0).click();
-  await page.getByRole('option', { name: 'Public' }).click();
+  await page.getByRole('button', { name: 'Top 10 is private. Make public' }).click();
   await page.getByRole('button', { name: 'Make public' }).click();
-  await visibilitySelectors.nth(1).click();
-  await page.getByRole('option', { name: 'Public' }).click();
+  await expect(page.getByLabel('Top 10 visibility: public')).toBeVisible();
+  await page.getByRole('button', { name: 'Singing List is private. Make public' }).click();
   await expect(page.getByText('Your Singing List notes always remain private.')).toBeVisible();
   await page.getByRole('button', { name: 'Make public' }).click();
+  await expect(page.getByLabel('Singing List visibility: public')).toBeVisible();
 
   await page.getByRole('button', { name: `@${username}` }).click();
   await page.getByRole('menuitem', { name: 'Sign out' }).click();

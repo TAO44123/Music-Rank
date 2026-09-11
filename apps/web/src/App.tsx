@@ -9,7 +9,7 @@ import { AuthDialog, type AuthMode } from './components/AuthDialog';
 import { RankingPanel } from './components/RankingPanel';
 import { SingingListPanel } from './components/SingingListPanel';
 import { TopListPanel } from './components/TopListPanel';
-import { VisibilityControl } from './components/VisibilityControl';
+import { VisibilityControl, VisibilityStatus } from './components/VisibilityControl';
 import { statusLabels } from './status';
 
 const queryKeys = {
@@ -18,6 +18,7 @@ const queryKeys = {
   songs: ['songs'] as const,
   ranking: (id: string, q: string, artist: string, releaseYear: number | 'ALL') => ['ranking', id, q, artist, releaseYear] as const,
   personal: ['personal'] as const,
+  signedOut: (resource: string, detail?: string) => ['signed-out', resource, detail ?? 'all'] as const,
   topList: (userId: string) => ['personal', userId, 'top-list'] as const,
   singingList: (userId: string, status: string) => ['personal', userId, 'singing-list', status] as const,
   listSettings: (userId: string) => ['personal', userId, 'list-settings'] as const,
@@ -84,9 +85,9 @@ function HomePage() {
   const songsQuery = useQuery({ queryKey: queryKeys.songs, queryFn: () => request<Song[]>('/api/songs') });
   const rankingId = rankingsQuery.data?.[0]?.id;
   const rankingQuery = useQuery({ queryKey: queryKeys.ranking(rankingId ?? 'pending', query, artistFilter, releaseYearFilter), queryFn: () => request<RankingDetail>(getRankingPath(rankingId!, query, artistFilter, releaseYearFilter)), enabled: Boolean(rankingId) });
-  const topQuery = useQuery({ queryKey: queryKeys.topList(user?.id ?? 'signed-out'), queryFn: () => request<TopListEntry[]>('/api/me/top-list'), enabled: Boolean(user), retry: false });
-  const singingQuery = useQuery({ queryKey: queryKeys.singingList(user?.id ?? 'signed-out', filter), queryFn: () => request<SingingListEntry[]>(filter === 'ALL' ? '/api/me/singing-list' : `/api/me/singing-list?status=${filter}`), enabled: Boolean(user), retry: false });
-  const settingsQuery = useQuery({ queryKey: queryKeys.listSettings(user?.id ?? 'signed-out'), queryFn: () => request<ListSettings>('/api/me/list-settings'), enabled: Boolean(user), retry: false });
+  const topQuery = useQuery({ queryKey: user ? queryKeys.topList(user.id) : queryKeys.signedOut('top-list'), queryFn: () => request<TopListEntry[]>('/api/me/top-list'), enabled: Boolean(user), retry: false });
+  const singingQuery = useQuery({ queryKey: user ? queryKeys.singingList(user.id, filter) : queryKeys.signedOut('singing-list', filter), queryFn: () => request<SingingListEntry[]>(filter === 'ALL' ? '/api/me/singing-list' : `/api/me/singing-list?status=${filter}`), enabled: Boolean(user), retry: false });
+  const settingsQuery = useQuery({ queryKey: user ? queryKeys.listSettings(user.id) : queryKeys.signedOut('list-settings'), queryFn: () => request<ListSettings>('/api/me/list-settings'), enabled: Boolean(user), retry: false });
 
   const clearPersonalData = async () => {
     await client.cancelQueries({ queryKey: queryKeys.personal });
@@ -174,8 +175,8 @@ function HomePage() {
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: 'minmax(0, 1.6fr) minmax(360px, 0.85fr)' }, gap: 2.5, alignItems: 'start' }}>
         <Box sx={{ order: { xs: 2, lg: 1 } }}><RankingPanel ranking={rankingQuery.data} isLoading={rankingsQuery.isLoading || rankingQuery.isLoading} query={query} onQueryChange={setQuery} artistFilter={artistFilter} onArtistFilterChange={setArtistFilter} releaseYearFilter={releaseYearFilter} onReleaseYearFilterChange={setReleaseYearFilter} artists={artists} releaseYears={releaseYears} topSongIds={topSongIds} singingSongIds={singingSongIds} topAtCapacity={topEntries.length >= 10} onAddTop={addTop} onAddSinging={addSinging} /></Box>
         <Box sx={{ order: { xs: 1, lg: 2 } }}>{sessionQuery.isLoading ? <AccountLoadingPanel /> : user ? <Stack spacing={2.5}>
-          <TopListPanel entries={topEntries} onReorder={reorderTop} onRemove={(songId) => mutation.mutate({ path: `/api/me/top-list/items/${songId}`, options: { method: 'DELETE' } })} headerAction={<VisibilityControl label="Top 10" visibility={settings.topList} publicUrl={publicUrl} disabled={visibilityMutation.isPending} onChange={(visibility) => visibilityMutation.mutate({ listType: 'top-list', visibility })} onCopied={() => setNotice({ severity: 'success', message: 'Public profile link copied' })} />} />
-          <SingingListPanel entries={singingEntries} filter={filter} onFilterChange={setFilter} onSave={saveSinging} onRemove={(songId) => mutation.mutate({ path: `/api/me/singing-list/items/${songId}`, options: { method: 'DELETE' } })} headerAction={<VisibilityControl label="Singing List" visibility={settings.singingList} publicUrl={publicUrl} privateNotes disabled={visibilityMutation.isPending} onChange={(visibility) => visibilityMutation.mutate({ listType: 'singing-list', visibility })} onCopied={() => setNotice({ severity: 'success', message: 'Public profile link copied' })} />} />
+          <TopListPanel entries={topEntries} onReorder={reorderTop} onRemove={(songId) => mutation.mutate({ path: `/api/me/top-list/items/${songId}`, options: { method: 'DELETE' } })} statusLabel={<VisibilityStatus label="Top 10" visibility={settings.topList} />} headerAction={<VisibilityControl label="Top 10" visibility={settings.topList} publicUrl={publicUrl} disabled={visibilityMutation.isPending} onChange={(visibility) => visibilityMutation.mutate({ listType: 'top-list', visibility })} onShareComplete={(method) => setNotice({ severity: 'success', message: method === 'shared' ? 'Public profile shared' : 'Public profile link copied' })} />} />
+          <SingingListPanel entries={singingEntries} filter={filter} onFilterChange={setFilter} onSave={saveSinging} onRemove={(songId) => mutation.mutate({ path: `/api/me/singing-list/items/${songId}`, options: { method: 'DELETE' } })} statusLabel={<VisibilityStatus label="Singing List" visibility={settings.singingList} />} headerAction={<VisibilityControl label="Singing List" visibility={settings.singingList} publicUrl={publicUrl} privateNotes disabled={visibilityMutation.isPending} onChange={(visibility) => visibilityMutation.mutate({ listType: 'singing-list', visibility })} onShareComplete={(method) => setNotice({ severity: 'success', message: method === 'shared' ? 'Public profile shared' : 'Public profile link copied' })} />} />
           {(topQuery.isLoading || singingQuery.isLoading || settingsQuery.isLoading) && <Stack direction="row" alignItems="center" gap={1} color="text.secondary"><CircularProgress size={16} /> Loading your lists</Stack>}
         </Stack> : <SignedOutPanel onSignIn={() => openAuth('login')} onRegister={() => openAuth('register')} />}</Box>
       </Box>

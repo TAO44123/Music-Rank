@@ -2,7 +2,7 @@
 
 ## 1. Current Status
 
-The approved authentication and list-sharing iteration is implemented and fully verified in the working tree. There is no remaining implementation work in the current scope. The next actions are user acceptance review and, only if the user explicitly requests it, commit/push preparation.
+The approved authentication and list-sharing iteration is implemented, verified, and committed locally. The user-approved compact visibility-control refinement is implemented in the working tree and has passed Web tests, typecheck, production build, and the full Playwright flow. There is no remaining implementation work in the current scope.
 
 The approved behavior is:
 
@@ -22,9 +22,9 @@ The full decisions and security model are recorded in [AUTHENTICATION_DESIGN.md]
 
 At the time of this update:
 
-- Branch: `main`, one local commit ahead of `origin/main` before the current uncommitted implementation.
-- Current HEAD: `a64736f` — `docs: add local setup and authentication handoff`.
-- The authentication/list-sharing implementation is intentionally uncommitted.
+- Branch: `main`, two local commits ahead of `origin/main`, plus the current uncommitted UI refinement.
+- Current HEAD: `40b8ff1` — `feat: add authentication and list sharing`.
+- The compact visibility-control refinement after that commit is intentionally uncommitted.
 - No commit or push is authorized by this task.
 
 Preserve all working-tree changes. Do not reset or discard them. Use `git status --short --branch` for the live file list rather than relying on a copied snapshot here.
@@ -55,7 +55,7 @@ Preserve all working-tree changes. Do not reset or discard them. Use `git status
 
 - Anonymous visitors see the global ranking and a sign-in/register entry point.
 - Authentication uses a dialog with separate login and registration modes.
-- Authenticated users can edit personal lists and independently publish or privatize each list from its panel header.
+- Authenticated users can edit personal lists and independently publish or privatize each list from a compact lock button in its panel header. A closed lock means private and an open lock means public; a small label beneath the list title states the current visibility. Publishing still requires confirmation, while returning to private is immediate. Public lists also show a curved-arrow share action, using the native share sheet when available and copying the link as a fallback.
 - `/u/:username` is the shareable public profile route.
 - On logout or an authentication failure, in-flight personal queries are cancelled, cached private data is erased, and personal query entries are removed after observers detach.
 
@@ -72,7 +72,7 @@ The suite currently covers:
 The final verification results on September 10, 2026 were:
 
 - API integration tests: 11 passing.
-- Web tests: 11 passing.
+- Web tests: 12 passing after the compact visibility-control refinement.
 - Playwright E2E: 1 passing.
 - Desktop and mobile manual browser checks: no console errors or warnings.
 - Database migration and seed: successful and repeatable.
@@ -85,7 +85,6 @@ The production build retains the previously documented bundle-size warning. It d
 
 ### Current iteration
 
-- User acceptance review of registration, login/logout, independent visibility controls, link sharing, and the anonymous public page.
 - No code change is currently pending.
 - Do not commit or push unless the user explicitly requests it.
 
@@ -119,8 +118,9 @@ Start by reading this document, [AUTHENTICATION_DESIGN.md](AUTHENTICATION_DESIGN
 
 Report these facts to the user before taking further action:
 
-- The authentication and direct-link list-sharing iteration is implemented and verified but remains uncommitted.
-- The current iteration has no pending code task other than issues found during user acceptance.
+- The authentication and direct-link list-sharing iteration is implemented, verified, and committed locally at `40b8ff1`.
+- The later compact visibility-control refinement is implemented and tested but remains uncommitted.
+- The current iteration has no pending code task.
 - Friends and SSO are future candidates only and are not authorized implementation work.
 
 Ask the user which next action they want: investigate acceptance feedback, prepare a commit/push, discuss the next version, or another explicitly scoped task. If a requirement, target, or authorization is unclear, ask the user instead of guessing. Do not create friendship schema, endpoints, or UI until the unresolved decisions in Section 5 have been answered and implementation has been explicitly approved.

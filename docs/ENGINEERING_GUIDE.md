@@ -117,7 +117,7 @@ Vite 7.2.1 和 @vitejs/plugin-react 5.1.1 是有意锁定的组合。此前更�
 | apps/api/src/security.ts | Origin 防护与认证速率限制 |
 | apps/api/src/services.ts | 数据访问和业务规则 |
 | apps/api/src/errors.ts | AppError、Zod 错误和未知错误处理 |
-| apps/api/src/current-user.ts | 当前 demo/test 用户解析器 |
+| apps/api/src/current-user.ts | Session Cookie 用户解析、可选认证和测试用户注入边界 |
 | apps/api/src/index.ts | 监听端口、静态文件和优雅退出 |
 | packages/contracts | 前后端共享的 Zod 请求 Schema 和类型 |
 | packages/database | Drizzle Schema、客户端、迁移和种子 |
@@ -707,7 +707,7 @@ Unsafe 请求必须携带与 APP_ORIGIN 完全匹配的 Origin，显式 cross-si
 
 ### 12.1 页面和数据流
 
-App.tsx 先解析 `/` 或 `/u/:username` 页面。主页独立加载公共榜单与 Session；只有 Session 含用户时才加载个人数据。登录、退出和认证失效会取消并删除 `personal` 前缀缓存，避免跨用户复用。写入成功后失效当前用户的 Top 10 和 Singing List Query，并用 Snackbar 展示结果。
+App.tsx 先解析 `/` 或 `/u/:username` 页面。主页独立加载公共榜单与 Session；只有 Session 含用户时才加载个人数据。登录、退出和认证失效会取消、清空并删除 `personal` 前缀缓存，避免跨用户复用。未登录时禁用的个人 Query 使用独立 `signed-out` 前缀，不能继续占用 `personal` 命名空间，否则 Query Observer 可能在退出后的重渲染中重新创建刚被删除的私人缓存项。写入成功后失效当前用户的 Top 10 和 Singing List Query，并用 Snackbar 展示结果。
 
 主要 Query Key：
 
@@ -715,6 +715,7 @@ App.tsx 先解析 `/` 或 `/u/:username` 页面。主页独立加载公共榜单
 - songs
 - ranking + rankingId + q + artist + releaseYear
 - auth-session
+- signed-out + resource + 可选 detail（仅未登录禁用查询的占位 Key）
 - personal + userId + top-list
 - personal + userId + singing-list + status
 - personal + userId + list-settings
@@ -734,6 +735,7 @@ App.tsx 先解析 `/` 或 `/u/:username` 页面。主页独立加载公共榜单
 - PointerSensor 需要移动 6 像素才开始拖动。
 - 支持拖放、键盘排序，以及独立的上移/下移按钮。
 - 每次重排向 API 提交完整 orderedSongIds。
+- 标题下方通过 statusLabel 插槽显示当前 Public/Private 小标签；右侧只保留数量和紧凑操作按钮。
 
 ### 12.4 SingingListPanel
 
@@ -744,12 +746,15 @@ App.tsx 先解析 `/` 或 `/u/:username` 页面。主页独立加载公共榜单
 - Save changes 通过 PUT upsert。
 - 备注输入使用 multiline standard TextField，HTML maxLength 为 300。
 - 状态和 Top 10 成员资格互相独立。
+- 与 TopListPanel 一样，标题下方显示可见性标签，数量和操作按钮保持在标题区右侧。
 
 ### 12.5 认证与公开页
 
 - 顶栏在匿名状态显示 Sign in/Register，在登录状态显示账户菜单。
 - 登录注册共用 AuthDialog，关闭时清除密码 state。
-- 每个个人榜单卡片独立显示 VisibilityControl；切换到 Public 前要求确认。
+- 每个个人榜单卡片使用独立 VisibilityStatus 和 VisibilityControl。标题下方的小标签明确显示 Public 或 Private；操作区的闭合锁表示 Private，打开锁表示 Public。
+- 点击闭合锁切换到 Public 前必须确认；点击打开锁可直接恢复 Private。
+- Public 状态显示弯曲箭头分享按钮。浏览器支持 Web Share API 时打开原生分享面板；不可用或调用失败时复制 `/u/:username` 链接。用户主动取消系统分享时不触发复制降级。
 - `/u/:username` 只请求服务端已批准的公开 Projection。
 - Singing List 公开页显示状态但不支持编辑，也不接收 note 字段。
 
@@ -765,6 +770,7 @@ App.tsx 先解析 `/` 或 `/u/:username` 页面。主页独立加载公共榜单
 - 只提供亮色主题和 Warm Archive 配色。
 - 标题优先使用 Iowan Old Style / Palatino 系统衬线字体。
 - 交互按钮具有可访问名称。
+- 可见性锁按钮的名称同时包含列表、当前状态和目标动作；状态标签也有独立可访问名称。
 - Top 10 提供非拖放排序按钮。
 - 状态选择使用 aria-pressed。
 - 编辑按钮使用 aria-expanded 和 aria-controls。
@@ -810,7 +816,7 @@ npm run typecheck 会先构建 contracts 和 database，再执行所有 workspac
 
 ### 14.2 前端组件测试
 
-当前有 5 个测试文件、11 项测试，覆盖匿名/登录/退出缓存状态、公开路由、RankingPanel、SingingListPanel、登录注册对话框，以及公开前确认和备注私密提示。
+当前有 5 个测试文件、12 项测试，覆盖匿名/登录/退出缓存状态、公开路由、RankingPanel、SingingListPanel、登录注册对话框、紧凑可见性锁控件、公开前确认和备注私密提示。
 
 ### 14.3 API 集成测试
 
@@ -820,7 +826,7 @@ npm run typecheck 会先构建 contracts 和 database，再执行所有 workspac
 
 ### 14.4 Playwright E2E
 
-当前 1 条关键流程覆盖页面注册、退出、密码登录、添加 Top 10/Singing List、设置状态与私密备注、刷新恢复 Session、分别公开列表、再次退出，以及匿名读取公开页且看不到备注。
+当前 1 条关键流程覆盖页面注册、退出、密码登录、添加 Top 10/Singing List、设置状态与私密备注、刷新恢复 Session、通过锁按钮分别公开列表并验证标题下方 Public 标签、再次退出，以及匿名读取公开页且看不到备注。
 
 playwright.config.ts 使用端口 3101、production 形态 Express 服务和 reuseExistingServer: false。启动前执行 build、Migration 和公共 Seed，并把 APP_ORIGIN 指向 3101。测试注册带时间戳的唯一用户，结束后级联删除该账户；不影响 demo 用户。
 
@@ -996,6 +1002,7 @@ E2E 不复用已有服务器；3101 被占用时应先定位占用者。
 
 | 日期 | 代码基线 | 内容 |
 | --- | --- | --- |
-| 2026-09-10 | 当前工作树 | 实现用户名/密码认证、数据库 Session、多用户隔离、Public/Private 个人榜单、公开资料页和未来 SSO 边界 |
+| 2026-09-10 | 40b8ff1 之后的工作树 | 将可见性选择框改为开/闭锁按钮与标题下状态标签，增加原生分享/复制降级，并隔离 signed-out 与 personal Query Key |
+| 2026-09-10 | 40b8ff1 | 实现用户名/密码认证、数据库 Session、多用户隔离、Public/Private 个人榜单、公开资料页和未来 SSO 边界 |
 | 2026-09-10 | 当前工作树 | 新增首次本地运行指南与认证开发交接入口，并将首次依赖安装统一为 npm ci |
 | 2026-09-10 | 9ce4a1c | 创建工程师指南，记录 V1 架构、数据模型、API、测试、安全基线和维护规则 |
