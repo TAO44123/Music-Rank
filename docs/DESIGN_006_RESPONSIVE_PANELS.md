@@ -4,10 +4,11 @@ title: Responsive Panel Layout
 status: Approved
 author: chance
 created: 2026-09-13
-updated: 2026-09-13
+updated: 2026-09-14
 supersedes: null
 related:
   - DESIGN_002_TAB_NAVIGATION.md
+  - DESIGN_004_MOBILE_BOTTOM_NAV.md
   - DESIGN_005_USER_DEFINED_LISTS.md
   - ENGINEERING_GUIDE.md
 ---
@@ -177,6 +178,12 @@ carries the full username; only the painted text is clipped.
   it: a bottom bar built around today's three fixed tabs would be rebuilt as
   soon as user-defined lists land. The tab bar shipped in DESIGN-002 stays where
   it is.
+
+  **Superseded 2026-09-14 by DESIGN-004.** The blocking analysis above was not
+  refuted — DESIGN-005 was deferred instead, which makes the three destinations
+  stable enough to build against. DESIGN-004 moves navigation to a fixed bottom
+  bar below 600px and leaves the tab bar unchanged at 600px and above. The
+  panels this design specifies are untouched by it.
 - Touch-target sizing beyond what the layout change already produces.
 - Dark mode, orientation-specific layouts, and container queries.
 - Any change to the public profile page `/u/:username`.
@@ -230,3 +237,4 @@ The existing unit suites are unchanged except where D4 renames rendered copy.
 | 日期 | 作者 | 变更 | Commit |
 | --- | --- | --- | --- |
 | 2026-09-13 | chance | 初稿：三个列表面板的响应式布局；行操作按钮进入正常流，xs 下沉到文字下方；底部导航仍归 DESIGN-004 并被 DESIGN-005 §4 阻塞 | — |
+| 2026-09-14 | chance | §5 底部导航条目标注被 DESIGN-004 取代：阻塞分析未被推翻，是 DESIGN-005 改为延后，三个目的地因而足够稳定 | 当前工作树 |
