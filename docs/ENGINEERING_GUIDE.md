@@ -7,8 +7,8 @@
 | 文档性质 | 持续维护的工程实现说明 |
 | 目标读者 | 负责开发、测试、排障和后续维护的工程师 |
 | 当前产品版本 | Version 1 + 认证扩展，本地多用户应用 |
-| 最后更新日期 | 2026-09-13（America/New_York） |
-| 最后核对的代码提交 | 当前工作树（DESIGN-006 响应式面板布局） |
+| 最后更新日期 | 2026-09-14（America/New_York） |
+| 最后核对的代码提交 | 6b215be（DESIGN-006；已合入 main 文档基线 9717ff3） |
 | 事实来源 | 当前仓库代码、配置、迁移和自动化测试 |
 
 这份文档描述系统现在如何工作。首次在本机配置和运行项目时，先执行 [LOCAL_FIRST_RUN_GUIDE.md](LOCAL_FIRST_RUN_GUIDE.md)；产品目标和范围以 [PROJECT_SPEC_ZH.md](PROJECT_SPEC_ZH.md) 与 [PROJECT_SPEC_EN.md](PROJECT_SPEC_EN.md) 为准；历史交接信息以 [IMPLEMENTATION_HANDOFF.md](IMPLEMENTATION_HANDOFF.md) 和 [SESSION_HANDOFF.md](SESSION_HANDOFF.md) 为准。若文档与代码不一致，应先核对代码和测试，再更新本文档。
@@ -58,6 +58,9 @@ flowchart LR
 - 本地数据库迁移、幂等种子、组件测试、API 集成测试和 Playwright E2E。
 - 用户注册、登录、七天持久 Session 和退出撤销。
 - 默认私密且可独立公开的 Top 10 与 Practice Library；公开 Practice Library 不包含备注。
+- TanStack Router 管理的三 Tab 导航、受保护个人路由和公开个人资料路由。
+- 排名搜索、歌手和年份筛选写入并校验 URL Search 参数。
+- macOS、Linux、PowerShell 和 cmd.exe 均可使用的 production-shaped 启动命令。
 
 当前不包含：
 
@@ -79,9 +82,10 @@ flowchart LR
 | React Vite 插件 | @vitejs/plugin-react | 精确固定为 5.1.1 |
 | UI | Material UI 与 Emotion | package.json 声明 ^7.3.5 / ^11.14.0 |
 | 服务端状态 | TanStack Query | package.json 声明 ^5.90.10 |
+| 客户端路由 | TanStack Router | apps/web/package.json 声明 ^1.170.35 |
 | 拖放 | dnd-kit | core ^6.3.1，sortable ^10.0.0 |
 | API | Express | package.json 声明 ^5.1.0 |
-| 校验 | Zod | package.json 声明 ^4.1.12 |
+| 校验 | Zod | API/contracts 声明 ^4.1.12；Web 声明 ^4.6.2 |
 | ORM | Drizzle ORM | package.json 声明 ^0.44.7 |
 | 数据库驱动 | pg | package.json 声明 ^8.16.3 |
 | 数据库 | PostgreSQL | Docker 镜像 postgres:17.6-alpine |
@@ -108,7 +112,7 @@ Vite 7.2.1 和 @vitejs/plugin-react 5.1.1 是有意锁定的组合。此前更�
 | --- | --- |
 | apps/web | React/Vite 前端 |
 | apps/web/src/router.tsx | 路由树、Router 工厂和类型声明合并 |
-| apps/web/src/routes | 四个路由模块：`__root` 布局、`/`、`/personal`、`/practice`、`/u/$username` |
+| apps/web/src/routes | 根布局 `__root` 与四条页面路由：`/`、`/personal`、`/practice`、`/u/$username` |
 | apps/web/src/shell/AppShellContext.tsx | Session、认证对话框、Snackbar 和全部 Mutation 的唯一持有者 |
 | apps/web/src/queries.ts | queryOptions 工厂，供组件与路由守卫共用同一份定义 |
 | apps/web/src/api.ts | 前端 API 类型、请求封装和 ApiError |
@@ -141,7 +145,7 @@ Vite 7.2.1 和 @vitejs/plugin-react 5.1.1 是有意锁定的组合。此前更�
 - Node.js 24.21.0
 - npm 11.19.0
 - Docker 和 Docker Compose
-- 本机端口 5173、3001 和 5432 可用
+- 日常开发需要本机端口 5173、3001 和 5432 可用；E2E 还需要 3101 可用
 
 ### 5.2 环境变量
 
@@ -200,6 +204,8 @@ npm run dev
 NODE_ENV、PORT 和 APP_ORIGIN 来自随仓库提交的 config/production.env，由 Node 的 --env-file 加载。这里刻意不使用 `VAR=value command` 这种 POSIX 前缀写法：它只有 POSIX shell 认识，在 Windows 的 cmd.exe 下会报 `'NODE_ENV' is not recognized`，PowerShell 下同样是解析错误。npm script 里不含任何 shell 特有语法，bash、zsh、PowerShell 和 cmd.exe 行为一致。
 
 config/production.env 只放 NODE_ENV、PORT 和 APP_ORIGIN，不含机密；DATABASE_URL 等仍来自未跟踪的 .env，由 dotenv 在进程内加载。已存在的环境变量优先级高于 --env-file，因此临时改端口仍然可行。
+
+`npm run dev` 的 API 与 `npm run start:prod` 默认都监听 3001，不能同时运行。需要并行保留开发服务时，应同时覆盖 production 的 `PORT` 和 `APP_ORIGIN`，并避开 E2E 专用的 3101；例如 macOS/zsh 可使用 `PORT=3102 APP_ORIGIN=http://localhost:3102 npm run start:prod`，PowerShell 可先设置 `$env:PORT` 与 `$env:APP_ORIGIN`。若只做 production-shaped Demo，先停止开发服务再使用默认 3001。
 
 当前项目没有正式部署配置、反向代理配置、TLS、进程守护或运行时监控。
 
@@ -864,7 +870,9 @@ npm run typecheck 会先构建 contracts 和 database，再执行所有 workspac
 
 ### 14.2 前端组件测试
 
-当前有 5 个测试文件、12 项测试，覆盖匿名/登录/退出缓存状态、公开路由、RankingPanel、SingingListPanel、登录注册对话框、紧凑可见性锁控件、公开前确认和备注私密提示。
+当前有 10 个测试文件、28 项测试，覆盖匿名/登录/退出缓存状态、路由守卫、404 与公开路由、URL Search 参数、TabNav、AppShell、RankingPanel、SingingListPanel、登录注册对话框、紧凑可见性锁控件、公开前确认和备注私密提示。
+
+Vitest 保持文件级并行。`apps/web/vite.config.ts` 把单测试超时设为 10 秒；首页排名加载断言另用 5 秒 Testing Library 等待窗口。该设置来自合并后对负载敏感超时的复现：默认限制下完整套件可能失败，而测试文件单独或串行运行可以通过。调整并行度、测试运行器或查询初始化时，应连续运行完整 Web 套件至少三次确认稳定性，不要只验证单个测试文件。
 
 ### 14.3 API 集成测试
 
@@ -922,7 +930,7 @@ npm run test:e2e
 
 ### 15.1 依赖审计基线
 
-2026-09-10 的 npm audit 结果为 6 项：4 moderate、2 high。使用 --omit=dev 后只剩 drizzle-orm 的 1 项 high。
+2026-09-11 在合并前后的 npm audit 对比结果均为 6 项：4 moderate、2 high；两个 PR 没有新增审计项。使用 --omit=dev 后只剩 drizzle-orm 的 1 项 high。
 
 - drizzle-orm 0.44.x 受到 SQL 标识符转义问题影响，修复版本为 0.45.2 或以上。当前代码没有使用动态 SQL 标识符或 sql.raw，但仍应安排兼容性升级。
 - Vite 7.2.1 的已知问题影响开发服务器。可修复版本与当前锁定组合需要单独验证，不能直接自动升级。
@@ -965,7 +973,9 @@ E2E 不复用已有服务器；3101 被占用时应先定位占用者。
 ### 16.6 已知警告
 
 - 前端测试会输出 React 插件旧 esbuild option 的兼容警告，但测试和构建能够完成。
-- 前端单一 JavaScript 产物约 611.28 KB，gzip 约 190.82 KB，会触发 Vite 500 KB 警告。
+- jsdom 当前未实现 `window.scrollTo()`，路由测试可能输出对应提示，但不代表浏览器运行失败。
+- 年份 URL 参数测试在歌曲选项加载前可能输出 MUI select out-of-range 提示；断言仍通过，后续应通过测试数据同步消除噪声。
+- 合并 TanStack Router 与 Web 端 Zod 后，前端单一 JavaScript 产物约 816.64 KB，gzip 约 254.80 KB，会触发 Vite 500 KB 警告。
 
 不要只为消除警告解除已经验证的版本锁定。manualChunks 会改变分包，但不一定减少总传输量。
 
@@ -1033,7 +1043,10 @@ E2E 不复用已有服务器；3101 被占用时应先定位占用者。
 | 测试数据库 | 测试仍使用本地 PostgreSQL | CI 或多人开发前提供独立数据库 |
 | 认证限流 | 当前为单进程内存窗口 | 多实例或公网部署前迁移到共享存储 |
 | 依赖漏洞 | 6 项未自动修复 | 分别验证 Drizzle 与 Vite 升级 |
-| 前端包体积 | 611.28 KB，gzip 190.82 KB | 有真实性能目标后再优化 |
+| 前端包体积 | 816.64 KB，gzip 254.80 KB | 优先评估路由级 lazy loading，再决定 vendor manualChunks |
+| Web 测试日志噪声 | jsdom scrollTo 与 MUI out-of-range 提示不影响通过 | 用测试 setup polyfill 和完整筛选 fixture 消除噪声 |
+| 跨平台 CI | 当前无 GitHub checks，跨平台改动依赖人工复核 | 增加 Node 24.21.0/npm 11.19.0 的 Linux 与 Windows 工作流 |
+| 换行符策略 | 仓库尚无共享 .gitattributes | 为文本文件固定 LF，脚本类型按平台显式例外 |
 | API 文档 | 当前为手工维护 | API 增长后考虑 OpenAPI |
 
 ### 18.2 关键工程决策
@@ -1051,14 +1064,19 @@ E2E 不复用已有服务器；3101 被占用时应先定位占用者。
 | Singing List 使用 upsert | 新增和编辑共享写入路径 |
 | E2E 动态注册用户并使用专用端口 | 验证真实认证流程，结束后只删除自己创建的账户 |
 | Vite 与 React 插件精确锁定 | 避免已复现的开发服务器 HTTP 500 |
+| TanStack Router 使用 code-based 路由树 | 当前路由数量小，显式树便于守卫共享 QueryClient，暂不引入代码生成 |
+| 个人路由守卫复用 queryOptions | `beforeLoad` 与组件读取同一个 Session Query 缓存，避免重复定义和状态漂移 |
+| Production 环境变量使用 Node --env-file | 避免 npm script 中的 POSIX-only `VAR=value command` 语法，兼容 Windows |
+| Web 测试保留并行并放宽合理超时 | 避免用全局串行掩盖负载敏感问题，同时让 CI 慢机有稳定余量 |
 | 当前不拆分前端 Bundle | 本地 V1 暂时没有性能目标 |
 
 ### 18.3 近期文档变更
 
 | 日期 | 代码基线 | 内容 |
 | --- | --- | --- |
-| 2026-09-13 | 当前工作树 | 实现 DESIGN-006：三个列表面板的响应式布局；榜单行操作从 `secondaryAction` 改为正常流并在 xs 下沉到文字下方，两个个人面板补上断点，新增 `e2e/responsive.spec.ts` 响应式回归 |
-| 2026-09-11 | 当前工作树 | 实现 DESIGN-002：TanStack Router 客户端路由、三 Tab 响应式导航、受守卫的 `/personal` 与 `/practice`、榜单筛选进 URL Search 参数、Singing List 更名为 Practice Library |
+| 2026-09-14 | 6b215be + 9717ff3 | 将 main 的跨平台启动、DESIGN-002、测试超时、端口、审计与 bundle 文档基线同步到 DESIGN-006 开发分支 |
+| 2026-09-13 | 6b215be | 实现 DESIGN-006：三个列表面板的响应式布局；榜单行操作从 `secondaryAction` 改为正常流并在 xs 下沉到文字下方，两个个人面板补上断点，新增 `e2e/responsive.spec.ts` 响应式回归 |
+| 2026-09-11 | 91bca4b / 75424ee | 实现 DESIGN-002：TanStack Router 客户端路由、三 Tab 响应式导航、受守卫的 `/personal` 与 `/practice`、榜单筛选进 URL Search 参数、Singing List 更名为 Practice Library；随后稳定并行 Web 测试 |
 | 2026-09-10 | 40b8ff1 之后的工作树 | 将可见性选择框改为开/闭锁按钮与标题下状态标签，增加原生分享/复制降级，并隔离 signed-out 与 personal Query Key |
 | 2026-09-10 | 40b8ff1 | 实现用户名/密码认证、数据库 Session、多用户隔离、Public/Private 个人榜单、公开资料页和未来 SSO 边界 |
 | 2026-09-10 | 当前工作树 | 新增首次本地运行指南与认证开发交接入口，并将首次依赖安装统一为 npm ci |
