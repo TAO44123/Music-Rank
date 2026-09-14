@@ -1,9 +1,9 @@
 import AddIcon from '@mui/icons-material/Add';
 import FilterAltOffIcon from '@mui/icons-material/FilterAltOff';
 import MicNoneIcon from '@mui/icons-material/MicNone';
+import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import SearchIcon from '@mui/icons-material/Search';
 import { Box, Button, Chip, CircularProgress, FormControl, InputAdornment, InputLabel, List, ListItem, ListItemText, MenuItem, Pagination, Paper, Select, Stack, TextField, Typography } from '@mui/material';
-import { useState } from 'react';
 import type { RankingDetail } from '../api';
 
 const pageSize = 25;
@@ -19,6 +19,8 @@ type Props = {
   onReleaseYearFilterChange: (value: number | 'ALL') => void;
   artists: string[];
   releaseYears: number[];
+  page: number;
+  onPageChange: (value: number) => void;
   topSongIds: Set<string>;
   singingSongIds: Set<string>;
   topAtCapacity: boolean;
@@ -26,24 +28,37 @@ type Props = {
   onAddSinging: (songId: string) => void;
 };
 
-export function RankingPanel({ ranking, isLoading, query, onQueryChange, artistFilter, onArtistFilterChange, releaseYearFilter, onReleaseYearFilterChange, artists, releaseYears, topSongIds, singingSongIds, topAtCapacity, onAddTop, onAddSinging }: Props) {
-  const [page, setPage] = useState(1);
+const sourceLabels: Record<string, string> = {
+  DEMO: 'Demo Data',
+  OFFICIAL: 'Official Source',
+  MEDIA: 'Media Source',
+  COMMUNITY: 'Community Source'
+};
+
+function safeSourceUrl(value: string | null | undefined) {
+  if (!value) return null;
+  try {
+    const url = new URL(value);
+    return url.protocol === 'http:' || url.protocol === 'https:' ? url.toString() : null;
+  } catch {
+    return null;
+  }
+}
+
+export function RankingPanel({ ranking, isLoading, query, onQueryChange, artistFilter, onArtistFilterChange, releaseYearFilter, onReleaseYearFilterChange, artists, releaseYears, page, onPageChange, topSongIds, singingSongIds, topAtCapacity, onAddTop, onAddSinging }: Props) {
+  const sourceUrl = safeSourceUrl(ranking?.sourceUrl);
   const pageCount = Math.max(1, Math.ceil((ranking?.entries.length ?? 0) / pageSize));
   const visibleEntries = ranking?.entries.slice((page - 1) * pageSize, page * pageSize) ?? [];
   const handleQueryChange = (value: string) => {
-    setPage(1);
     onQueryChange(value);
   };
   const handleArtistFilterChange = (value: string) => {
-    setPage(1);
     onArtistFilterChange(value);
   };
   const handleReleaseYearFilterChange = (value: number | 'ALL') => {
-    setPage(1);
     onReleaseYearFilterChange(value);
   };
   const handleClearFilters = () => {
-    setPage(1);
     onArtistFilterChange('ALL');
     onReleaseYearFilterChange('ALL');
   };
@@ -56,9 +71,10 @@ export function RankingPanel({ ranking, isLoading, query, onQueryChange, artistF
             <Typography variant="overline" color="secondary.main" fontWeight={800}>The ranking</Typography>
             <Typography id="ranking-heading" variant="h2" fontSize={{ xs: '1.55rem', sm: '1.9rem' }}>{ranking?.title ?? 'Loading ranking'}</Typography>
           </Box>
-          <Chip label="Demo Data" color="secondary" variant="outlined" sx={{ fontWeight: 800 }} />
+          {ranking && <Chip label={sourceLabels[ranking.sourceType] ?? 'Ranking Source'} color={ranking.sourceType === 'DEMO' ? 'secondary' : 'primary'} variant="outlined" sx={{ fontWeight: 800 }} />}
         </Stack>
-        <Typography color="text.secondary" sx={{ mt: 0.5 }}>{ranking?.description ?? 'Fictional fixtures for exploring the app.'}</Typography>
+        <Typography color="text.secondary" sx={{ mt: 0.5 }}>{ranking?.description ?? 'Browse songs from this ranking.'}</Typography>
+        {sourceUrl && <Button component="a" href={sourceUrl} target="_blank" rel="noopener noreferrer" size="small" endIcon={<OpenInNewIcon />} sx={{ mt: 1, px: 0.5 }}>Watch original video</Button>}
       </Box>
       <TextField label="Search songs or artists" value={query} onChange={(event) => handleQueryChange(event.target.value)} fullWidth slotProps={{ input: { startAdornment: <InputAdornment position="start"><SearchIcon /></InputAdornment> } }} />
       <Stack direction="row" spacing={1.25} alignItems="center" flexWrap="wrap" useFlexGap>
@@ -92,7 +108,7 @@ export function RankingPanel({ ranking, isLoading, query, onQueryChange, artistF
           </ListItem>;
         })}
       </List>}
-      {!isLoading && pageCount > 1 && <Stack alignItems="center" pt={1}><Pagination count={pageCount} page={page} onChange={(_event, value) => setPage(value)} color="primary" shape="rounded" aria-label="Ranking pagination" /></Stack>}
+      {!isLoading && pageCount > 1 && <Stack alignItems="center" pt={1}><Pagination count={pageCount} page={page} onChange={(_event, value) => onPageChange(value)} color="primary" shape="rounded" aria-label="Ranking pagination" /></Stack>}
     </Stack>
   </Paper>;
 }

@@ -1,6 +1,10 @@
+import type { RankingDecade as ContractRankingDecade, RankingRegionPath } from '@music-rank/contracts';
+
 export type Song = { id: string; title: string; artist: string; releaseYear: number | null };
-export type Ranking = { id: string; title: string; era: string | null; sourceType: string; description: string | null };
-export type RankingDetail = Ranking & { sourceUrl: string | null; entries: Array<Song & { rank: number }> };
+export type RankingDecade = ContractRankingDecade;
+export type RankingRegion = RankingRegionPath;
+export type Ranking = { id: string; title: string; slug: string; era: string | null; decadeStart: number; decade: RankingDecade; region: RankingRegion; displayOrder: number; sourceType: string; description: string | null; hasSource: boolean };
+export type RankingDetail = Ranking & { sourceUrl: string | null; facets: { artists: string[]; releaseYears: number[] }; entries: Array<Song & { rank: number }> };
 export type TopListEntry = Song & { position: number };
 export type SingingStatus = 'CAN_SING' | 'REGULARLY_SING' | 'PRACTICING' | 'WANT_TO_LEARN';
 export type SingingListEntry = Song & { status: SingingStatus; note: string | null };

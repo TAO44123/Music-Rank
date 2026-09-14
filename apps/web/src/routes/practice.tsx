@@ -15,7 +15,7 @@ export const Route = createRoute({
   component: PracticeLibraryPage,
   beforeLoad: async ({ context }) => {
     const session = await context.queryClient.ensureQueryData(sessionQueryOptions());
-    if (!session.user) throw redirect({ to: '/', search: { signin: true } });
+    if (!session.user) throw redirect({ to: '/rankings/$decade/$region', params: { decade: '90s', region: 'mainland' }, search: { signin: true } });
   }
 });
 

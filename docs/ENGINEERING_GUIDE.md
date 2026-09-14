@@ -6,12 +6,12 @@
 | --- | --- |
 | 文档性质 | 持续维护的工程实现说明 |
 | 目标读者 | 负责开发、测试、排障和后续维护的工程师 |
-| 当前产品版本 | Version 1 + 认证扩展，本地多用户应用 |
+| 当前产品版本 | Version 1 + 认证扩展 + 多榜单目录 Task 1，本地多用户应用 |
 | 最后更新日期 | 2026-09-14（America/New_York） |
-| 最后核对的代码提交 | 75424ee（两个 PR 合并及 Web 测试稳定性修复） |
+| 最后核对的代码提交 | `feature/ranking-catalog-expansion` 当前工作树（基于 9717ff3） |
 | 事实来源 | 当前仓库代码、配置、迁移和自动化测试 |
 
-这份文档描述系统现在如何工作。首次在本机配置和运行项目时，先执行 [LOCAL_FIRST_RUN_GUIDE.md](LOCAL_FIRST_RUN_GUIDE.md)；产品目标和范围以 [PROJECT_SPEC_ZH.md](PROJECT_SPEC_ZH.md) 与 [PROJECT_SPEC_EN.md](PROJECT_SPEC_EN.md) 为准；历史交接信息以 [IMPLEMENTATION_HANDOFF.md](IMPLEMENTATION_HANDOFF.md) 和 [SESSION_HANDOFF.md](SESSION_HANDOFF.md) 为准。若文档与代码不一致，应先核对代码和测试，再更新本文档。
+这份文档描述系统现在如何工作。首次在本机配置和运行项目时，先执行 [LOCAL_FIRST_RUN_GUIDE.md](LOCAL_FIRST_RUN_GUIDE.md)；PROJECT_SPEC_ZH.md、PROJECT_SPEC_EN.md 与 IMPLEMENTATION_HANDOFF.md 保留 Version 1 历史基线，当前已批准扩展以 [AUTHENTICATION_DESIGN.md](AUTHENTICATION_DESIGN.md)、[RANKING_CATALOG_DESIGN.md](RANKING_CATALOG_DESIGN.md) 和 [SESSION_HANDOFF.md](SESSION_HANDOFF.md) 为准。若文档与代码不一致，应先核对代码和测试，再更新本文档。
 
 ### 1.1 维护规则
 
@@ -29,7 +29,7 @@
 
 ## 2. 系统概览
 
-Music Rank 是一个本地运行的全栈演示应用。用户可以浏览一份明确标记为 Demo Data 的 1990 年代中国大陆流行歌曲虚构榜单，维护个人 Top 10，并维护带演唱状态和备注的 Practice Library。
+Music Rank 是一个本地运行的全栈演示应用。公开榜单按年代和地区组织；当前仍发布一份明确标记为 Demo Data 的 1990 年代中国大陆虚构榜单，四份真实视频榜单将在后续独立任务审核和导入。用户可以维护个人 Top 10，并维护带演唱状态和备注的 Practice Library。
 
 应用支持本地用户名/密码注册登录、PostgreSQL Session、多用户隔离，以及分别公开或隐藏 Top 10 和 Practice Library。匿名用户仍可浏览公共歌曲榜单。
 
@@ -48,7 +48,7 @@ flowchart LR
 
 当前包含：
 
-- 一个已发布的 demo 榜单和 30 首种子歌曲。
+- 一个已发布的 `90s Demo Ranking` 和 30 首种子歌曲；Schema 与 UI 已支持 80s/90s × 港台/大陆的四个目录位置。
 - 按标题或歌手模糊搜索。
 - 歌手精确筛选和发行年份精确筛选。
 - 每页 25 首的前端分页。
@@ -58,8 +58,8 @@ flowchart LR
 - 本地数据库迁移、幂等种子、组件测试、API 集成测试和 Playwright E2E。
 - 用户注册、登录、七天持久 Session 和退出撤销。
 - 默认私密且可独立公开的 Top 10 与 Practice Library；公开 Practice Library 不包含备注。
-- TanStack Router 管理的三 Tab 导航、受保护个人路由和公开个人资料路由。
-- 排名搜索、歌手和年份筛选写入并校验 URL Search 参数。
+- TanStack Router 管理的三 Tab 导航、年代/地区榜单路由、受保护个人路由和公开个人资料路由。
+- 排名搜索、歌手、年份和客户端页码写入并校验 URL Search 参数；歌手与年份 Facet 只来自当前榜单。
 - macOS、Linux、PowerShell 和 cmd.exe 均可使用的 production-shaped 启动命令。
 
 当前不包含：
@@ -68,6 +68,7 @@ flowchart LR
 - 用户目录、关注和 Unlisted 分享。
 - 远程仓库、部署或生产基础设施。
 - 音频播放、歌词、视频采集、OCR 或 AI 提取。
+- 四份真实 YouTube 榜单数据及其导入工具。
 - 社交能力和管理后台。
 
 ## 3. 技术栈与版本约束
@@ -244,6 +245,7 @@ createApp 仍允许注入 currentUserId，但只供既有个人列表集成测�
 | --- | --- |
 | verification_status | DEMO、VERIFIED、UNVERIFIED |
 | ranking_source_type | DEMO、OFFICIAL、MEDIA、COMMUNITY |
+| ranking_region | HK_TW、MAINLAND |
 | singing_status | CAN_SING、REGULARLY_SING、PRACTICING、WANT_TO_LEARN |
 | list_type | TOP_LIST、SINGING_LIST |
 | list_visibility | PRIVATE、PUBLIC |
@@ -303,7 +305,11 @@ normalized_title 与 normalized_artist 组成唯一索引。当前 Seed 使用 t
 | --- | --- | --- |
 | id | uuid | 主键 |
 | title | text | 非空 |
+| slug | text | 非空且唯一，供导入与管理稳定识别 |
 | era | text | 可空 |
+| decade_start | integer | 非空；当前只允许 1980 或 1990 |
+| region | ranking_region | 非空；HK_TW 或 MAINLAND |
+| display_order | integer | 非空且大于 0，控制目录顺序 |
 | source_type | ranking_source_type | 非空 |
 | source_url | text | 可空 |
 | description | text | 可空 |
@@ -311,7 +317,7 @@ normalized_title 与 normalized_artist 组成唯一索引。当前 Seed 使用 t
 | verified_at | timestamptz | 可空 |
 | created_at / updated_at | timestamptz | 非空，默认 now() |
 
-公开读取接口只返回 is_published 为 true 的榜单。删除榜单会级联删除 ranking_entries。
+公开读取接口只返回 is_published 为 true 的榜单，并按 display_order、title 稳定排序。同一 decade_start/region 组合最多只有一条已发布记录；未发布历史记录可以复用同一组合。删除榜单会级联删除 ranking_entries。
 
 ### 7.8 ranking_entries
 
@@ -369,7 +375,7 @@ Schema 源文件是 packages/database/src/schema.ts。修改后先生成迁移�
 当前 Seed：
 
 - 创建或更新一个 demo 用户。
-- 创建或更新一个已发布 demo 榜单。
+- 创建或更新一个已发布的 `90s Demo Ranking`，分类为 1990/MAINLAND，slug 为 `90s-demo-ranking`。
 - 创建或更新 30 首固定 UUID 的歌曲。
 - 创建或更新 30 个固定榜单位置。
 - 可以重复执行。
@@ -384,7 +390,7 @@ DEMO_USER_ID 只控制 demo fixture，不再参与普通请求的当前用户解
 | --- | --- | --- | --- |
 | GET | /api/health | 200 | API 和数据库健康检查 |
 | GET | /api/rankings | 200 | 获取所有已发布榜单 |
-| GET | /api/rankings/:rankingId | 200 | 获取榜单详情及过滤后的条目 |
+| GET | /api/rankings/:decade/:region | 200 | 按年代和地区获取榜单、Facet、来源及过滤后的条目 |
 | GET | /api/songs | 200 | 搜索或列出歌曲 |
 | POST | /api/auth/register | 201 | 注册并创建 Session |
 | POST | /api/auth/login | 200 | 密码登录并创建 Session |
@@ -420,11 +426,17 @@ DEMO_USER_ID 只控制 demo fixture，不再参与普通请求的当前用户解
 | --- | --- | --- |
 | id | UUID string | 否 |
 | title | string | 否 |
+| slug | string | 否 |
 | era | string | 是 |
+| decadeStart | integer | 否 |
+| decade | 80s 或 90s | 否 |
+| region | hk-tw 或 mainland | 否 |
+| displayOrder | integer | 否 |
 | sourceType | string | 否 |
 | description | string | 是 |
+| hasSource | boolean | 否 |
 
-RankingDetail 在 Ranking 基础上增加 sourceUrl（string 或 null）和 entries（按 rank 升序排列的 RankingEntry 数组）。RankingEntry 包含 Song 全部字段和非空 integer rank。
+RankingDetail 在 Ranking 基础上增加 sourceUrl（string 或 null）、facets（artists 与 releaseYears）和 entries（按 rank 升序排列的 RankingEntry 数组）。Facet 从该榜单的全部条目生成，不受当前查询条件影响。RankingEntry 包含 Song 全部字段和非空 integer rank。
 
 ### 9.3 TopListEntry
 
@@ -463,14 +475,14 @@ RankingDetail 在 Ranking 基础上增加 sourceUrl（string 或 null）和 entr
 
 请求参数：无。
 
-成功响应：Ranking 数组。当前没有显式分页或排序保证；调用方不应依赖数据库的隐式返回顺序。前端当前使用数组第一项作为活动榜单。
+成功响应：Ranking 数组，按 displayOrder、title 升序排列。sourceUrl 不在列表响应中；hasSource 表示详情是否存在来源链接。前端使用 decade/region 组合选择榜单，不依赖数组第一项。
 
 可能响应：
 
 - 200：包括空数组。
 - 500 INTERNAL_ERROR：数据库或未知错误。
 
-### 10.3 GET /api/rankings/:rankingId
+### 10.3 GET /api/rankings/:decade/:region
 
 用途：获取单个已发布榜单及其过滤后的条目。
 
@@ -478,7 +490,8 @@ Path 参数：
 
 | 参数 | 规则 |
 | --- | --- |
-| rankingId | 必填 UUID |
+| decade | 必填，80s 或 90s |
+| region | 必填，hk-tw 或 mainland |
 
 Query 参数：
 
@@ -490,12 +503,12 @@ Query 参数：
 
 三个 Query 条件可以组合，并以 AND 连接；q 内部的标题与歌手条件以 OR 连接。空字符串经 trim 后不会添加对应筛选。
 
-成功响应：RankingDetail。entries 按原榜单 rank 升序排列，rank 不因筛选重新编号。
+成功响应：RankingDetail。entries 按原榜单 rank 升序排列，rank 不因筛选重新编号；facets 只包含当前榜单全部条目的歌手和非空年份，不包含仅存在于全局 songs 表的歌曲。
 
 可能响应：
 
 - 200：榜单存在，entries 可以为空。
-- 400 INVALID_REQUEST：UUID 或 Query 不符合 Schema。
+- 400 INVALID_REQUEST：年代、地区或 Query 不符合 Schema。
 - 404 RANKING_NOT_FOUND：榜单不存在或未发布。
 - 500 INTERNAL_ERROR：数据库或未知错误。
 
@@ -721,30 +734,31 @@ Unsafe 请求必须携带与 APP_ORIGIN 完全匹配的 Origin，显式 cross-si
 
 ### 12.1 页面和数据流
 
-前端使用 TanStack Router 的 Code-based 路由树，共四条路由：
+前端使用 TanStack Router 的 Code-based 路由树，共五类页面路由：
 
 | 路径 | 页面 | Tab 栏 | 需要 Session |
 | --- | --- | --- | --- |
-| `/` | The Ranking，全宽榜单 | 有 | 否 |
+| `/` | 重定向到默认榜单 `/rankings/90s/mainland` | 有 | 否 |
+| `/rankings/$decade/$region` | The Ranking，全宽榜单与两层目录选择器 | 有 | 否 |
 | `/personal` | Personal Ranking，My Top 10 | 有 | 是 |
 | `/practice` | Practice Library | 有 | 是 |
 | `/u/$username` | 公开资料页 | 无 | 否 |
 
 `__root` 是布局路由，通过 AppShellProvider 持有 Session Query、认证对话框、Snackbar 和三个 Mutation，页面组件用 useAppShell 取用，避免穿过 Outlet 的 Prop 传递。公开资料页用 `chrome={false}` 跳过顶栏和 Tab 栏，保留自己的"Back to ranking"入口。
 
-`/personal` 与 `/practice` 各自在 beforeLoad 里 `ensureQueryData(sessionQueryOptions())`，无用户则重定向到 `/` 并带上 `signin` Search 参数以弹出登录框。守卫只挂在这两条路由上，`/` 和 `/u/$username` 不等待 Session，匿名首屏不被认证往返拖慢。守卫与组件必须共用 queries.ts 的同一个 queryOptions 对象，否则守卫写入的缓存项组件读不到。
+`/personal` 与 `/practice` 各自在 beforeLoad 里 `ensureQueryData(sessionQueryOptions())`，无用户则重定向到 `/rankings/90s/mainland` 并带上 `signin` Search 参数以弹出登录框。守卫只挂在这两条路由上，公开榜单和 `/u/$username` 不等待 Session，匿名首屏不被认证往返拖慢。守卫与组件必须共用 queries.ts 的同一个 queryOptions 对象，否则守卫写入的缓存项组件读不到。
 
 beforeLoad 只在导航时执行，因此 Session 在页面内失效时需要显式 `router.invalidate()` 让守卫重新求值；这一步放在 loseAuthentication 里。主动登出走另一条路径：先导航回 `/` 再清除 Session，否则守卫会把刚选择登出的用户立刻重定向并要求登录。
 
 登录、退出和认证失效会取消、清空并删除 `personal` 前缀缓存，避免跨用户复用。未登录时禁用的个人 Query 使用独立 `signed-out` 前缀，不能继续占用 `personal` 命名空间，否则 Query Observer 可能在退出后的重渲染中重新创建刚被删除的私人缓存项。写入成功后失效当前用户的 Top 10 和 Practice Library Query，并用 Snackbar 展示结果。
 
-榜单页的搜索词、歌手和年份筛选保存在 URL Search 参数（`q`、`artist`、`year`），用 zod 校验，每个字段各自 `.catch(undefined)`，因此单个非法值只降级自身而不会丢弃其余筛选。筛选变更使用 `replace: true`，避免每敲一个字符压一条历史记录。空值以 undefined 写入，从 URL 中移除而非序列化成空串。
+榜单页的搜索词、歌手、年份和页码保存在 URL Search 参数（`q`、`artist`、`year`、`page`），用 zod 校验，每个字段各自 `.catch(undefined)`，因此单个非法值只降级自身而不会丢弃其余筛选。筛选变更使用 `replace: true`，避免每敲一个字符压一条历史记录。空值与第 1 页以 undefined 写入，从 URL 中移除。切换年代或地区时保留 q、清除榜单特定的 artist/year，并回到第 1 页。
 
 主要 Query Key：
 
 - rankings
 - songs
-- ranking + rankingId + q + artist + releaseYear
+- ranking + decade + region + q + artist + releaseYear
 - auth-session
 - signed-out + resource + 可选 detail（仅未登录禁用查询的占位 Key）
 - personal + userId + top-list
@@ -760,13 +774,20 @@ DESIGN-002 起，用户可见文案统一使用 Practice Library：Tab 名称、
 
 ### 12.3 RankingPanel
 
-- 搜索、歌手或年份变化时回到第 1 页。
+- 页码由路由 URL 控制；搜索、歌手或年份变化时回到第 1 页。
 - Clear 只清除歌手和年份，不清除搜索词。
 - 对 API 返回的过滤后 entries 做每页 25 条的客户端分页。
+- 来源标签按 sourceType 生成；仅为合法 HTTP(S) sourceUrl 显示 `Watch original video` 外链。
 - Top 10 已满时禁用尚未加入歌曲的 Add Top 10。
 - 操作按钮使用固定宽度保持行对齐。
 
-### 12.4 TopListPanel
+### 12.4 RankingCatalogNav
+
+- 以 Decade 和 Region 两组互斥按钮显示 80s/90s 与 Hong Kong/Taiwan/Mainland China。
+- 只允许导航到 GET /api/rankings 返回的已发布组合；缺少数据的组合禁用。
+- 更换年代时优先保留仍可用的地区，否则选择该年代第一个已发布地区。
+
+### 12.5 TopListPanel
 
 - 使用 dnd-kit PointerSensor 和 KeyboardSensor。
 - PointerSensor 需要移动 6 像素才开始拖动。
@@ -856,19 +877,19 @@ npm run typecheck 会先构建 contracts 和 database，再执行所有 workspac
 
 ### 14.2 前端组件测试
 
-当前有 10 个测试文件、28 项测试，覆盖匿名/登录/退出缓存状态、路由守卫、404 与公开路由、URL Search 参数、TabNav、AppShell、RankingPanel、SingingListPanel、登录注册对话框、紧凑可见性锁控件、公开前确认和备注私密提示。
+当前有 11 个测试文件、34 项测试，覆盖匿名/登录/退出缓存状态、路由守卫、404 与公开路由、年代/地区导航、URL Search 与页码参数、TabNav、AppShell、RankingPanel、来源链接安全、SingingListPanel、登录注册对话框、紧凑可见性锁控件、公开前确认和备注私密提示。
 
 Vitest 保持文件级并行。`apps/web/vite.config.ts` 把单测试超时设为 10 秒；首页排名加载断言另用 5 秒 Testing Library 等待窗口。该设置来自合并后对负载敏感超时的复现：默认限制下完整套件可能失败，而测试文件单独或串行运行可以通过。调整并行度、测试运行器或查询初始化时，应连续运行完整 Web 套件至少三次确认稳定性，不要只验证单个测试文件。
 
 ### 14.3 API 集成测试
 
-当前有 11 项 Supertest 测试并使用真实 PostgreSQL。除既有榜单和列表规则外，还覆盖注册、Session 恢复/退出/过期、用户名规范化与冲突、非枚举登录错误、Origin 防护、速率限制、用户隔离、默认私密、公开 Projection 和 demo fixture 保留。
+当前有 15 项 Supertest 测试并使用真实 PostgreSQL。除既有榜单和列表规则外，还覆盖发布目录排序、年代/地区解析、榜单级 Facet、跨榜独立名次、已发布组合唯一性、未发布 404、注册、Session 恢复/退出/过期、用户名规范化与冲突、非枚举登录错误、Origin 防护、速率限制、用户隔离、默认私密、公开 Projection 和 demo fixture 保留。
 
 既有业务规则测试通过 createApp 注入固定测试用户；认证测试使用真实 Cookie Agent 和动态账户。beforeEach/afterAll 只删除测试用户名和固定测试用户。测试不应读写 demo 用户的个人列表。
 
 ### 14.4 Playwright E2E
 
-当前 1 条关键流程覆盖：匿名时两个个人 Tab 不存在、注册、退出、密码登录后 Tab 出现、搜索写入 URL Search 参数、添加 Top 10 与 Practice Library、经 Tab 跳转到 `/personal` 和 `/practice`、设置状态与私密备注、刷新后仍停在 `/practice`、通过锁按钮分别公开列表并验证标题下方 Public 标签、后退回 `/personal` 且选中态正确、登出后落在 `/` 且不弹登录框、匿名深链接 `/personal` 被重定向并弹出登录框，以及匿名读取公开页时无 Tab 栏且看不到备注。
+当前 1 条关键流程覆盖：`/` 进入默认 `/rankings/90s/mainland`、匿名时两个个人 Tab 不存在、注册、退出、密码登录后 Tab 出现、搜索写入 URL Search 参数、添加 Top 10 与 Practice Library、经 Tab 跳转到 `/personal` 和 `/practice`、设置状态与私密备注、刷新后仍停在 `/practice`、通过锁按钮分别公开列表并验证标题下方 Public 标签、后退回 `/personal` 且选中态正确、登出后落在默认榜单且不弹登录框、匿名深链接 `/personal` 被重定向并弹出登录框，以及匿名读取公开页时无 Tab 栏且看不到备注。
 
 playwright.config.ts 使用端口 3101、production 形态 Express 服务和 reuseExistingServer: false。启动前执行 build、Migration 和公共 Seed，并把 APP_ORIGIN 指向 3101。测试注册带时间戳的唯一用户，结束后级联删除该账户；不影响 demo 用户。
 
@@ -1013,7 +1034,7 @@ E2E 不复用已有服务器；3101 被占用时应先定位占用者。
 | 项目 | 当前状态 | 建议 |
 | --- | --- | --- |
 | SSO 与账户恢复 | 当前只有本地用户名/密码，未实现 SSO、邮箱验证或密码重置 | 按 AUTHENTICATION_DESIGN 的 issuer/sub 身份模型向前扩展 |
-| 活动榜单选择 | 前端直接使用榜单数组第一项 | 多榜单前增加显式选择和稳定排序 |
+| ~~活动榜单选择~~ | 已解决（Ranking Catalog Task 1）：按 decade/region 显式路由并稳定排序 | — |
 | ~~Singing 成员判断~~ | 已解决（DESIGN-002）：状态筛选随 Practice Library 移到 `/practice`，榜单页固定以 `ALL` 读取完整成员集合 | — |
 | API 分页 | songs 与榜单详情没有服务端分页 | 数据规模扩大前设计统一分页 |
 | 错误映射 | 未识别数据库约束错误返回 500 | 补充稳定业务错误映射 |
@@ -1048,11 +1069,15 @@ E2E 不复用已有服务器；3101 被占用时应先定位占用者。
 | Production 环境变量使用 Node --env-file | 避免 npm script 中的 POSIX-only `VAR=value command` 语法，兼容 Windows |
 | Web 测试保留并行并放宽合理超时 | 避免用全局串行掩盖负载敏感问题，同时让 CI 慢机有稳定余量 |
 | 当前不拆分前端 Bundle | 本地 V1 暂时没有性能目标 |
+| 榜单目录使用年代与地区路径 | 路径可分享、刷新和历史恢复；内部仍以 UUID 关联数据 |
+| 一个年代/地区只发布一份榜单 | 部分唯一索引允许保留未发布历史，同时避免公开解析歧义 |
+| 排名页 Facet 来自 ranking_entries | 全局歌曲和后续用户补录歌曲不会污染某一榜单的筛选项 |
 
 ### 18.3 近期文档变更
 
 | 日期 | 代码基线 | 内容 |
 | --- | --- | --- |
+| 2026-09-14 | `feature/ranking-catalog-expansion` 当前工作树 | 实现多榜单 Task 1：年代/地区元数据与约束、稳定目录 API、榜单级 Facet、`/rankings/:decade/:region` 路由、两层选择器、URL 页码和安全来源链接；保留并重命名 Demo 榜单 |
 | 2026-09-14 | 75424ee | 同步 PR #1/#2 合并后的真实基线：跨平台 production 启动、DESIGN-002 路由、28 项 Web 测试、测试超时策略、端口冲突说明、审计与 bundle 基线 |
 | 2026-09-11 | 91bca4b / 75424ee | 实现 DESIGN-002：TanStack Router 客户端路由、三 Tab 响应式导航、受守卫的 `/personal` 与 `/practice`、榜单筛选进 URL Search 参数、Singing List 更名为 Practice Library；随后稳定并行 Web 测试 |
 | 2026-09-10 | 40b8ff1 之后的工作树 | 将可见性选择框改为开/闭锁按钮与标题下状态标签，增加原生分享/复制降级，并隔离 signed-out 与 personal Query Key |

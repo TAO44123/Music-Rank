@@ -14,6 +14,7 @@ import {
 
 export const verificationStatusEnum = pgEnum('verification_status', ['DEMO', 'VERIFIED', 'UNVERIFIED']);
 export const rankingSourceTypeEnum = pgEnum('ranking_source_type', ['DEMO', 'OFFICIAL', 'MEDIA', 'COMMUNITY']);
+export const rankingRegionEnum = pgEnum('ranking_region', ['HK_TW', 'MAINLAND']);
 export const singingStatusEnum = pgEnum('singing_status', ['CAN_SING', 'REGULARLY_SING', 'PRACTICING', 'WANT_TO_LEARN']);
 export const listTypeEnum = pgEnum('list_type', ['TOP_LIST', 'SINGING_LIST']);
 export const listVisibilityEnum = pgEnum('list_visibility', ['PRIVATE', 'PUBLIC']);
@@ -74,14 +75,25 @@ export const songs = pgTable('songs', {
 export const rankings = pgTable('rankings', {
   id: uuid('id').primaryKey(),
   title: text('title').notNull(),
+  slug: text('slug').notNull(),
   era: text('era'),
+  decadeStart: integer('decade_start').notNull(),
+  region: rankingRegionEnum('region').notNull(),
+  displayOrder: integer('display_order').notNull(),
   sourceType: rankingSourceTypeEnum('source_type').notNull(),
   sourceUrl: text('source_url'),
   description: text('description'),
   isPublished: boolean('is_published').notNull().default(false),
   verifiedAt: timestamp('verified_at', { withTimezone: true }),
   ...timestamps
-});
+}, (table) => [
+  uniqueIndex('rankings_slug_unique').on(table.slug),
+  uniqueIndex('rankings_published_decade_region_unique')
+    .on(table.decadeStart, table.region)
+    .where(sql`${table.isPublished} = true`),
+  check('rankings_decade_start_supported', sql`${table.decadeStart} IN (1980, 1990)`),
+  check('rankings_display_order_positive', sql`${table.displayOrder} > 0`)
+]);
 
 export const rankingEntries = pgTable('ranking_entries', {
   id: uuid('id').primaryKey(),

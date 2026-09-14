@@ -23,13 +23,14 @@ describe('/practice', () => {
       path: '/practice',
       fetch: (path) => {
         if (path === '/api/auth/session') return jsonResponse({ user: null });
-        if (path === '/api/rankings' || path === '/api/songs') return jsonResponse([]);
+        if (path === '/api/rankings') return jsonResponse([{ id: 'ranking-1', title: '90s Demo Ranking', slug: '90s-demo-ranking', era: '1990s', decadeStart: 1990, decade: '90s', region: 'mainland', displayOrder: 4, sourceType: 'DEMO', description: null, hasSource: false }]);
+        if (path.startsWith('/api/rankings/90s/mainland')) return jsonResponse({ id: 'ranking-1', title: '90s Demo Ranking', slug: '90s-demo-ranking', era: '1990s', decadeStart: 1990, decade: '90s', region: 'mainland', displayOrder: 4, sourceType: 'DEMO', description: null, hasSource: false, sourceUrl: null, facets: { artists: [], releaseYears: [] }, entries: [] });
         throw new Error(`Unexpected request: ${path}`);
       }
     });
     render(<ThemeProvider theme={theme}><QueryClientProvider client={client}><RouterProvider router={router} /></QueryClientProvider></ThemeProvider>);
     expect(await screen.findByRole('dialog', { name: 'Sign in to Music Rank' })).toBeVisible();
-    expect(router.state.location.pathname).toBe('/');
+    expect(router.state.location.pathname).toBe('/rankings/90s/mainland');
   });
 
   it('renders the practice library for an authenticated visitor', async () => {
