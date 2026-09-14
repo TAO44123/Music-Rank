@@ -35,14 +35,14 @@ function SingingItem({ entry, onSave, onRemove }: SingingItemProps) {
   };
 
   return <ListItem divider disableGutters sx={{ display: 'block', py: 1.5 }}>
-    <Box sx={{ display: 'grid', gridTemplateColumns: '4px minmax(0, 1fr) auto', gap: 1.25, alignItems: 'center' }}>
-      <Box aria-hidden="true" sx={{ width: 4, height: 44, borderRadius: 4, bgcolor: statusColor }} />
+    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '4px minmax(0, 1fr)', sm: '4px minmax(0, 1fr) auto' }, columnGap: 1.25, rowGap: 0.75, alignItems: 'center' }}>
+      <Box aria-hidden="true" sx={{ width: 4, height: 44, borderRadius: 4, bgcolor: statusColor, gridRow: { xs: '1 / -1', sm: 'auto' }, alignSelf: 'center' }} />
       <Box sx={{ minWidth: 0 }}>
         <Typography fontWeight={800} lineHeight={1.25}>{entry.title}</Typography>
         <Typography variant="body2" color="text.secondary">{entry.artist}</Typography>
         {entry.note && <Typography variant="body2" color="text.secondary" sx={{ mt: 0.65, fontFamily: theme.typography.h2.fontFamily, fontStyle: 'italic', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{entry.note}</Typography>}
       </Box>
-      <Stack direction="row" spacing={0.4} alignItems="center">
+      <Stack direction="row" spacing={0.4} alignItems="center" sx={{ gridColumn: { xs: 2, sm: 'auto' }, justifyContent: { xs: 'flex-start', sm: 'flex-end' } }}>
         <Chip label={statusLabels[entry.status]} size="small" variant="outlined" sx={{ color: statusColor, borderColor: statusColor, fontWeight: 700 }} />
         <Tooltip title={`Edit ${entry.title}`}>
           <IconButton aria-label={`Edit ${entry.title}`} aria-expanded={isEditing} aria-controls={`singing-editor-${entry.id}`} size="small" color="primary" onClick={() => setIsEditing((value) => !value)} sx={{ border: 0 }}><EditOutlinedIcon fontSize="small" /></IconButton>
@@ -53,7 +53,7 @@ function SingingItem({ entry, onSave, onRemove }: SingingItemProps) {
       </Stack>
     </Box>
     <Collapse in={isEditing} unmountOnExit>
-      <Box id={`singing-editor-${entry.id}`} sx={{ mt: 1.5, ml: 2, p: 1.75, borderLeft: 3, borderColor: theme.palette.statusColors[status], borderRadius: '0 10px 10px 0', bgcolor: '#F6F0E5' }}>
+      <Box id={`singing-editor-${entry.id}`} sx={{ mt: 1.5, ml: { xs: 0, sm: 2 }, p: { xs: 1.25, sm: 1.75 }, borderLeft: 3, borderColor: theme.palette.statusColors[status], borderRadius: '0 10px 10px 0', bgcolor: '#F6F0E5' }}>
         <Typography variant="subtitle2" fontWeight={800} mb={1.25}>Update {entry.title}</Typography>
         <Stack direction="row" flexWrap="wrap" useFlexGap gap={0.75} mb={1.5} aria-label="Singing status">
           {singingStatuses.map((option) => {
@@ -85,8 +85,8 @@ type SingingListPanelProps = {
 export function SingingListPanel({ entries, filter, onFilterChange, onSave, onRemove, headerAction, statusLabel }: SingingListPanelProps) {
   const theme = useTheme();
 
-  return <Paper component="section" sx={{ p: 2.5 }} aria-labelledby="singing-list-heading">
-    <Stack direction="row" justifyContent="space-between" alignItems="center" gap={2}>
+  return <Paper component="section" sx={{ p: { xs: 1.75, sm: 2.5 } }} aria-labelledby="singing-list-heading">
+    <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'flex-start', sm: 'center' }} gap={2}>
       <Box>
         <Typography variant="overline" color="secondary.main" fontWeight={800}>Practice library</Typography>
         <Typography id="singing-list-heading" variant="h2" fontSize="1.45rem">My Practice Library</Typography>
@@ -102,6 +102,6 @@ export function SingingListPanel({ entries, filter, onFilterChange, onSave, onRe
         return <Chip key={status} label={statusLabels[status]} size="small" clickable onClick={() => onFilterChange(status)} aria-pressed={selected} variant={selected ? 'filled' : 'outlined'} sx={{ color: selected ? '#FFFCF6' : statusColor, bgcolor: selected ? statusColor : 'transparent', borderColor: statusColor, fontWeight: 700, '&:hover': { bgcolor: selected ? statusColor : '#F2E6D5' } }} />;
       })}
     </Stack>
-    {entries.length === 0 ? <Box py={3}><Typography color="text.secondary">No songs in this view. Add one from the ranking.</Typography></Box> : <List disablePadding>{entries.map((entry) => <SingingItem key={entry.id} entry={entry} onSave={onSave} onRemove={onRemove} />)}</List>}
+    {entries.length === 0 ? <Box py={3}><Typography color="text.secondary">No songs in this view. Add one from the ranking.</Typography></Box> : <List disablePadding aria-label="My Practice Library">{entries.map((entry) => <SingingItem key={entry.id} entry={entry} onSave={onSave} onRemove={onRemove} />)}</List>}
   </Paper>;
 }
