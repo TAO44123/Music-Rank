@@ -1,6 +1,6 @@
 # Ranking Catalog Expansion — Cross-Session Execution Plan
 
-> Status: Approved for implementation, split into three sequential tasks
+> Status: Task 1 complete; Task 3A pilot approved as the next decision gate
 >
 > Last updated: 2026-09-14 (America/New_York)
 >
@@ -14,7 +14,7 @@
 
 This document is the self-contained execution playbook for the Ranking Catalog
 Expansion feature. It is intended to be read at the start of every session so
-that the three tasks can be implemented in separate contexts without losing
+that the tasks can be implemented in separate contexts without losing
 approved product decisions, safety constraints, dependencies, or verification
 requirements.
 
@@ -26,17 +26,20 @@ The feature has two product outcomes:
    from Personal Ranking or Practice Library. User-submitted songs enter the
    shared catalog but do not enter any public ranking automatically.
 
-Implementation is split into three sequential branches and pull requests:
+Implementation uses separate branches with a pilot decision gate before the
+remaining feature order is chosen:
 
 | Task | Branch | Dependency |
 | --- | --- | --- |
 | 1. Multi-ranking foundation and navigation | `feature/ranking-catalog-expansion` | Starts at `9717ff3` |
-| 2. User-submitted songs | `feature/user-submitted-songs` | Start from `main` after Task 1 is merged |
-| 3. YouTube import and production ranking data | `feature/ranking-data-import` | Start from `main` after Tasks 1 and 2 are merged |
+| 3A. One 90s Top 100 pilot | `feature/90s-ranking-pilot` | Next task; start from the latest Task 1 state or updated `main` after merge |
+| 2. User-submitted songs | `feature/user-submitted-songs` | Start only if the user selects Task 2 after reviewing the pilot |
+| 3. Remaining YouTube ranking imports | `feature/ranking-data-import` | Continue only if the user selects more rankings after reviewing the pilot |
 
-Do not combine unfinished work from separate task branches. Do not start Task 2
-or Task 3 from a stale `main`. Each task must be independently reviewable and
-must pass its own acceptance gate before it is merged.
+Do not combine unfinished work from separate task branches. Do not start Task 2,
+Task 3A, or the remaining Task 3 work from a stale baseline. Each task must be
+independently reviewable and must pass its own acceptance gate before it is
+merged.
 
 ## 2. Source of Truth and Conflict Resolution
 
@@ -294,13 +297,87 @@ Before reporting completion:
 4. `feat(web): add ranking category navigation`
 5. `test: cover multi-ranking navigation`
 
+### 6.9 Task 3A — Pilot Ranking Import (next approved task)
+
+Branch: `feature/90s-ranking-pilot`.
+
+Objective: import one user-approved 90s Chinese-language Top 100 source and show
+it locally so the user can evaluate real-data behavior before deciding whether
+to import more rankings or proceed to Task 2.
+
+Baseline rules:
+
+- Prefer updated `main` after Task 1 is pushed and merged.
+- If Task 1 remains local, create a documented stacked branch from the latest
+  `feature/ranking-catalog-expansion` HEAD containing `be345ae`, `c15efc6`, and
+  the Task 3A handoff documentation.
+- Never start from stale `main` at `9717ff3`.
+
+Required user inputs before implementation:
+
+- [ ] Obtain the exact YouTube video URL.
+- [ ] Confirm whether the source explicitly ranks 1–100 or is an unranked
+  collection presented in playback order.
+- [ ] Confirm whether the source belongs to Mainland China, Hong Kong/Taiwan, or
+  mixes both regions.
+
+Decision boundaries:
+
+- [ ] Use the existing rank model only when the source explicitly assigns ranks.
+- [ ] If the source is an unranked collection, stop before import and obtain
+  approval for a ranked-versus-collection model. Never claim playback order is
+  rank.
+- [ ] If the source mixes regions, stop before import and ask whether to split
+  it or add a new region. Do not silently classify it as Mainland or HK/TW.
+
+Extraction and approval:
+
+- [ ] Extract only source-supported rank, title, artist, and optional timestamp.
+- [ ] Keep `releaseYear` null unless the approved source explicitly provides it.
+- [ ] Present all 100 extracted rows to the user before any database write.
+- [ ] Apply all user corrections and obtain explicit import approval.
+
+Importer and data safety:
+
+- [ ] Store approved rows in a version-controlled manifest with source URL,
+  dimension metadata, and extraction notes.
+- [ ] Implement a reusable, transactional, idempotent importer; do not rely on
+  ad hoc SQL pasted into the database.
+- [ ] Reuse exact normalized title-and-artist matches from `songs`.
+- [ ] Reject missing values, duplicate songs, duplicate ranks, non-contiguous
+  ranked positions, counts other than 100, and unexpected source metadata.
+- [ ] Import the pilot as unpublished first and verify it in the database.
+- [ ] Modify the Demo seed upsert so it does not force an intentionally
+  unpublished Demo back to published on later seed runs.
+- [ ] Make ranking tests own explicit fixtures and remove assumptions that the
+  active 90s/Mainland ranking is the 30-song Demo.
+
+Publication and acceptance:
+
+- [ ] Publish only after extraction and database verification are complete.
+- [ ] If the pilot occupies 90s/Mainland, publish it and unpublish the Demo in
+  one transaction. Never delete the Demo ranking, entries, or songs.
+- [ ] Verify exactly 100 entries, expected song reuse/create counts, source URL,
+  `songCount`, scoped facets, search, pagination, and stable route behavior.
+- [ ] Run database migration/seed checks, typecheck, full tests, production
+  build, Playwright E2E, `git diff --check`, and desktop/mobile browser checks.
+- [ ] Update `docs/SESSION_HANDOFF.md`, this progress log, and the engineering
+  guide with exact results.
+- [ ] Do not commit, push, merge, or expand scope without explicit user
+  authorization in the Task 3A session.
+
+Out of scope for Task 3A: user-submitted songs, Admin tools, aggregation across
+multiple videos, fuzzy matching, and importing the other three production
+rankings.
+
 ## 7. Task 2 — User-Submitted Songs
 
 ### 7.1 Branch and objective
 
 Branch: `feature/user-submitted-songs`
 
-Create this branch from updated `main` only after Task 1 has been merged.
+Create this branch only after Task 1 is merged and the user selects Task 2 after
+reviewing the Task 3A pilot.
 
 Objective: let authenticated users submit a title and artist from Personal
 Ranking or Practice Library, reuse exact existing matches after confirmation,
@@ -441,13 +518,14 @@ Run the same full command set listed in Task 1. In addition:
 
 Branch: `feature/ranking-data-import`
 
-Create this branch from updated `main` only after Tasks 1 and 2 have been
-merged.
+Continue this branch only if the user chooses more ranking imports after the
+Task 3A pilot. Prefer updated `main` after relevant completed work is merged;
+otherwise preserve and document the pilot branch dependency. Task 2 is not an
+automatic prerequisite after the user changed the execution order.
 
-Objective: build a reviewable and idempotent import process, extract and obtain
-approval for four source videos, import the production rankings, switch
-publication from the demo ranking to the real rankings, and complete end-to-end
-verification.
+Objective: reuse the reviewed Task 3A import process, obtain approval for the
+remaining source videos, complete the production ranking set, switch publication
+from the demo ranking to the real rankings, and complete end-to-end verification.
 
 ### 8.2 Required user inputs
 
