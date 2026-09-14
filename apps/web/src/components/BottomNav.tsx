@@ -8,7 +8,7 @@ export function BottomNav() {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const current = destinations.some((destination) => destination.to === pathname) ? pathname : '/';
 
-  return <Paper component="nav" aria-label="Primary bottom" square elevation={3} sx={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: (theme) => theme.zIndex.appBar, pb: 'env(safe-area-inset-bottom)' }}>
+  return <Paper component="nav" aria-label="Primary bottom" square elevation={3} sx={{ display: { xs: 'block', sm: 'none' }, position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: (theme) => theme.zIndex.appBar, pb: 'env(safe-area-inset-bottom)' }}>
     <BottomNavigation showLabels value={current} sx={{ height: bottomNavHeight }}>
       {destinations.map((destination) => {
         const Icon = destination.icon;

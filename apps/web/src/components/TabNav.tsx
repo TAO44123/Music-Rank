@@ -16,7 +16,7 @@ export function TabNav() {
   const visible = destinations.filter((destination) => !destination.personal || user);
   const current = visible.some((destination) => destination.to === pathname) ? pathname : '/';
 
-  return <Box component="nav" aria-label="Primary" sx={{ borderBottom: 1, borderColor: 'divider', bgcolor: 'background.default' }}>
+  return <Box component="nav" aria-label="Primary" sx={{ display: { xs: 'none', sm: 'block' }, borderBottom: 1, borderColor: 'divider', bgcolor: 'background.default' }}>
     <Container maxWidth="xl">
       <Tabs
         value={current}

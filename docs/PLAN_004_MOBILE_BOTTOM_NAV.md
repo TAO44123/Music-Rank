@@ -1,7 +1,7 @@
 ---
 plan_id: PLAN-004
 title: Mobile Bottom Navigation Implementation Plan
-status: Ready
+status: Completed
 author: chance
 created: 2026-09-14
 updated: 2026-09-14
@@ -457,6 +457,18 @@ In `apps/web/src/components/BottomNav.tsx`, the `Paper` gains the mirror:
   return <Paper component="nav" aria-label="Primary bottom" square elevation={3} sx={{ display: { xs: 'block', sm: 'none' }, position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: (theme) => theme.zIndex.appBar, pb: 'env(safe-area-inset-bottom)' }}>
 ```
 
+> **Corrected during execution.** Steps 2-4 below predicted that adding the
+> breakpoint would break three `toBeVisible()` assertions in `TabNav.test.tsx`,
+> on the theory that `sx` emits `display: none` as the base rule and jsdom
+> ignores the `@media` override. That did not happen: the suite stayed green.
+> Measured instead — jsdom's `getComputedStyle` does not apply emotion's
+> injected stylesheet at all, so **both** navigation surfaces report
+> `display: block` in unit tests regardless of the breakpoint, and
+> `window.matchMedia` is not implemented. Steps 3 and 4 were therefore skipped
+> and `TabNav.test.tsx` was not modified. The conclusion the plan was built on —
+> that breakpoint behavior can only be verified by Playwright — holds more
+> strongly than before.
+
 - [ ] **Step 2: Run the web suite and watch TabNav fail**
 
 ```bash
@@ -696,3 +708,4 @@ the Top 10 and confirm the snackbar sits above the bar.
 | 日期 | 作者 | 变更 | Commit |
 | --- | --- | --- | --- |
 | 2026-09-14 | chance | 初稿：三个任务 —— 抽目的地表、加底栏、断点切换与避让；记录 jsdom 下 `display:none` 会击穿 TabNav 现有 `toBeVisible` 断言，以及匿名访客在两个导航面看到的目的地集合不一致 | 当前工作树 |
+| 2026-09-14 | chance | 执行完成。两处与计划的偏差：`@testing-library/user-event` 未安装，改用项目既有的 `fireEvent`；jsdom 不应用 emotion 样式表，Task 3 Step 2-4 预测的 TabNav 断言失败没有发生，跳过改断言 | 当前工作树 |
