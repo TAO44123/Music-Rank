@@ -696,12 +696,15 @@ matches `AppShell.openAuth: (mode: AuthMode) => void`. The landmark name
 `Primary bottom` is used identically in the component, its tests, and the e2e
 helper.
 
-**One gap accepted deliberately.** DESIGN-004 §6.2 item 4 ("a notification
-triggered at 320px does not intersect the bar") has no automated step. Firing a
-notification requires a mutation, and the responsive spec's fixture user has no
-action that both triggers a snackbar and leaves the list measurable afterwards.
-Task 3 Step 5 implements the offset; verify it by hand at 320px — add a song to
-the Top 10 and confirm the snackbar sits above the bar.
+**The gap this plan accepted was not real.** The plan claimed DESIGN-004 §6.2
+item 4 ("a notification triggered at 320px does not intersect the bar") could
+not be automated, because firing a notification needs a mutation and the fixture
+user has no action that both triggers a snackbar and leaves the list measurable.
+That was wrong: adding a song to the Top 10 does exactly that, and the step runs
+last so the mutation cannot disturb the viewport loop that reads the list. The
+assertion now exists in `e2e/responsive.spec.ts`, verified by removing the
+snackbar offset — it fails with the notification's bottom edge 37.5px below the
+bar's top edge.
 
 ## 变更记录
 
@@ -709,3 +712,4 @@ the Top 10 and confirm the snackbar sits above the bar.
 | --- | --- | --- | --- |
 | 2026-09-14 | chance | 初稿：三个任务 —— 抽目的地表、加底栏、断点切换与避让；记录 jsdom 下 `display:none` 会击穿 TabNav 现有 `toBeVisible` 断言，以及匿名访客在两个导航面看到的目的地集合不一致 | 当前工作树 |
 | 2026-09-14 | chance | 执行完成。两处与计划的偏差：`@testing-library/user-event` 未安装，改用项目既有的 `fireEvent`；jsdom 不应用 emotion 样式表，Task 3 Step 2-4 预测的 TabNav 断言失败没有发生，跳过改断言 | 当前工作树 |
+| 2026-09-14 | chance | 补上 §6.2 第 4 条的自动化覆盖，此前判断「无法自动化」有误；该用例的 locator 必须带 `disabled: false`，因为 Top 10 满员时按钮文案仍是 Add Top 10 只是不可点 | 当前工作树 |
