@@ -4,6 +4,7 @@ import { createContext, useCallback, useContext, useMemo, useState, type ReactNo
 import { ApiError, request, type AuthSession, type AuthUser, type ListSettings, type ListVisibility } from '../api';
 import { AccountActions } from '../components/AccountActions';
 import { AuthDialog, type AuthMode } from '../components/AuthDialog';
+import { BottomNav } from '../components/BottomNav';
 import { Brand } from '../components/Brand';
 import { TabNav } from '../components/TabNav';
 import { useRouter } from '@tanstack/react-router';
@@ -140,6 +141,7 @@ export function AppShellProvider({ children, chrome = true }: { children: ReactN
     {chrome && <Brand action={accountAction} />}
     {chrome && <TabNav />}
     {children}
+    {chrome && <BottomNav />}
     <AuthDialog open={authDialog.open} initialMode={authDialog.mode} isPending={authMutation.isPending} error={authMutation.error instanceof ApiError ? authMutation.error.message : authMutation.isError ? 'Something went wrong. Please try again.' : null} onClose={() => setAuthDialog((current) => ({ ...current, open: false }))} onSubmit={(input) => authMutation.mutate(input)} />
     <Snackbar open={Boolean(notice)} autoHideDuration={3500} onClose={() => setNotice(null)} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}><Alert severity={notice?.severity} onClose={() => setNotice(null)} variant="filled">{notice?.message}</Alert></Snackbar>
   </AppShellContext.Provider>;
