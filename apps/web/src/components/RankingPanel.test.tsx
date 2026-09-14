@@ -21,6 +21,7 @@ const baseRanking: RankingDetail = {
   description: 'Fictional demo fixtures.',
   hasSource: false,
   sourceUrl: null,
+  songCount: 1,
   facets: { artists: ['毛宁'], releaseYears: [1993] },
   entries: [{ id: 'song', rank: 1, title: '涛声依旧', artist: '毛宁', releaseYear: 1993 }]
 };
@@ -47,6 +48,7 @@ const commonProps = {
 it('shows the filtered result count and a source-derived demo label', () => {
   render(<ThemeProvider theme={theme}><RankingPanel {...commonProps} ranking={baseRanking} /></ThemeProvider>);
   expect(screen.getByText('Demo Data')).toBeInTheDocument();
+  expect(screen.getByText('1 song')).toBeInTheDocument();
   expect(screen.getByText('1 result')).toBeInTheDocument();
   expect(screen.getByRole('button', { name: 'Add Top 10' })).toBeEnabled();
 });
@@ -66,7 +68,7 @@ it('does not render a non-HTTP source URL', () => {
 
 it('shows 25 ranking entries per URL-controlled page', () => {
   const entries = Array.from({ length: 26 }, (_, index) => ({ id: `song-${index + 1}`, rank: index + 1, title: `Song ${index + 1}`, artist: 'Demo Artist', releaseYear: 1993 }));
-  const ranking = { ...baseRanking, facets: { artists: ['Demo Artist'], releaseYears: [1993] }, entries };
+  const ranking = { ...baseRanking, songCount: 26, facets: { artists: ['Demo Artist'], releaseYears: [1993] }, entries };
   function Harness() {
     const [page, setPage] = useState(1);
     return <RankingPanel {...commonProps} ranking={ranking} page={page} onPageChange={setPage} />;

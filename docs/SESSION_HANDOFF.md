@@ -8,9 +8,10 @@
 
 ## 1. Current Status
 
-Task 1 of the approved Ranking Catalog Expansion is implemented and verified in
-the working tree. It adds the multi-ranking foundation and category navigation;
-it does not import the four production video rankings.
+Task 1 of the approved Ranking Catalog Expansion is implemented, verified, and
+committed locally. A follow-up UI refinement based on the approved lightweight
+editorial-tab concept is implemented and verified in the current working tree.
+It does not import the four production video rankings.
 
 The application now supports published rankings identified by `decade × region`
 with stable routes. The existing dataset is preserved as the published `90s Demo
@@ -25,11 +26,11 @@ execution plan.
 ## 2. Repository State
 
 - Branch: `feature/ranking-catalog-expansion`.
-- Committed HEAD: `9717ff3` — `docs: refresh handoff and engineering guide`.
-- `9717ff3` is synchronized with `origin/main`; this feature branch started from
-  that baseline.
-- Task 1 is currently uncommitted and unpushed. The user has not yet authorized
-  either action.
+- Committed HEAD: `be345ae` — `feat: add multi-ranking catalog foundation`.
+- The feature branch started from `9717ff3`, which remains synchronized with
+  `origin/main`.
+- Commit `be345ae` is local and unpushed. The subsequent UI refinement is also
+  uncommitted. The user has not authorized a push.
 - Preserve every working-tree change. Do not reset, discard, or overwrite it.
 - Use `git status --short --branch` and the live diff for the exact file list.
 - Migration `0002_bumpy_thor_girl.sql` has been applied to the normal local
@@ -63,7 +64,8 @@ execution plan.
   display order, including route metadata and source availability but not the
   source URL itself.
 - `GET /api/rankings/:decade/:region` resolves one published ranking and returns
-  its source URL, entries, and ranking-scoped artist/release-year facets.
+  its source URL, unfiltered `songCount`, entries, and ranking-scoped
+  artist/release-year facets.
 - Invalid path values return `400 INVALID_REQUEST`; missing or unpublished
   combinations return `404 RANKING_NOT_FOUND`.
 - Entry ordering remains based on the rank stored for that ranking, so one song
@@ -74,14 +76,15 @@ execution plan.
 - `/` redirects to `/rankings/90s/mainland` and preserves valid search state.
 - `/rankings/$decade/$region` owns the ranking page. Search text, artist,
   release year, page, and sign-in intent are validated URL search parameters.
-- A two-level category navigator displays the 80s/90s and Hong Kong/Taiwan/
-  Mainland China choices and derives disabled combinations from published API
-  metadata.
+- A lightweight page-level navigator uses underlined tabs for 80s/90s and Hong
+  Kong/Taiwan/Mainland China, deriving disabled combinations from published API
+  metadata without a separate navigation card.
 - Changing category preserves text search, clears ranking-scoped artist/year
   filters, and resets pagination. Changing filters also resets pagination.
-- The ranking panel derives its source presentation from live ranking metadata.
-  It shows `Watch original video` only for safe HTTP(S) URLs and opens the link
-  with `noopener,noreferrer` protections.
+- The ranking card groups decade/region context, total song count, source badge,
+  and source action in one compact header. Search and filters share a responsive
+  tinted toolbar. It shows `Watch source` only for safe HTTP(S) URLs and opens
+  the link with `noopener,noreferrer` protections.
 - Anonymous ranking access, authenticated list actions, guarded personal routes,
   authentication cache isolation, and public-list privacy behavior remain
   intact. Anonymous personal/practice deep links now return to the default
@@ -98,12 +101,12 @@ All required Task 1 gates passed:
 - `npm run typecheck`: passed for all workspaces.
 - `npm test`: API 15/15; Web 11 files and 34/34; contracts/database had no test
   files and exited successfully with `--passWithNoTests`.
-- `npm run build`: passed. The existing large-bundle warning remains; the main
-  asset was 826.33 KB (257.62 KB gzip) in this run.
+- `npm run build`: passed. The existing large-bundle warning remains; the latest
+  main asset was 821.19 KB (256.59 KB gzip).
 - `npm run test:e2e`: Playwright 1/1 passed.
 - Manual browser acceptance: desktop and 390 × 844 mobile layouts checked;
-  category availability, URL pagination, URL search, and selected entries were
-  verified with no browser console errors.
+  category availability, responsive filter layout, URL search, and the stable
+  unfiltered song count were verified.
 - Final whitespace/diff inspection must remain green after any later edit.
 
 Known non-blocking output remains the Vite bundle-size warning, the third-party
@@ -114,8 +117,8 @@ jsdom's unimplemented `window.scrollTo()` notices during Web tests.
 
 ### Finish Task 1 delivery
 
-- Review the uncommitted Task 1 diff.
-- Commit and push only when the user explicitly asks.
+- Review and locally commit the uncommitted UI refinement when the user asks.
+- Push commit `be345ae` and any follow-up only when the user explicitly asks.
 - Merge Task 1 before creating Task 2 from an updated `main`.
 
 ### Task 2 — User-submitted songs

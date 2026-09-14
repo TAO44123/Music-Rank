@@ -180,7 +180,10 @@ describe('Music Rank API', () => {
 
   it('searches a ranking by song title and artist', async () => {
     const path = '/api/rankings/90s/mainland';
-    await request(app).get(`${path}?q=%E6%B6%9B%E5%A3%B0`).expect(200).expect(({ body }) => expect(body.entries).toHaveLength(1));
+    await request(app).get(`${path}?q=%E6%B6%9B%E5%A3%B0`).expect(200).expect(({ body }) => {
+      expect(body.entries).toHaveLength(1);
+      expect(body.songCount).toBe(30);
+    });
     await request(app).get(`${path}?q=%E6%AF%9B%E5%AE%81`).expect(200).expect(({ body }) => expect(body.entries[0].artist).toBe('毛宁'));
     await request(app).get(path).query({ artist: '毛宁', releaseYear: 1993 }).expect(200).expect(({ body }) => expect(body.entries).toMatchObject([{ title: '涛声依旧', artist: '毛宁', releaseYear: 1993 }]));
   });

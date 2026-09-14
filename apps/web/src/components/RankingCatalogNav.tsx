@@ -1,5 +1,5 @@
 import { rankingDecades, rankingRegions } from '@music-rank/contracts';
-import { Box, Paper, Stack, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material';
+import { Box, Stack, Tab, Tabs, Typography } from '@mui/material';
 import type { Ranking, RankingDecade, RankingRegion } from '../api';
 
 const regionLabels: Record<RankingRegion, string> = { 'hk-tw': 'Hong Kong/Taiwan', mainland: 'Mainland China' };
@@ -26,20 +26,24 @@ export function RankingCatalogNav({ rankings, decade, region, onSelect }: Props)
     if (nextRegion && nextRegion !== region && available(decade, nextRegion)) onSelect(decade, nextRegion);
   };
 
-  return <Paper component="nav" aria-label="Ranking catalog" variant="outlined" sx={{ p: { xs: 1.5, sm: 2 } }}>
-    <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} alignItems={{ md: 'center' }}>
-      <Box>
-        <Typography variant="overline" color="text.secondary" fontWeight={800}>Decade</Typography>
-        <ToggleButtonGroup exclusive size="small" value={decade} onChange={(_event, value: RankingDecade | null) => selectDecade(value)} aria-label="Ranking decade">
-          {rankingDecades.map((candidate) => <ToggleButton key={candidate} value={candidate} disabled={!rankings.some((ranking) => ranking.decade === candidate)}>{candidate}</ToggleButton>)}
-        </ToggleButtonGroup>
-      </Box>
-      <Box>
-        <Typography variant="overline" color="text.secondary" fontWeight={800}>Region</Typography>
-        <ToggleButtonGroup exclusive size="small" value={region} onChange={(_event, value: RankingRegion | null) => selectRegion(value)} aria-label="Ranking region">
-          {regions.map((candidate) => <ToggleButton key={candidate.value} value={candidate.value} disabled={!available(decade, candidate.value)}>{candidate.label}</ToggleButton>)}
-        </ToggleButtonGroup>
-      </Box>
+  const tabsSx = {
+    minHeight: 42,
+    '& .MuiTabs-indicator': { height: 3, borderRadius: '3px 3px 0 0', bgcolor: 'secondary.main' },
+    '& .MuiTab-root': { minHeight: 42, minWidth: 0, px: { xs: 1.25, sm: 2 }, textTransform: 'none', fontWeight: 800, color: 'text.secondary' },
+    '& .Mui-selected': { color: 'text.primary' },
+    '& .Mui-disabled': { opacity: 0.38 }
+  };
+
+  return <Box component="nav" aria-label="Ranking catalog" sx={{ borderBottom: 1, borderColor: 'divider' }}>
+    <Typography variant="subtitle2" fontWeight={800} sx={{ px: 0.5, mb: 0.25 }}>Explore rankings</Typography>
+    <Stack direction={{ xs: 'column', sm: 'row' }} spacing={{ xs: 0, sm: 1.5 }} alignItems={{ sm: 'flex-end' }}>
+      <Tabs value={decade} onChange={(_event, value: RankingDecade) => selectDecade(value)} aria-label="Ranking decade" sx={tabsSx}>
+        {rankingDecades.map((candidate) => <Tab key={candidate} value={candidate} label={candidate} disabled={!rankings.some((ranking) => ranking.decade === candidate)} />)}
+      </Tabs>
+      <Box sx={{ display: { xs: 'none', sm: 'block' }, width: '1px', height: 26, bgcolor: 'divider', mb: 1 }} />
+      <Tabs value={region} onChange={(_event, value: RankingRegion) => selectRegion(value)} aria-label="Ranking region" variant="scrollable" scrollButtons={false} sx={tabsSx}>
+        {regions.map((candidate) => <Tab key={candidate.value} value={candidate.value} label={candidate.label} disabled={!available(decade, candidate.value)} />)}
+      </Tabs>
     </Stack>
-  </Paper>;
+  </Box>;
 }

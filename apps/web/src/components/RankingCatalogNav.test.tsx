@@ -17,12 +17,12 @@ const rankings: Ranking[] = [
 it('selects another decade while preserving an available region', () => {
   const onSelect = vi.fn();
   render(<ThemeProvider theme={theme}><RankingCatalogNav rankings={rankings} decade="90s" region="mainland" onSelect={onSelect} /></ThemeProvider>);
-  fireEvent.click(screen.getByRole('button', { name: '80s' }));
+  fireEvent.click(screen.getByRole('tab', { name: '80s' }));
   expect(onSelect).toHaveBeenCalledWith('80s', 'mainland');
 });
 
 it('disables unavailable catalog combinations', () => {
   render(<ThemeProvider theme={theme}><RankingCatalogNav rankings={[rankings[3]]} decade="90s" region="mainland" onSelect={() => undefined} /></ThemeProvider>);
-  expect(screen.getByRole('button', { name: '80s' })).toBeDisabled();
-  expect(screen.getByRole('button', { name: 'Hong Kong/Taiwan' })).toBeDisabled();
+  expect(screen.getByRole('tab', { name: '80s' })).toBeDisabled();
+  expect(screen.getByRole('tab', { name: 'Hong Kong/Taiwan' })).toBeDisabled();
 });

@@ -436,7 +436,7 @@ DEMO_USER_ID 只控制 demo fixture，不再参与普通请求的当前用户解
 | description | string | 是 |
 | hasSource | boolean | 否 |
 
-RankingDetail 在 Ranking 基础上增加 sourceUrl（string 或 null）、facets（artists 与 releaseYears）和 entries（按 rank 升序排列的 RankingEntry 数组）。Facet 从该榜单的全部条目生成，不受当前查询条件影响。RankingEntry 包含 Song 全部字段和非空 integer rank。
+RankingDetail 在 Ranking 基础上增加 sourceUrl（string 或 null）、songCount（当前榜单未过滤的歌曲总数）、facets（artists 与 releaseYears）和 entries（按 rank 升序排列的 RankingEntry 数组）。songCount 与 Facet 从该榜单的全部条目生成，不受当前查询条件影响。RankingEntry 包含 Song 全部字段和非空 integer rank。
 
 ### 9.3 TopListEntry
 
@@ -503,7 +503,7 @@ Query 参数：
 
 三个 Query 条件可以组合，并以 AND 连接；q 内部的标题与歌手条件以 OR 连接。空字符串经 trim 后不会添加对应筛选。
 
-成功响应：RankingDetail。entries 按原榜单 rank 升序排列，rank 不因筛选重新编号；facets 只包含当前榜单全部条目的歌手和非空年份，不包含仅存在于全局 songs 表的歌曲。
+成功响应：RankingDetail。entries 按原榜单 rank 升序排列，rank 不因筛选重新编号；songCount 始终表示当前榜单未过滤的歌曲总数；facets 只包含当前榜单全部条目的歌手和非空年份，不包含仅存在于全局 songs 表的歌曲。
 
 可能响应：
 
@@ -777,13 +777,14 @@ DESIGN-002 起，用户可见文案统一使用 Practice Library：Tab 名称、
 - 页码由路由 URL 控制；搜索、歌手或年份变化时回到第 1 页。
 - Clear 只清除歌手和年份，不清除搜索词。
 - 对 API 返回的过滤后 entries 做每页 25 条的客户端分页。
-- 来源标签按 sourceType 生成；仅为合法 HTTP(S) sourceUrl 显示 `Watch original video` 外链。
+- 头部集中显示 decade/region、未过滤歌曲总数与来源标签；仅为合法 HTTP(S) sourceUrl 显示 `Watch source` 外链（无障碍名称仍说明原视频）。
+- 搜索、歌手、年份和 Clear 收入同一浅色响应式工具栏；移动端纵向排列。
 - Top 10 已满时禁用尚未加入歌曲的 Add Top 10。
 - 操作按钮使用固定宽度保持行对齐。
 
 ### 12.4 RankingCatalogNav
 
-- 以 Decade 和 Region 两组互斥按钮显示 80s/90s 与 Hong Kong/Taiwan/Mainland China。
+- 使用页面级下划线 Tabs 显示 80s/90s 与 Hong Kong/Taiwan/Mainland China，不再使用独立 Paper 卡片。
 - 只允许导航到 GET /api/rankings 返回的已发布组合；缺少数据的组合禁用。
 - 更换年代时优先保留仍可用的地区，否则选择该年代第一个已发布地区。
 
@@ -1043,7 +1044,7 @@ E2E 不复用已有服务器；3101 被占用时应先定位占用者。
 | 测试数据库 | 测试仍使用本地 PostgreSQL | CI 或多人开发前提供独立数据库 |
 | 认证限流 | 当前为单进程内存窗口 | 多实例或公网部署前迁移到共享存储 |
 | 依赖漏洞 | 6 项未自动修复 | 分别验证 Drizzle 与 Vite 升级 |
-| 前端包体积 | 816.64 KB，gzip 254.80 KB | 优先评估路由级 lazy loading，再决定 vendor manualChunks |
+| 前端包体积 | 821.19 KB，gzip 256.59 KB（最近一次构建） | 优先评估路由级 lazy loading，再决定 vendor manualChunks |
 | Web 测试日志噪声 | jsdom scrollTo 与 MUI out-of-range 提示不影响通过 | 用测试 setup polyfill 和完整筛选 fixture 消除噪声 |
 | 跨平台 CI | 当前无 GitHub checks，跨平台改动依赖人工复核 | 增加 Node 24.21.0/npm 11.19.0 的 Linux 与 Windows 工作流 |
 | 换行符策略 | 仓库尚无共享 .gitattributes | 为文本文件固定 LF，脚本类型按平台显式例外 |
@@ -1077,6 +1078,7 @@ E2E 不复用已有服务器；3101 被占用时应先定位占用者。
 
 | 日期 | 代码基线 | 内容 |
 | --- | --- | --- |
+| 2026-09-14 | `be345ae` 之后的工作树 | 按轻量编辑式草图重构榜单头部：页面级下划线分类 Tabs、集中元数据、响应式浅色筛选工具栏，并在详情 API 增加不受筛选影响的 songCount |
 | 2026-09-14 | `feature/ranking-catalog-expansion` 当前工作树 | 实现多榜单 Task 1：年代/地区元数据与约束、稳定目录 API、榜单级 Facet、`/rankings/:decade/:region` 路由、两层选择器、URL 页码和安全来源链接；保留并重命名 Demo 榜单 |
 | 2026-09-14 | 75424ee | 同步 PR #1/#2 合并后的真实基线：跨平台 production 启动、DESIGN-002 路由、28 项 Web 测试、测试超时策略、端口冲突说明、审计与 bundle 基线 |
 | 2026-09-11 | 91bca4b / 75424ee | 实现 DESIGN-002：TanStack Router 客户端路由、三 Tab 响应式导航、受守卫的 `/personal` 与 `/practice`、榜单筛选进 URL Search 参数、Singing List 更名为 Practice Library；随后稳定并行 Web 测试 |

@@ -27,7 +27,7 @@ const catalog: Ranking[] = [
 function rankingDetail(decade: RankingDecade, region: RankingRegion) {
   const ranking = catalog.find((candidate) => candidate.decade === decade && candidate.region === region)!;
   const entries = Array.from({ length: 26 }, (_, index) => ({ id: `song-${index + 1}`, rank: index + 1, title: `Song ${index + 1}`, artist: '毛宁', releaseYear: 1993 }));
-  return { ...ranking, sourceUrl: ranking.hasSource ? 'https://www.youtube.com/watch?v=source' : null, facets: { artists: ['毛宁'], releaseYears: [1993] }, entries };
+  return { ...ranking, sourceUrl: ranking.hasSource ? 'https://www.youtube.com/watch?v=source' : null, songCount: entries.length, facets: { artists: ['毛宁'], releaseYears: [1993] }, entries };
 }
 
 function rankingResponse(path: string, sessionUser: typeof user | null) {
@@ -80,11 +80,11 @@ describe('ranking routes', () => {
     const { client, router } = renderRoute({ path: '/rankings/90s/mainland?q=%E6%B6%9B%E5%A3%B0&artist=%E6%AF%9B%E5%AE%81&year=1993&page=2', fetch: rankingFetch });
     render(<ThemeProvider theme={theme}><QueryClientProvider client={client}><RouterProvider router={router} /></QueryClientProvider></ThemeProvider>);
     await screen.findByRole('heading', { name: '90s Demo Ranking' });
-    fireEvent.click(screen.getByRole('button', { name: '80s' }));
+    fireEvent.click(screen.getByRole('tab', { name: '80s' }));
     await waitFor(() => expect(router.state.location.pathname).toBe('/rankings/80s/mainland'));
     expect(router.state.location.search).toEqual({ q: '涛声' });
     expect(await screen.findByRole('heading', { name: '80s Mainland China' })).toBeVisible();
-    fireEvent.click(screen.getByRole('button', { name: 'Hong Kong/Taiwan' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Hong Kong/Taiwan' }));
     await waitFor(() => expect(router.state.location.pathname).toBe('/rankings/80s/hk-tw'));
   });
 

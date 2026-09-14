@@ -711,3 +711,27 @@ Before ending a session:
 - Blocker: none for Task 1 implementation. Task 3 still requires four
   user-selected YouTube source URLs and approval of extracted tables.
 - Commit/push/PR status: Task 1 is not committed, pushed, or opened as a PR.
+
+### 2026-09-14 — Task 1 UI refinement
+
+- Task: Task 1 follow-up, requested after visual review
+- Branch: `feature/ranking-catalog-expansion`
+- HEAD: `be345ae` (`feat: add multi-ranking catalog foundation`)
+- Completed:
+  - Replaced the separate category card with lightweight page-level underlined
+    decade and region tabs.
+  - Consolidated ranking context, total song count, source badge, and source
+    action in the ranking-card header.
+  - Consolidated search, artist, release year, and Clear into a responsive tinted
+    toolbar.
+  - Added an unfiltered `songCount` to ranking detail responses so header
+    metadata remains stable while results are filtered.
+- Verification:
+  - Typecheck passed.
+  - Full tests passed: API 15/15 and Web 34/34.
+  - Production build passed with the known bundle warning.
+  - Playwright E2E passed 1/1.
+  - Desktop and 390 × 844 mobile browser checks passed; URL search and responsive
+    layout were verified.
+- Commit/push/PR status: this follow-up is uncommitted and unpushed; `be345ae`
+  also remains local and unpushed.

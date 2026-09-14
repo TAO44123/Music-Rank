@@ -96,7 +96,7 @@ export async function getRanking(decade: RankingDecade, region: RankingRegionPat
     releaseYears: Array.from(new Set(catalogSongs.flatMap((song) => song.releaseYear === null ? [] : [song.releaseYear]))).sort((left, right) => right - left)
   };
 
-  return { ...toRankingCatalogItem(ranking), facets, entries };
+  return { ...toRankingCatalogItem(ranking), songCount: catalogSongs.length, facets, entries };
 }
 
 export async function listSongs(query?: string) {
