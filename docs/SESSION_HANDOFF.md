@@ -11,9 +11,10 @@
 The authentication and list-sharing iteration, compact visibility controls,
 DESIGN-002 routing, DESIGN-006 responsive panels, the PR #4 account-label
 regression guard, and PR #5's DESIGN-004 mobile bottom navigation are merged
-and pushed to `main`. The ranking-catalog work is synchronized and freshly
-verified on top of that baseline. It adds the user-approved 90s Mainland China Top 100 and 90s
-Cantonese Songs Top 70 while retaining the 30-entry Demo as unpublished data.
+and pushed to `main`. The ranking-catalog work is also synchronized, freshly
+verified, and merged into `main` through `62292ba`. It adds the user-approved
+90s Mainland China Top 100 and 90s Cantonese Songs Top 70 while retaining the
+30-entry Demo as unpublished data.
 
 The application now treats each published ranking as a first-class catalog item
 with a source-neutral `/rankings/:slug` route. The published pilot is available
@@ -62,10 +63,10 @@ link, and no Console errors. The final dry run reused all 72 songs and entries.
 
 ## 2. Repository State
 
-- Branch: `feature/90s-ranking-pilot`, synchronized with `main` during the
-  current integration. Its pre-integration tip is `d2ef428`; inspect the live
-  Git log for the synchronization commit.
-- `main` and `origin/main` were synchronized at `8a4c951` before this merge.
+- Branch: `main`, tracking `origin/main`; the local delivery merge is `62292ba`
+  and the final documentation refresh sits on top of it.
+- The synchronized feature branch is pushed at `ecd1e45`; its pre-integration
+  tip was `d2ef428`.
 - PR #3, PR #4, and PR #5 are already merged; the ranking integration preserves
   their responsive panels, account-label guard, and mobile bottom navigation.
 - The ranking commits include Task 1 (`be345ae`, `c15efc6`), the Task 3A plan
@@ -272,10 +273,10 @@ Fresh synchronized-branch verification on September 15, 2026 passed:
 - The first all-workspace test attempt was blocked only by sandbox database
   access (`EPERM`); the identical command passed with local PostgreSQL access.
 
-### Finish current delivery
+### Completed delivery
 
 - The Task 3A and Cantonese implementations are synchronized, freshly verified,
-  and authorized for push and merge in the current task.
+  pushed, and merged into `main`.
 - Keep the approved manifest values unchanged unless the user supplies a new
   authoritative replacement and explicitly requests it.
 - Ask the user to choose Task 2 or further Task 3 imports before creating
@@ -353,14 +354,13 @@ clean temporary database. Record exact test counts and any skipped check.
   same time.
 - Do not use `npm audit fix --force`.
 
-## 10. Copy-Paste Prompt for the Task 3A Follow-up
+## 10. Copy-Paste Prompt for the Next Follow-up
 
 ```text
-Continue the Music Rank ranking-catalog follow-up. Read docs/SESSION_HANDOFF.md and
-docs/RANKING_CATALOG_EXPANSION_EXECUTION_PLAN.md completely, then inspect and
-preserve the working tree. The active branch is feature/90s-ranking-pilot at
-the latest local commit, stacked on Task 3A commit 6729972 and Task 1 commits
-be345ae and c15efc6. Use the live Git log for the exact HEAD.
+Continue Music Rank from the integrated main branch. Read docs/SESSION_HANDOFF.md
+and docs/RANKING_CATALOG_EXPANSION_EXECUTION_PLAN.md completely, then inspect
+and preserve the working tree. The ranking catalog was merged through 62292ba;
+use the live Git log for the final documentation commit and remote state.
 
 The approved Bilibili 90s Mainland Top 100 pilot is already imported and
 published as 90s-mainland-top-100. Its 100-entry manifest and reusable
@@ -371,10 +371,10 @@ source link. Do not access the video to revalidate the data or alter publication
 state unless I explicitly request it.
 
 The approved 90s Cantonese Top 70 is also imported and published with 72 entries;
-its region metadata is intentionally null. Desktop and 390 × 844 mobile
-acceptance have passed for both rankings. Do not push or merge, and do not start
-Task 2, further ranking imports, Admin work, fuzzy matching, or aggregation
-without explicit user direction.
+its region metadata is intentionally null. Desktop and mobile acceptance have
+passed for both rankings, including the integrated bottom navigation and
+responsive panels. Do not start Task 2, further ranking imports, Admin work,
+fuzzy matching, or aggregation without explicit user direction.
 
 Communicate with me in Chinese; keep code, identifiers, commit messages, and
 English project documents in English. If any required product decision is

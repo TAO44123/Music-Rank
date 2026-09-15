@@ -8,7 +8,7 @@
 | 目标读者 | 负责开发、测试、排障和后续维护的工程师 |
 | 当前产品版本 | Version 1 + 认证扩展 + 响应式导航 + 多榜单目录，本地多用户应用 |
 | 最后更新日期 | 2026-09-15（America/New_York） |
-| 最后核对的代码提交 | `feature/90s-ranking-pilot` 与 `main` 的整合工作树 |
+| 最后核对的代码提交 | `main`（榜单目录通过 `62292ba` 合入） |
 | 事实来源 | 当前仓库代码、配置、迁移和自动化测试 |
 
 这份文档描述系统现在如何工作。首次在本机配置和运行项目时，先执行 [LOCAL_FIRST_RUN_GUIDE.md](LOCAL_FIRST_RUN_GUIDE.md)；PROJECT_SPEC_ZH.md、PROJECT_SPEC_EN.md 与 IMPLEMENTATION_HANDOFF.md 保留 Version 1 历史基线，当前已批准扩展以 [AUTHENTICATION_DESIGN.md](AUTHENTICATION_DESIGN.md)、[RANKING_CATALOG_DESIGN.md](RANKING_CATALOG_DESIGN.md) 和 [SESSION_HANDOFF.md](SESSION_HANDOFF.md) 为准。若文档与代码不一致，应先核对代码和测试，再更新本文档。
@@ -1140,7 +1140,7 @@ E2E 不复用已有服务器；3101 被占用时应先定位占用者。
 
 | 日期 | 代码基线 | 内容 |
 | --- | --- | --- |
-| 2026-09-15 | `feature/90s-ranking-pilot` 与 `main` 的整合工作树 | 合并多榜单目录与 DESIGN-004/006：保留来源无关 slug 路由、两份已发布真实榜单、移动底栏和响应式列表；更新 BottomNav 测试夹具与 Session 等待；typecheck、API 15/15、Web 40/40、database 8/8、build、Playwright 3/3 均通过。 |
+| 2026-09-15 | feature `ecd1e45` / main `62292ba` | 合并多榜单目录与 DESIGN-004/006：保留来源无关 slug 路由、两份已发布真实榜单、移动底栏和响应式列表；更新 BottomNav 测试夹具与 Session 等待；typecheck、API 15/15、Web 40/40、database 8/8、build、Playwright 3/3 均通过。 |
 | 2026-09-15 | `feature/90s-ranking-pilot` latest local commit after `6729972` | 新增 72 首 `90s Cantonese Songs Top 70`；导入器取消恰好 100 条的限制，改为支持任意正数的连续唯一名次；Cantonese 榜单不设置 region，来源 URL 仅用于 Watch source。 |
 | 2026-09-15 | `feature/90s-ranking-pilot` working tree on `2b0a0a3` | 将榜单公开身份改为来源无关 slug；API/路由使用 `/rankings/:slug`，decade/region 改为可空元数据，UI 改为直接榜单标签，并保留跨榜共享歌曲的独立名次。 |
 | 2026-09-15 | `feature/90s-ranking-pilot` working tree on `2b0a0a3` | Replaced the pilot from the user's authoritative 100-entry JSON, populated every release year, stored the exact Bilibili Watch source URL, and added atomic replacement plus safe orphan cleanup. |
