@@ -1,6 +1,6 @@
 # Ranking Catalog Expansion — Cross-Session Execution Plan
 
-> Status: Task 1, Task 3A, and the approved Cantonese import are verified, pushed, and merged into `main`; Task 2 core is committed locally at `20a257c`, with a verified uncommitted UI refinement on `feature/user-submitted-songs`; nothing from Task 2 is pushed
+> Status: Task 1, Task 3A, the approved Cantonese import, and Task 2 are verified, pushed, and merged into `main`; Task 2 was delivered through PR #6 from `feature/user-submitted-songs`
 >
 > Last updated: 2026-09-15 (America/New_York)
 >
@@ -530,7 +530,7 @@ Run the same full command set listed in Task 1. In addition:
 - [x] Confirm that the two existing list types and their visibility behavior
   remain unchanged.
 - [x] Update this document's progress log and `docs/SESSION_HANDOFF.md`.
-- [ ] Do not commit or push without user authorization.
+- [x] Do not commit or push without user authorization.
 
 ### 7.9 Suggested Task 2 commit groups
 
@@ -1028,8 +1028,8 @@ Before ending a session:
   - `git diff --check`: passed.
 - Scope checks: no shared-song edit/delete endpoint or UI was added; published
   list behavior and private Practice Library notes remain unchanged.
-- Remaining: inspect the final diff and obtain explicit user authorization
-  before committing, pushing, opening a PR, or merging.
+- Delivery: the core implementation was committed at `20a257c`, reviewed with
+  the UI refinement below, and delivered through PR #6.
 
 ### 2026-09-15 — Task 2 UI refinement
 
@@ -1046,5 +1046,6 @@ Before ending a session:
 - Verification: typecheck passed; the complete Web suite passed 44/44 across 13
   files; targeted UI tests passed 14/14; Playwright passed 3/3; and
   `git diff --check` passed.
-- Commit/push status: the core Task 2 implementation is committed locally at
-  `20a257c`. This UI refinement is uncommitted and nothing has been pushed.
+- Commit/push status: the core Task 2 implementation is `20a257c`; the UI
+  refinement is `711e870`. Both were pushed on
+  `feature/user-submitted-songs` and delivered through PR #6.
