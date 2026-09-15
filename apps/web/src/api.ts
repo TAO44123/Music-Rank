@@ -14,9 +14,11 @@ export type AuthSession = { user: AuthUser | null };
 export type ListVisibility = 'PRIVATE' | 'PUBLIC';
 export type ListSettings = { topList: ListVisibility; singingList: ListVisibility };
 export type PublicProfile = { username: string; displayName: string; lists: ListSettings };
+export type ExistingSong = Pick<Song, 'id' | 'title' | 'artist'>;
+export type AddSongToListInput = { songId: string } | { song: { title: string; artist: string } };
 
 export class ApiError extends Error {
-  constructor(public readonly status: number, public readonly code: string, message: string) {
+  constructor(public readonly status: number, public readonly code: string, message: string, public readonly data: Record<string, unknown> = {}) {
     super(message);
   }
 }
@@ -24,8 +26,13 @@ export class ApiError extends Error {
 export async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const response = await fetch(path, { headers: { 'Content-Type': 'application/json', ...options?.headers }, ...options });
   if (!response.ok) {
-    const body = await response.json().catch(() => ({ code: 'REQUEST_FAILED', message: 'The request failed' }));
-    throw new ApiError(response.status, body.code, body.message);
+    const body = await response.json().catch(() => ({ code: 'REQUEST_FAILED', message: 'The request failed' })) as Record<string, unknown>;
+    throw new ApiError(
+      response.status,
+      typeof body.code === 'string' ? body.code : 'REQUEST_FAILED',
+      typeof body.message === 'string' ? body.message : 'The request failed',
+      body
+    );
   }
   return response.status === 204 ? undefined as T : response.json() as Promise<T>;
 }

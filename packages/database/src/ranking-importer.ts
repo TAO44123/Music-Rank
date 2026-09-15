@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { and, eq } from 'drizzle-orm';
 import { db } from './client.js';
 import { rankingEntries, rankings, singingListEntries, songs, userTopListEntries } from './schema.js';
+import { normalizeSongValue } from './song-normalization.js';
 
 const regions = ['HK_TW', 'MAINLAND'] as const;
 const sourceTypes = ['OFFICIAL', 'MEDIA', 'COMMUNITY'] as const;
@@ -88,10 +89,6 @@ function nonEmptyString(value: unknown, name: string): string {
   return value.trim();
 }
 
-function normalize(value: string): string {
-  return value.trim().toLocaleLowerCase();
-}
-
 function parseRankingSlug(value: unknown, name: string): string {
   const slug = nonEmptyString(value, name);
   assert(slug.length <= 120 && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug), `${name} must be a lowercase URL-safe slug`);
@@ -144,7 +141,7 @@ export function validateRankingManifest(value: unknown): RankingManifest {
   assert(entries.length > 0, 'manifest must contain at least one entry');
   const sortedRanks = entries.map((entry) => entry.rank).sort((left, right) => left - right);
   assert(sortedRanks.every((rank, index) => rank === index + 1), `manifest ranks must be unique and contiguous from 1 through ${entries.length}`);
-  const songKeys = entries.map((entry) => `${normalize(entry.title)}\u0000${normalize(entry.artist)}`);
+  const songKeys = entries.map((entry) => `${normalizeSongValue(entry.title)}\u0000${normalizeSongValue(entry.artist)}`);
   assert(new Set(songKeys).size === songKeys.length, 'manifest must not contain duplicate normalized title-and-artist pairs');
 
   const canonicalizations = value.extraction.canonicalizations;
@@ -228,8 +225,8 @@ async function getDryRunSummary(manifest: RankingManifest): Promise<RankingImpor
 
   for (const entry of manifest.entries) {
     const [song] = await db.select().from(songs).where(and(
-      eq(songs.normalizedTitle, normalize(entry.title)),
-      eq(songs.normalizedArtist, normalize(entry.artist))
+      eq(songs.normalizedTitle, normalizeSongValue(entry.title)),
+      eq(songs.normalizedArtist, normalizeSongValue(entry.artist))
     )).limit(1);
     if (song) songsReused += 1;
     else songsCreated += 1;
@@ -292,8 +289,8 @@ async function writeRankingManifest(manifest: RankingManifest, replaceExisting: 
     let entriesReused = 0;
 
     for (const entry of manifest.entries) {
-      const normalizedTitle = normalize(entry.title);
-      const normalizedArtist = normalize(entry.artist);
+      const normalizedTitle = normalizeSongValue(entry.title);
+      const normalizedArtist = normalizeSongValue(entry.artist);
       let [song] = await transaction.select().from(songs).where(and(
         eq(songs.normalizedTitle, normalizedTitle),
         eq(songs.normalizedArtist, normalizedArtist)

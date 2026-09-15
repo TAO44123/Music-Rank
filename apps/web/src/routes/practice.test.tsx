@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { ThemeProvider } from '@mui/material/styles';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { RouterProvider } from '@tanstack/react-router';
@@ -46,5 +46,30 @@ describe('/practice', () => {
     render(<ThemeProvider theme={theme}><QueryClientProvider client={client}><RouterProvider router={router} /></QueryClientProvider></ThemeProvider>);
     expect(await screen.findByRole('heading', { name: 'My Practice Library' })).toBeVisible();
     expect(router.state.location.pathname).toBe('/practice');
+  });
+
+  it('adds a new unlisted song to Practice Library', async () => {
+    let entries: unknown[] = [];
+    const { client, router } = renderRoute({
+      path: '/practice',
+      fetch: (path, init) => {
+        if (path === '/api/auth/session') return jsonResponse({ user });
+        if (path === '/api/me/singing-list') return jsonResponse(entries);
+        if (path === '/api/me/list-settings') return jsonResponse({ topList: 'PRIVATE', singingList: 'PRIVATE' });
+        if (path === '/api/me/singing-list/items' && init?.method === 'POST') {
+          entries = [{ id: 'submitted-song', title: 'New Practice Song', artist: 'New Artist', releaseYear: null, status: 'WANT_TO_LEARN', note: null }];
+          return jsonResponse(entries, 201);
+        }
+        throw new Error(`Unexpected request: ${path}`);
+      }
+    });
+    render(<ThemeProvider theme={theme}><QueryClientProvider client={client}><RouterProvider router={router} /></QueryClientProvider></ThemeProvider>);
+    await screen.findByRole('heading', { name: 'My Practice Library' });
+    fireEvent.click(screen.getByRole('button', { name: 'Add a song not listed' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Add a song not listed' });
+    fireEvent.change(within(dialog).getByRole('textbox', { name: 'Song title' }), { target: { value: 'New Practice Song' } });
+    fireEvent.change(within(dialog).getByRole('textbox', { name: 'Artist' }), { target: { value: 'New Artist' } });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Add song' }));
+    expect(await screen.findByText('New Practice Song')).toBeVisible();
   });
 });

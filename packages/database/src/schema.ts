@@ -2,6 +2,7 @@ import { sql } from 'drizzle-orm';
 import {
   boolean,
   check,
+  index,
   integer,
   primaryKey,
   pgEnum,
@@ -65,11 +66,13 @@ export const songs = pgTable('songs', {
   artist: text('artist').notNull(),
   releaseYear: integer('release_year'),
   verificationStatus: verificationStatusEnum('verification_status').notNull().default('DEMO'),
+  submittedByUserId: uuid('submitted_by_user_id').references(() => users.id, { onDelete: 'set null' }),
   normalizedTitle: text('normalized_title').notNull(),
   normalizedArtist: text('normalized_artist').notNull(),
   ...timestamps
 }, (table) => [
-  uniqueIndex('songs_normalized_title_artist_unique').on(table.normalizedTitle, table.normalizedArtist)
+  uniqueIndex('songs_normalized_title_artist_unique').on(table.normalizedTitle, table.normalizedArtist),
+  index('songs_submitted_by_user_id_index').on(table.submittedByUserId)
 ]);
 
 export const rankings = pgTable('rankings', {

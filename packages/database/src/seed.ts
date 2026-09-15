@@ -2,6 +2,7 @@ import { eq } from 'drizzle-orm';
 import { db, closeDatabase } from './client.js';
 import { demoUserId } from './config.js';
 import { rankingEntries, rankings, songs, users } from './schema.js';
+import { normalizeSongValue } from './song-normalization.js';
 
 const rankingId = 'f73c2f9e-dfd1-4777-bc5a-d55f2a0db4ae';
 
@@ -38,8 +39,6 @@ const fixtures = [
   ['bdb88978-7665-4984-91ec-8af0b46b3e9c', '千万次地问', '刘欢', 1993]
 ] as const;
 
-const normalize = (value: string) => value.trim().toLocaleLowerCase();
-
 try {
   await db.transaction(async (transaction) => {
     await transaction.insert(users).values({ id: demoUserId, displayName: 'Demo Listener' })
@@ -70,11 +69,11 @@ try {
         artist,
         releaseYear,
         verificationStatus: 'DEMO',
-        normalizedTitle: normalize(title),
-        normalizedArtist: normalize(artist)
+        normalizedTitle: normalizeSongValue(title),
+        normalizedArtist: normalizeSongValue(artist)
       }).onConflictDoUpdate({
         target: songs.id,
-        set: { title, artist, normalizedTitle: normalize(title), normalizedArtist: normalize(artist), updatedAt: new Date() }
+        set: { title, artist, normalizedTitle: normalizeSongValue(title), normalizedArtist: normalizeSongValue(artist), updatedAt: new Date() }
       });
     }
 

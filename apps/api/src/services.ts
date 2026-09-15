@@ -1,7 +1,7 @@
 import { and, asc, desc, eq, ilike, or, sql } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
-import { db, rankingEntries, rankings, singingListEntries, songs, userListSettings, users, userTopListEntries } from '@music-rank/database';
-import type { ListType, ListVisibility, RankingDecade, RankingRegionPath, SingingStatus } from '@music-rank/contracts';
+import { db, normalizeSongValue, rankingEntries, rankings, singingListEntries, songs, userListSettings, users, userTopListEntries } from '@music-rank/database';
+import type { AddSingingListItemInput, AddTopListItemInput, ListType, ListVisibility, RankingDecade, RankingRegionPath, SingingStatus } from '@music-rank/contracts';
 import { AppError } from './errors.js';
 
 const songProjection = {
@@ -101,11 +101,57 @@ export async function listSongs(query?: string) {
   return db.select(songProjection).from(songs).where(filter).orderBy(asc(songs.title));
 }
 
-async function assertSongExists(songId: string): Promise<void> {
-  const [song] = await db.select({ id: songs.id }).from(songs).where(eq(songs.id, songId)).limit(1);
+type SongMutationDatabase = Pick<typeof db, 'insert' | 'select'>;
+type ExistingSongSummary = { id: string; title: string; artist: string };
+
+function songAlreadyExists(existingSong: ExistingSongSummary): AppError {
+  return new AppError(409, 'SONG_ALREADY_EXISTS', 'This song already exists. Confirm that you want to use it.', { existingSong });
+}
+
+async function assertSongExists(database: SongMutationDatabase, songId: string): Promise<void> {
+  const [song] = await database.select({ id: songs.id }).from(songs).where(eq(songs.id, songId)).limit(1);
   if (!song) {
     throw new AppError(404, 'SONG_NOT_FOUND', 'Song not found');
   }
+}
+
+async function resolveSongForList(
+  transaction: SongMutationDatabase,
+  userId: string,
+  input: AddTopListItemInput | AddSingingListItemInput
+): Promise<string> {
+  if ('songId' in input) {
+    await assertSongExists(transaction, input.songId);
+    return input.songId;
+  }
+
+  const title = input.song.title;
+  const artist = input.song.artist;
+  const normalizedTitle = normalizeSongValue(title);
+  const normalizedArtist = normalizeSongValue(artist);
+  const [existing] = await transaction.select({ id: songs.id, title: songs.title, artist: songs.artist })
+    .from(songs)
+    .where(and(eq(songs.normalizedTitle, normalizedTitle), eq(songs.normalizedArtist, normalizedArtist)))
+    .limit(1);
+  if (existing) throw songAlreadyExists(existing);
+
+  const [created] = await transaction.insert(songs).values({
+    id: randomUUID(),
+    title,
+    artist,
+    verificationStatus: 'UNVERIFIED',
+    submittedByUserId: userId,
+    normalizedTitle,
+    normalizedArtist
+  }).onConflictDoNothing().returning({ id: songs.id });
+  if (created) return created.id;
+
+  const [winner] = await transaction.select({ id: songs.id, title: songs.title, artist: songs.artist })
+    .from(songs)
+    .where(and(eq(songs.normalizedTitle, normalizedTitle), eq(songs.normalizedArtist, normalizedArtist)))
+    .limit(1);
+  if (winner) throw songAlreadyExists(winner);
+  throw new Error('Song insert conflict did not resolve to a song');
 }
 
 export async function getTopList(userId: string) {
@@ -116,16 +162,16 @@ export async function getTopList(userId: string) {
     .orderBy(asc(userTopListEntries.position));
 }
 
-export async function addTopListItem(userId: string, songId: string) {
-  await assertSongExists(songId);
+export async function addTopListItem(userId: string, input: AddTopListItemInput) {
   return db.transaction(async (transaction) => {
     const existing = await transaction.select({ songId: userTopListEntries.songId, position: userTopListEntries.position })
       .from(userTopListEntries).where(eq(userTopListEntries.userId, userId)).orderBy(asc(userTopListEntries.position));
-    if (existing.some((entry) => entry.songId === songId)) {
-      throw new AppError(409, 'TOP_LIST_DUPLICATE', 'This song is already in My Top 10');
-    }
     if (existing.length >= 10) {
       throw new AppError(409, 'TOP_LIST_CAPACITY_REACHED', 'My Top 10 already contains 10 songs');
+    }
+    const songId = await resolveSongForList(transaction, userId, input);
+    if (existing.some((entry) => entry.songId === songId)) {
+      throw new AppError(409, 'TOP_LIST_DUPLICATE', 'This song is already in My Top 10');
     }
     await transaction.insert(userTopListEntries).values({
       id: randomUUID(),
@@ -192,12 +238,26 @@ export async function getSingingList(userId: string, status?: SingingStatus) {
 }
 
 export async function upsertSingingListItem(userId: string, songId: string, status: SingingStatus, note?: string | null) {
-  await assertSongExists(songId);
+  await assertSongExists(db, songId);
   await db.insert(singingListEntries).values({ id: randomUUID(), userId, songId, status, note: note ?? null })
     .onConflictDoUpdate({
       target: [singingListEntries.userId, singingListEntries.songId],
       set: { status, note: note ?? null, updatedAt: new Date() }
     });
+  return getSingingList(userId);
+}
+
+export async function addSingingListItem(userId: string, input: AddSingingListItemInput) {
+  await db.transaction(async (transaction) => {
+    const songId = await resolveSongForList(transaction, userId, input);
+    await transaction.insert(singingListEntries).values({
+      id: randomUUID(),
+      userId,
+      songId,
+      status: 'WANT_TO_LEARN',
+      note: null
+    }).onConflictDoNothing();
+  });
   return getSingingList(userId);
 }
 

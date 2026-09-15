@@ -4,6 +4,7 @@ import { sql } from 'drizzle-orm';
 import { db } from '@music-rank/database';
 import {
   addTopListItemSchema,
+  addSingingListItemSchema,
   artistFilterSchema,
   listTypePathSchema,
   loginSchema,
@@ -24,6 +25,7 @@ import { asyncRoute, errorHandler } from './errors.js';
 import { createAuthRateLimiter, createOriginGuard } from './security.js';
 import {
   addTopListItem,
+  addSingingListItem,
   getRanking,
   getListSettings,
   getPublicProfile,
@@ -145,8 +147,8 @@ export function createApp({ currentUserId, allowedOrigin = process.env.APP_ORIGI
   }));
   app.get('/api/me/top-list', asyncRoute(async (_request, response) => response.json(await getTopList(response.locals.userId))));
   app.post('/api/me/top-list/items', asyncRoute(async (request, response) => {
-    const { songId } = addTopListItemSchema.parse(request.body);
-    response.status(201).json(await addTopListItem(response.locals.userId, songId));
+    const input = addTopListItemSchema.parse(request.body);
+    response.status(201).json(await addTopListItem(response.locals.userId, input));
   }));
   app.patch('/api/me/top-list/order', asyncRoute(async (request, response) => {
     const { orderedSongIds } = reorderTopListSchema.parse(request.body);
@@ -160,6 +162,10 @@ export function createApp({ currentUserId, allowedOrigin = process.env.APP_ORIGI
   app.get('/api/me/singing-list', asyncRoute(async (request, response) => {
     const status = request.query.status === undefined ? undefined : singingStatusSchema.parse(request.query.status);
     response.json(await getSingingList(response.locals.userId, status));
+  }));
+  app.post('/api/me/singing-list/items', asyncRoute(async (request, response) => {
+    const input = addSingingListItemSchema.parse(request.body);
+    response.status(201).json(await addSingingListItem(response.locals.userId, input));
   }));
   app.put('/api/me/singing-list/items/:songId', asyncRoute(async (request, response) => {
     const songId = songIdSchema.parse(request.params.songId);

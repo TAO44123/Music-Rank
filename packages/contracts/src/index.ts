@@ -44,9 +44,22 @@ export const searchQuerySchema = z.string().trim().max(120).optional();
 export const artistFilterSchema = z.string().trim().max(120).optional();
 export const releaseYearFilterSchema = z.coerce.number().int().min(1800).max(2100).optional();
 
-export const addTopListItemSchema = z.object({
+export const songTitleSchema = z.string().trim().min(1).max(160);
+export const songArtistSchema = z.string().trim().min(1).max(160);
+export const newSongSubmissionSchema = z.object({
+  title: songTitleSchema,
+  artist: songArtistSchema
+});
+export const existingSongInputSchema = z.object({
   songId: songIdSchema
 });
+export const addSongToListSchema = z.union([
+  existingSongInputSchema,
+  z.object({ song: newSongSubmissionSchema })
+]);
+
+export const addTopListItemSchema = addSongToListSchema;
+export const addSingingListItemSchema = addSongToListSchema;
 
 export const reorderTopListSchema = z.object({
   orderedSongIds: z.array(songIdSchema).min(1).max(10)
@@ -70,5 +83,6 @@ export type RegisterInput = z.infer<typeof registerSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
 export type UpdateListVisibilityInput = z.infer<typeof updateListVisibilitySchema>;
 export type AddTopListItemInput = z.infer<typeof addTopListItemSchema>;
+export type AddSingingListItemInput = z.infer<typeof addSingingListItemSchema>;
 export type ReorderTopListInput = z.infer<typeof reorderTopListSchema>;
 export type UpsertSingingListItemInput = z.infer<typeof upsertSingingListItemSchema>;

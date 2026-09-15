@@ -2,7 +2,7 @@ import type { ErrorRequestHandler } from 'express';
 import { ZodError } from 'zod';
 
 export class AppError extends Error {
-  constructor(public readonly status: number, public readonly code: string, message: string) {
+  constructor(public readonly status: number, public readonly code: string, message: string, public readonly data?: Record<string, unknown>) {
     super(message);
   }
 }
@@ -14,7 +14,7 @@ export const errorHandler: ErrorRequestHandler = (error, request, response, _nex
     return;
   }
   if (error instanceof AppError) {
-    response.status(error.status).json({ code: error.code, message: error.message });
+    response.status(error.status).json({ code: error.code, message: error.message, ...error.data });
     return;
   }
   console.error(JSON.stringify({ level: 'error', requestId, message: 'Unexpected server error', errorType: error instanceof Error ? error.name : typeof error }));

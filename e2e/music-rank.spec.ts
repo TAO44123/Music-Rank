@@ -49,12 +49,22 @@ test('registers, authenticates, publishes, and anonymously reads personal lists'
   await page.getByRole('tab', { name: /Personal Ranking/ }).click();
   await expect(page).toHaveURL(/\/personal$/);
   await expect(page.getByRole('region', { name: 'My Top 10' }).getByText('涛声依旧')).toBeVisible();
+  await page.getByRole('button', { name: 'Add a song not listed' }).click();
+  await page.getByLabel('Song title').fill('E2E Personal Submission');
+  await page.getByLabel('Artist').fill('E2E Submitter');
+  await page.getByRole('button', { name: 'Add song' }).click();
+  await expect(page.getByRole('region', { name: 'My Top 10' }).getByText('E2E Personal Submission')).toBeVisible();
   await page.getByRole('button', { name: 'Top 10 is private. Make public' }).click();
   await page.getByRole('button', { name: 'Make public' }).click();
   await expect(page.getByLabel('Top 10 visibility: public')).toBeVisible();
 
   await page.getByRole('tab', { name: /Practice Library/ }).click();
   await expect(page).toHaveURL(/\/practice$/);
+  await page.getByRole('button', { name: 'Add a song not listed' }).click();
+  await page.getByLabel('Song title').fill('E2E Practice Submission');
+  await page.getByLabel('Artist').fill('E2E Submitter');
+  await page.getByRole('button', { name: 'Add song' }).click();
+  await expect(page.getByRole('region', { name: 'My Practice Library' }).getByText('E2E Practice Submission')).toBeVisible();
   await page.getByRole('button', { name: 'Edit 涛声依旧' }).click();
   await page.getByLabel('Singing status').getByRole('button', { name: 'Practicing' }).click();
   await page.getByLabel('Note').fill('This remains private.');
@@ -87,6 +97,11 @@ test('registers, authenticates, publishes, and anonymously reads personal lists'
   await expect(page.getByRole('heading', { name: 'E2E Listener' })).toBeVisible();
   await expect(page.getByRole('navigation', { name: 'Primary' })).toHaveCount(0);
   await expect(page.getByRole('region', { name: 'Top 10' }).getByText('涛声依旧')).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Top 10' }).getByText('E2E Personal Submission')).toBeVisible();
   await expect(page.getByRole('region', { name: 'Practice Library' }).getByText('Practicing')).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Practice Library' }).getByText('E2E Practice Submission')).toBeVisible();
   await expect(page.getByText('This remains private.')).not.toBeVisible();
+
+  await page.goto(`${rankingPath}?q=E2E%20Personal%20Submission`);
+  await expect(page.getByText('No songs found')).toBeVisible();
 });
