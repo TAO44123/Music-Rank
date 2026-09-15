@@ -35,14 +35,14 @@ function renderAt(path: string, session: { user: typeof user | null }) {
 
 describe('TabNav', () => {
   it('shows only the ranking tab to anonymous visitors', async () => {
-    renderAt('/rankings/90s/mainland', { user: null });
+    renderAt('/rankings/90s-demo-ranking', { user: null });
     expect(await screen.findByRole('tab', { name: /The Ranking/ })).toBeVisible();
     expect(screen.queryByRole('tab', { name: /Personal Ranking/ })).not.toBeInTheDocument();
     expect(screen.queryByRole('tab', { name: /Practice Library/ })).not.toBeInTheDocument();
   });
 
   it('shows all three tabs to an authenticated visitor', async () => {
-    renderAt('/rankings/90s/mainland', { user });
+    renderAt('/rankings/90s-demo-ranking', { user });
     expect(await screen.findByRole('tab', { name: /Personal Ranking/ })).toBeVisible();
     expect(screen.getByRole('tab', { name: /Practice Library/ })).toBeVisible();
   });
@@ -54,16 +54,16 @@ describe('TabNav', () => {
   });
 
   it('renders both the short and the full label for every tab', async () => {
-    renderAt('/rankings/90s/mainland', { user });
+    renderAt('/rankings/90s-demo-ranking', { user });
     const rankingTab = await screen.findByRole('tab', { name: /The Ranking/ });
     expect(rankingTab).toHaveTextContent('Ranking');
     expect(rankingTab).toHaveTextContent('The Ranking');
   });
 
   it('renders every tab as a real anchor so it can be opened in a new tab', async () => {
-    renderAt('/rankings/90s/mainland', { user });
+    renderAt('/rankings/90s-demo-ranking', { user });
     expect(await screen.findByRole('tab', { name: /Personal Ranking/ })).toHaveAttribute('href', '/personal');
-    expect(screen.getByRole('tab', { name: /The Ranking/ })).toHaveAttribute('href', '/rankings/90s/mainland');
+    expect(screen.getByRole('tab', { name: /The Ranking/ })).toHaveAttribute('href', '/');
   });
 
   it('is not rendered on the public profile route', async () => {

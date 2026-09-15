@@ -11,8 +11,6 @@ const songProjection = {
   releaseYear: songs.releaseYear
 };
 
-const decadeStarts: Record<RankingDecade, number> = { '80s': 1980, '90s': 1990 };
-const rankingRegionValues: Record<RankingRegionPath, 'HK_TW' | 'MAINLAND'> = { 'hk-tw': 'HK_TW', mainland: 'MAINLAND' };
 const decadePaths = new Map<number, RankingDecade>([[1980, '80s'], [1990, '90s']]);
 const regionPaths: Record<'HK_TW' | 'MAINLAND', RankingRegionPath> = { HK_TW: 'hk-tw', MAINLAND: 'mainland' };
 
@@ -32,12 +30,12 @@ function rankingCatalogProjection() {
 }
 
 function toRankingCatalogItem(ranking: Awaited<ReturnType<typeof selectPublishedRankings>>[number]) {
-  const decade = decadePaths.get(ranking.decadeStart);
-  if (!decade) throw new Error(`Unsupported published ranking decade: ${ranking.decadeStart}`);
+  const decade = ranking.decadeStart === null ? null : decadePaths.get(ranking.decadeStart);
+  if (ranking.decadeStart !== null && !decade) throw new Error(`Unsupported published ranking decade: ${ranking.decadeStart}`);
   return {
     ...ranking,
-    decade,
-    region: regionPaths[ranking.region],
+    decade: decade ?? null,
+    region: ranking.region === null ? null : regionPaths[ranking.region],
     hasSource: ranking.sourceUrl !== null
   };
 }
@@ -62,12 +60,11 @@ export type RankingFilters = {
   releaseYear?: number;
 };
 
-export async function getRanking(decade: RankingDecade, region: RankingRegionPath, filters: RankingFilters = {}) {
+export async function getRanking(slug: string, filters: RankingFilters = {}) {
   const [ranking] = await db.select(rankingCatalogProjection())
     .from(rankings)
     .where(and(
-      eq(rankings.decadeStart, decadeStarts[decade]),
-      eq(rankings.region, rankingRegionValues[region]),
+      eq(rankings.slug, slug),
       eq(rankings.isPublished, true)
     ))
     .limit(1);

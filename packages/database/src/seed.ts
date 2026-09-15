@@ -60,7 +60,7 @@ try {
       verifiedAt: null
     }).onConflictDoUpdate({
       target: rankings.id,
-      set: { title: '90s Demo Ranking', slug: '90s-demo-ranking', era: '1990s', decadeStart: 1990, region: 'MAINLAND', displayOrder: 4, sourceType: 'DEMO', sourceUrl: null, description: 'Fictional demo fixtures for exploring Music Rank.', isPublished: true, updatedAt: new Date() }
+      set: { title: '90s Demo Ranking', slug: '90s-demo-ranking', era: '1990s', decadeStart: 1990, region: 'MAINLAND', displayOrder: 4, sourceType: 'DEMO', sourceUrl: null, description: 'Fictional demo fixtures for exploring Music Rank.', updatedAt: new Date() }
     });
 
     for (const [id, title, artist, releaseYear] of fixtures) {
@@ -74,7 +74,7 @@ try {
         normalizedArtist: normalize(artist)
       }).onConflictDoUpdate({
         target: songs.id,
-        set: { title, artist, releaseYear, verificationStatus: 'DEMO', normalizedTitle: normalize(title), normalizedArtist: normalize(artist), updatedAt: new Date() }
+        set: { title, artist, normalizedTitle: normalize(title), normalizedArtist: normalize(artist), updatedAt: new Date() }
       });
     }
 

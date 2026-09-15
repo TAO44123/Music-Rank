@@ -1,8 +1,8 @@
 # Ranking Catalog Expansion — Cross-Session Execution Plan
 
-> Status: Task 1 complete; Task 3A pilot approved as the next decision gate
+> Status: Task 1 and Task 3A implementation/acceptance complete; awaiting review and commit authorization
 >
-> Last updated: 2026-09-14 (America/New_York)
+> Last updated: 2026-09-15 (America/New_York)
 >
 > Base commit: `9717ff3` (`docs: refresh handoff and engineering guide`)
 >
@@ -20,8 +20,8 @@ requirements.
 
 The feature has two product outcomes:
 
-1. Replace the single-ranking experience with published rankings organized by
-   decade and region, backed by one reviewed YouTube source per ranking.
+1. Replace the single-ranking experience with a catalog of independently named
+   published rankings, each backed by one reviewed source.
 2. Let authenticated users add a song that is not yet in the catalog directly
    from Personal Ranking or Practice Library. User-submitted songs enter the
    shared catalog but do not enter any public ranking automatically.
@@ -61,27 +61,28 @@ for that action.
 
 ## 3. Approved Product Decisions
 
-### 3.1 Ranking taxonomy
+### 3.1 Ranking identity and optional metadata
 
-- Rankings use two dimensions: `decade × region`.
-- The first production set contains exactly four rankings:
+- Each ranking is a first-class catalog item identified publicly by a stable,
+  source-neutral `slug`.
+- `decade` and `region` are optional metadata, not routing dimensions or a
+  uniqueness key.
+- The initially planned source set still contains four rankings:
   - 80s Hong Kong/Taiwan
   - 80s Mainland China
   - 90s Hong Kong/Taiwan
   - 90s Mainland China
-- Each ranking has exactly one YouTube video source.
+- Each ranking currently has one source URL.
 - The ranking page only needs to display a link to the original video. It does
   not need to display the channel name, video title, publication date, or other
-  YouTube metadata.
-- The recommended and approved public paths are:
-  - `/rankings/80s/hk-tw`
-  - `/rankings/80s/mainland`
-  - `/rankings/90s/hk-tw`
-  - `/rankings/90s/mainland`
-- `/` resolves or redirects to `/rankings/90s/mainland`.
+  platform metadata.
+- Public paths use `/rankings/:slug`; source platform names must not appear in
+  the slug solely because they host the source.
+- `/` resolves or redirects to the first published ranking in deterministic
+  display order.
 - Ranking text, artist, release-year, and pagination state remain URL-backed so
   refresh and browser history preserve the current view.
-- When switching decade or region, preserve text search, clear the
+- When switching rankings, preserve text search, clear the
   ranking-scoped artist and release-year filters, and reset the result page to
   page 1.
 - Artist and release-year filter options must be derived from the selected
@@ -93,9 +94,9 @@ for that action.
 - Rename the ranking to `90s Demo Ranking`.
 - Keep it published while Tasks 1 and 2 are being developed so the local UI has
   usable data.
-- The four real rankings are imported as unpublished data first.
-- After all four real rankings have been reviewed and verified, publish the four
-  real rankings and unpublish the demo ranking in one controlled operation.
+- Real rankings are imported as unpublished data first.
+- The approved pilot may be published while the demo is unpublished in one
+  controlled operation.
 - Do not delete the demo ranking or its songs.
 - Automated tests must use explicit fixtures and must not depend on whichever
   published ranking happens to be returned first.
@@ -175,9 +176,10 @@ acceptance gate before declaring the task complete.
 
 Branch: `feature/ranking-catalog-expansion`
 
-Objective: implement the database metadata, read APIs, routes, and two-level UI
-needed to navigate published rankings by decade and region. Keep the demo data
-usable. Do not import the four production video rankings in this task.
+Objective: implement the database metadata, read APIs, routes, and UI needed to
+navigate published rankings. Task 1 originally used decade and region as route
+dimensions; the approved 2026-09-15 Task 3A refinement below supersedes that
+identity model while preserving the foundation and demo data.
 
 ### 6.2 Read before editing
 
@@ -208,6 +210,8 @@ usable. Do not import the four production video rankings in this task.
 - [x] Add indexes needed to resolve published rankings by decade and region.
 - [x] Enforce at most one published ranking per decade-and-region combination.
   Archived or unpublished historical rows may share a combination.
+- [x] Task 3A refinement: make decade and region nullable metadata, remove the
+  published-pair unique index, and resolve rankings by unique slug instead.
 - [x] Generate a forward-only Drizzle migration and inspect both SQL and
   migration metadata.
 - [x] Backfill the existing demo ranking as decade `1990`, region `MAINLAND`,
@@ -223,6 +227,8 @@ usable. Do not import the four production video rankings in this task.
   `GET /api/rankings`.
 - [x] Sort published rankings deterministically by display order.
 - [x] Resolve a published ranking through decade and region path parameters.
+- [x] Task 3A refinement: replace the dimension lookup with
+  `GET /api/rankings/:slug` and return nullable decade/region metadata.
 - [x] Return `404 RANKING_NOT_FOUND` for missing or unpublished combinations.
 - [x] Return the selected ranking's `sourceUrl` in its detail response.
 - [x] Keep title/artist search and exact artist/release-year filtering.
@@ -233,11 +239,14 @@ usable. Do not import the four production video rankings in this task.
 ### 6.5 Web routing and UI work
 
 - [x] Add the four decade-and-region route shapes.
-- [x] Make `/` resolve or redirect to `/rankings/90s/mainland`.
+- [x] Make `/` resolve or redirect to a published ranking; Task 3A now chooses
+  the first catalog item instead of a hard-coded dimension route.
 - [x] Keep `The Ranking` as the single primary navigation destination.
 - [x] Add a decade selector for `80s` and `90s`.
 - [x] Add a region selector for `Hong Kong/Taiwan` and `Mainland China`.
 - [x] Derive available/disabled combinations from published ranking metadata.
+- [x] Task 3A refinement: replace the two-level selector with one row of direct
+  ranking tabs and show optional decade/region values as secondary header chips.
 - [x] Keep search, artist, release-year, and page state in validated URL search
   parameters.
 - [x] Reset `page` to 1 when the ranking or any filter changes.
@@ -297,7 +306,7 @@ Before reporting completion:
 4. `feat(web): add ranking category navigation`
 5. `test: cover multi-ranking navigation`
 
-### 6.9 Task 3A — Pilot Ranking Import (next approved task)
+### 6.9 Task 3A — Pilot Ranking Import
 
 Branch: `feature/90s-ranking-pilot`.
 
@@ -315,15 +324,19 @@ Baseline rules:
 
 Required user inputs before implementation:
 
-- [ ] Obtain the exact YouTube video URL.
-- [ ] Confirm whether the source explicitly ranks 1–100 or is an unranked
+- [x] Obtain the exact approved Bilibili video URL: `https://www.bilibili.com/video/BV1hF9mYoEPh/`.
+- [x] Confirm whether the source explicitly ranks 1–100 or is an unranked
   collection presented in playback order.
-- [ ] Confirm whether the source belongs to Mainland China, Hong Kong/Taiwan, or
+- [x] Confirm whether the source belongs to Mainland China, Hong Kong/Taiwan, or
   mixes both regions.
+
+The user explicitly approved this Bilibili source as a Task 3A variance from
+the plan's original YouTube wording. It is an explicit reverse-order (100 to 1)
+Mainland China ranking, not an inference from playback order.
 
 Decision boundaries:
 
-- [ ] Use the existing rank model only when the source explicitly assigns ranks.
+- [x] Use the existing rank model only when the source explicitly assigns ranks.
 - [ ] If the source is an unranked collection, stop before import and obtain
   approval for a ranked-versus-collection model. Never claim playback order is
   rank.
@@ -332,36 +345,47 @@ Decision boundaries:
 
 Extraction and approval:
 
-- [ ] Extract only source-supported rank, title, artist, and optional timestamp.
-- [ ] Keep `releaseYear` null unless the approved source explicitly provides it.
-- [ ] Present all 100 extracted rows to the user before any database write.
-- [ ] Apply all user corrections and obtain explicit import approval.
+- [x] Use the user-provided `1990-1999内地流行歌曲TOP100.json` as the authoritative
+  replacement for rank, title, artist, and release year. Per explicit direction,
+  do not access the Bilibili link or independently validate content accuracy.
+- [x] Store all 100 `releaseYear` values supplied by that JSON without external
+  enrichment or correction.
+- [x] Present all 100 extracted rows to the user before any database write.
+- [x] Apply the user's replacement instruction. Remove the earlier Demo
+  canonicalizations at ranks 14, 37, and 79 so the stored title and artist order
+  match the replacement JSON exactly.
 
 Importer and data safety:
 
-- [ ] Store approved rows in a version-controlled manifest with source URL,
-  dimension metadata, and extraction notes.
-- [ ] Implement a reusable, transactional, idempotent importer; do not rely on
+- [x] Store approved rows in a version-controlled manifest with source URL,
+  optional decade/region metadata, and extraction notes.
+- [x] Implement a reusable, transactional, idempotent importer; do not rely on
   ad hoc SQL pasted into the database.
-- [ ] Reuse exact normalized title-and-artist matches from `songs`.
-- [ ] Reject missing values, duplicate songs, duplicate ranks, non-contiguous
+- [x] Reuse exact normalized title-and-artist matches from `songs`.
+- [x] Reject missing values, duplicate songs, duplicate ranks, non-contiguous
   ranked positions, counts other than 100, and unexpected source metadata.
-- [ ] Import the pilot as unpublished first and verify it in the database.
-- [ ] Modify the Demo seed upsert so it does not force an intentionally
+- [x] Import the pilot as unpublished first and verify it in the database.
+- [x] Modify the Demo seed upsert so it does not force an intentionally
   unpublished Demo back to published on later seed runs.
-- [ ] Make ranking tests own explicit fixtures and remove assumptions that the
+- [x] Make ranking tests own explicit fixtures and remove assumptions that the
   active 90s/Mainland ranking is the 30-song Demo.
+- [x] Make the pilot slug source-neutral (`90s-mainland-top-100`), route and
+  query by slug, permit published rankings to share optional metadata, and
+  refactor the UI to direct ranking tabs.
 
 Publication and acceptance:
 
-- [ ] Publish only after extraction and database verification are complete.
-- [ ] If the pilot occupies 90s/Mainland, publish it and unpublish the Demo in
+- [x] Publish only after extraction and database verification are complete.
+- [x] If the pilot occupies 90s/Mainland, publish it and unpublish the Demo in
   one transaction. Never delete the Demo ranking, entries, or songs.
-- [ ] Verify exactly 100 entries, expected song reuse/create counts, source URL,
+- [x] Verify exactly 100 entries, expected song reuse/create counts, source URL,
   `songCount`, scoped facets, search, pagination, and stable route behavior.
-- [ ] Run database migration/seed checks, typecheck, full tests, production
-  build, Playwright E2E, `git diff --check`, and desktop/mobile browser checks.
-- [ ] Update `docs/SESSION_HANDOFF.md`, this progress log, and the engineering
+- [x] Run database migration/seed checks, typecheck, full tests, production
+  build, Playwright E2E, and `git diff --check`.
+- [x] Desktop and 390 × 844 mobile interactive-browser checks passed on the
+  production-shaped local app. The final layout has no Console errors; a mobile
+  song-action overlap found during acceptance was fixed and rechecked.
+- [x] Update `docs/SESSION_HANDOFF.md`, this progress log, and the engineering
   guide with exact results.
 - [ ] Do not commit, push, merge, or expand scope without explicit user
   authorization in the Task 3A session.
@@ -635,12 +659,13 @@ target must be documented before code and tests diverge.
 
 ```http
 GET /api/rankings
-GET /api/rankings/:decade/:region?q=&artist=&releaseYear=
+GET /api/rankings/:slug?q=&artist=&releaseYear=
 ```
 
 Expected properties:
 
-- List responses expose enough data to render the two-level selector.
+- List responses expose enough data to render direct ranking tabs, including
+  nullable decade and region display metadata.
 - Detail responses include the ranking identity, source URL, filter facets, and
   ordered entries.
 - Only published data is anonymously readable through these endpoints.
@@ -689,7 +714,7 @@ The following are explicitly outside all three tasks:
 - Editing or deleting shared songs by normal users
 - Automatic duplicate merging
 - Fuzzy title, artist alias, or simplified/traditional Chinese matching
-- More decades or regions than the approved first four rankings
+- A universal or exhaustive decade, region, language, or dialect taxonomy
 - Multiple sources or an aggregation algorithm for one ranking
 - Automatic metadata enrichment from secondary sources
 - User-created arbitrary lists from `DESIGN_005_USER_DEFINED_LISTS.md`
@@ -813,3 +838,98 @@ Before ending a session:
     layout were verified.
 - Commit/push/PR status: this follow-up is uncommitted and unpushed; `be345ae`
   also remains local and unpushed.
+
+### 2026-09-14 — Task 3A pilot import implementation
+
+- Task: 3A — One 90s Top 100 pilot
+- Branch: `feature/90s-ranking-pilot`
+- HEAD: `2b0a0a3` (`docs: plan pilot ranking import`), stacked on Task 1 commits
+  `be345ae` and `c15efc6`; no commit was created in this session.
+- Source and approval:
+  - User approved Bilibili `BV1hF9mYoEPh`, titled `1990-1999年内地流行歌曲总榜TOP100，“血洗”你的童年记忆！`.
+  - The user confirmed an explicit 100-to-1 ranking and Mainland China scope.
+  - The complete 100-row table was presented and approved before database write.
+  - Ranks 14, 37, and 79 reuse exact existing Demo songs; source values remain in
+    manifest audit metadata. `releaseYear` is null for all rows because the user
+    withdrew the separate online-year research request.
+- Completed:
+  - Added the pilot manifest, now named
+    `packages/database/manifests/90s-mainland-top-100.json`, with 100 entries and
+    source metadata.
+  - Added manifest validation, dry-run, transactional/idempotent import, and a
+    90s/Mainland publication operation in `ranking-importer.ts`; malformed
+    manifests and an injected late conflict are covered by rollback tests.
+  - Imported unpublished first: 75 songs created, 25 exact songs reused, and
+    100 entries created. The repeat import reused all 100 songs and entries.
+  - Published the pilot (now slugged `90s-mainland-top-100`) and unpublished
+    `90s-demo-ranking` in one transaction. The Demo and its 30 entries remain.
+  - Updated the seed so its upsert preserves an intentionally unpublished Demo,
+    and updated API fixtures so they do not depend on the 30-song Demo.
+- Database checks:
+  - Pilot: published, 100 entries, rank range 1–100, 100 unique ranks, and 100
+    unique songs.
+  - Demo: unpublished, 30 entries. A subsequent `npm run db:seed` kept that
+    status unchanged.
+- Verification:
+  - `npm run typecheck`: passed.
+  - `npm test`: API 15/15, Web 34/34 across 11 files, database importer 5/5;
+    contracts has no tests and exits successfully.
+  - `npm run build`: passed.
+  - `npm run test:e2e`: Playwright 1/1 passed.
+  - `git diff --check`: passed after this documentation entry.
+- Known warnings: existing Vite bundle-size and third-party Zod annotation
+  warnings, Playwright color warnings, and jsdom `scrollTo()` notices.
+- Remaining: interactive desktop and mobile acceptance cannot be recorded yet;
+  the in-app browser policy blocked navigation to `127.0.0.1`, and no bypass was
+  attempted. User review and explicit authorization are still required before
+  any commit, push, or merge.
+
+### 2026-09-15 — Task 3A authoritative JSON replacement
+
+- The user supplied `1990-1999内地流行歌曲TOP100.json` and explicitly made it
+  authoritative; the Bilibili page was not accessed or used for validation.
+- Moved the supplied entries into the version-controlled pilot manifest without
+  changing their rank, title, artist, or release-year values. The exact supplied
+  Bilibili URL is stored as `sourceUrl` for the UI's `Watch source` link.
+- Removed the previous rank 14, 37, and 79 canonicalizations. All 100 entries
+  now follow the replacement JSON verbatim and all have release years.
+- Added atomic `--replace` support. It validates structure before writing,
+  replaces the old ranking and entries in one transaction, preserves its prior
+  publication state, updates exact shared songs from the authoritative manifest,
+  and deletes only old songs with no ranking or personal-list references.
+- Replacement result: 3 songs created, 97 reused, 100 entries created, 0
+  orphaned songs deleted, and published state restored. The old ranking UUID was
+  replaced; the Demo remains unpublished with 30 entries.
+- Rerunning the normal importer was idempotent: 0 creates, 100 song reuses, and
+  100 entry reuses. Rerunning Demo seed preserved imported year/status values and
+  the Demo's unpublished state.
+- Verification: typecheck passed; API 15/15, Web 34/34 across 11 files, and
+  database 6/6 passed; production build passed; Playwright E2E 1/1 passed; and
+  final `git diff --check` passed after documentation edits.
+- No commit, push, or merge was performed.
+
+### 2026-09-15 — Source-neutral ranking identity refinement
+
+- Replaced the public `decade × region` identity with stable
+  `/rankings/:slug` routes and `GET /api/rankings/:slug` reads.
+- Renamed the pilot slug and manifest to `90s-mainland-top-100`; Bilibili is
+  retained only in source/audit metadata and the `Watch source` URL.
+- Made `decade_start` and `region` nullable metadata, removed the partial
+  published-pair unique index, and verified that multiple published rankings
+  may share metadata.
+- Replaced the two-level decade/region selector with direct, scrollable ranking
+  tabs. Optional decade and region values render as secondary header chips and
+  metadata-free rankings remain fully routable and displayable.
+- Preserved shared-song overlap: `ranking_entries` continues to assign an
+  independent rank per ranking while reusing the same `songs` row.
+- Applied migration `0003_red_silver_samurai.sql`. Direct database checks found
+  the published pilot with 100 entries, the unpublished Demo with 30 entries,
+  nullable decade/region columns, and only primary-key/slug indexes on
+  `rankings`. The renamed manifest dry-run reused all 100 songs and entries.
+- Final verification: typecheck passed; full tests passed (database 8/8, API
+  15/15, Web 35/35 across 11 files, contracts no tests); production build passed
+  with the existing 821.00 KB bundle warning; Playwright E2E passed 1/1; desktop
+  and 390 × 844 browser acceptance passed without Console errors. Rerunning the
+  Demo seed preserved publication state and the final manifest dry-run reused
+  all 100 songs and entries. Final `git diff --check` passed.
+- No commit, push, or merge was performed.

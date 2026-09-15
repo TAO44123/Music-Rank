@@ -53,6 +53,14 @@ it('shows the filtered result count and a source-derived demo label', () => {
   expect(screen.getByRole('button', { name: 'Add Top 10' })).toBeEnabled();
 });
 
+it('renders rankings without decade or region metadata', () => {
+  const ranking = { ...baseRanking, era: null, decadeStart: null, decade: null, region: null };
+  render(<ThemeProvider theme={theme}><RankingPanel {...commonProps} ranking={ranking} /></ThemeProvider>);
+  expect(screen.getByText('The ranking')).toBeInTheDocument();
+  expect(screen.queryByText('90s')).not.toBeInTheDocument();
+  expect(screen.queryByText('Mainland China')).not.toBeInTheDocument();
+});
+
 it('shows a safe external link when a ranking has a source URL', () => {
   const ranking = { ...baseRanking, sourceType: 'MEDIA', hasSource: true, sourceUrl: 'https://www.youtube.com/watch?v=source' };
   render(<ThemeProvider theme={theme}><RankingPanel {...commonProps} ranking={ranking} /></ThemeProvider>);

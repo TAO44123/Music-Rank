@@ -18,6 +18,8 @@ test('registers, authenticates, publishes, and anonymously reads personal lists'
 
   await page.goto('/');
   await expect(page.getByRole('heading', { name: 'Music Rank' })).toBeVisible();
+  await expect(page).toHaveURL(/\/rankings\/[a-z0-9-]+$/);
+  const rankingPath = new URL(page.url()).pathname;
   await expect(page.getByRole('tab', { name: /Personal Ranking/ })).toHaveCount(0);
   await expect(page.getByRole('tab', { name: /Practice Library/ })).toHaveCount(0);
 
@@ -72,12 +74,12 @@ test('registers, authenticates, publishes, and anonymously reads personal lists'
 
   await page.getByRole('button', { name: `@${username}` }).click();
   await page.getByRole('menuitem', { name: 'Sign out' }).click();
-  await expect(page).toHaveURL(/\/rankings\/90s\/mainland$/);
+  await expect(page).toHaveURL((url) => url.pathname === rankingPath);
   await expect(page.getByRole('dialog', { name: 'Sign in to Music Rank' })).toHaveCount(0);
   await expect(page.getByRole('tab', { name: /Personal Ranking/ })).toHaveCount(0);
 
   await page.goto('/personal');
-  await expect(page).toHaveURL(/\/rankings\/90s\/mainland$/);
+  await expect(page).toHaveURL((url) => url.pathname === rankingPath);
   await expect(page.getByRole('dialog', { name: 'Sign in to Music Rank' })).toBeVisible();
   await page.getByRole('button', { name: 'Cancel' }).click();
 

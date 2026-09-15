@@ -3,7 +3,7 @@ import { ThemeProvider } from '@mui/material/styles';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { RouterProvider } from '@tanstack/react-router';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { Ranking, RankingDecade, RankingRegion } from '../api';
+import type { Ranking } from '../api';
 import { renderRoute } from '../test/renderRoute';
 import { theme } from '../theme';
 
@@ -24,8 +24,8 @@ const catalog: Ranking[] = [
   { id: 'ranking-4', title: '90s Demo Ranking', slug: '90s-demo-ranking', era: '1990s', decadeStart: 1990, decade: '90s', region: 'mainland', displayOrder: 4, sourceType: 'DEMO', description: null, hasSource: false }
 ];
 
-function rankingDetail(decade: RankingDecade, region: RankingRegion) {
-  const ranking = catalog.find((candidate) => candidate.decade === decade && candidate.region === region)!;
+function rankingDetail(slug: string) {
+  const ranking = catalog.find((candidate) => candidate.slug === slug)!;
   const entries = Array.from({ length: 26 }, (_, index) => ({ id: `song-${index + 1}`, rank: index + 1, title: `Song ${index + 1}`, artist: '毛宁', releaseYear: 1993 }));
   return { ...ranking, sourceUrl: ranking.hasSource ? 'https://www.youtube.com/watch?v=source' : null, songCount: entries.length, facets: { artists: ['毛宁'], releaseYears: [1993] }, entries };
 }
@@ -35,8 +35,8 @@ function rankingResponse(path: string, sessionUser: typeof user | null) {
   if (path === '/api/rankings') return jsonResponse(catalog);
   if (path === '/api/me/top-list' || path === '/api/me/singing-list') return jsonResponse([]);
   if (path === '/api/me/list-settings') return jsonResponse({ topList: 'PRIVATE', singingList: 'PRIVATE' });
-  const match = /^\/api\/rankings\/(80s|90s)\/(hk-tw|mainland)(?:\?|$)/.exec(path);
-  if (match) return jsonResponse(rankingDetail(match[1] as RankingDecade, match[2] as RankingRegion));
+  const match = /^\/api\/rankings\/([a-z0-9-]+)(?:\?|$)/.exec(path);
+  if (match) return jsonResponse(rankingDetail(match[1]));
   throw new Error(`Unexpected request: ${path}`);
 }
 
@@ -46,28 +46,28 @@ describe('ranking routes', () => {
   it('redirects the root path to the default ranking', async () => {
     const { client, router } = renderRoute({ path: '/', fetch: rankingFetch });
     render(<ThemeProvider theme={theme}><QueryClientProvider client={client}><RouterProvider router={router} /></QueryClientProvider></ThemeProvider>);
-    expect(await screen.findByRole('heading', { name: '90s Demo Ranking' }, { timeout: 5_000 })).toBeVisible();
+    expect(await screen.findByRole('heading', { name: '80s Hong Kong/Taiwan' }, { timeout: 5_000 })).toBeVisible();
     expect(screen.queryByRole('region', { name: 'My Top 10' })).not.toBeInTheDocument();
     expect(screen.queryByRole('region', { name: 'My Practice Library' })).not.toBeInTheDocument();
-    expect(router.state.location.pathname).toBe('/rankings/90s/mainland');
+    expect(router.state.location.pathname).toBe('/rankings/80s-hk-tw');
   });
 
   it('issues no personal request for an anonymous visitor', async () => {
-    const { client, router, fetchMock } = renderRoute({ path: '/rankings/90s/mainland', fetch: (path) => rankingResponse(path, null) });
+    const { client, router, fetchMock } = renderRoute({ path: '/rankings/90s-demo-ranking', fetch: (path) => rankingResponse(path, null) });
     render(<ThemeProvider theme={theme}><QueryClientProvider client={client}><RouterProvider router={router} /></QueryClientProvider></ThemeProvider>);
     expect(await screen.findByRole('heading', { name: '90s Demo Ranking' })).toBeVisible();
     expect(fetchMock.mock.calls.map(([path]) => String(path)).some((path) => path.startsWith('/api/me/'))).toBe(false);
   });
 
   it('applies filters and pagination from the URL on load', async () => {
-    const { client, router } = renderRoute({ path: '/rankings/90s/mainland?q=%E9%82%A3%E8%8B%B1&year=1993&page=2', fetch: rankingFetch });
+    const { client, router } = renderRoute({ path: '/rankings/90s-demo-ranking?q=%E9%82%A3%E8%8B%B1&year=1993&page=2', fetch: rankingFetch });
     render(<ThemeProvider theme={theme}><QueryClientProvider client={client}><RouterProvider router={router} /></QueryClientProvider></ThemeProvider>);
     expect(await screen.findByLabelText('Search songs or artists')).toHaveValue('那英');
     await waitFor(() => expect(router.state.location.search).toEqual({ q: '那英', year: 1993, page: 2 }));
   });
 
   it('writes filter changes into the URL without stacking history entries', async () => {
-    const { client, router } = renderRoute({ path: '/rankings/90s/mainland', fetch: rankingFetch });
+    const { client, router } = renderRoute({ path: '/rankings/90s-demo-ranking', fetch: rankingFetch });
     render(<ThemeProvider theme={theme}><QueryClientProvider client={client}><RouterProvider router={router} /></QueryClientProvider></ThemeProvider>);
     const field = await screen.findByLabelText('Search songs or artists');
     const lengthBefore = router.history.length;
@@ -76,32 +76,32 @@ describe('ranking routes', () => {
     expect(router.history.length).toBe(lengthBefore);
   });
 
-  it('navigates by decade and region with stable paths', async () => {
-    const { client, router } = renderRoute({ path: '/rankings/90s/mainland?q=%E6%B6%9B%E5%A3%B0&artist=%E6%AF%9B%E5%AE%81&year=1993&page=2', fetch: rankingFetch });
+  it('navigates directly between ranking slugs with stable paths', async () => {
+    const { client, router } = renderRoute({ path: '/rankings/90s-demo-ranking?q=%E6%B6%9B%E5%A3%B0&artist=%E6%AF%9B%E5%AE%81&year=1993&page=2', fetch: rankingFetch });
     render(<ThemeProvider theme={theme}><QueryClientProvider client={client}><RouterProvider router={router} /></QueryClientProvider></ThemeProvider>);
     await screen.findByRole('heading', { name: '90s Demo Ranking' });
-    fireEvent.click(screen.getByRole('tab', { name: '80s' }));
-    await waitFor(() => expect(router.state.location.pathname).toBe('/rankings/80s/mainland'));
+    fireEvent.click(screen.getByRole('tab', { name: '80s Mainland China' }));
+    await waitFor(() => expect(router.state.location.pathname).toBe('/rankings/80s-mainland'));
     expect(router.state.location.search).toEqual({ q: '涛声' });
     expect(await screen.findByRole('heading', { name: '80s Mainland China' })).toBeVisible();
-    fireEvent.click(screen.getByRole('tab', { name: 'Hong Kong/Taiwan' }));
-    await waitFor(() => expect(router.state.location.pathname).toBe('/rankings/80s/hk-tw'));
+    fireEvent.click(screen.getByRole('tab', { name: '80s Hong Kong/Taiwan' }));
+    await waitFor(() => expect(router.state.location.pathname).toBe('/rankings/80s-hk-tw'));
   });
 
   it('degrades an invalid year and page while keeping a valid text filter', async () => {
-    const { client, router } = renderRoute({ path: '/rankings/90s/mainland?q=%E9%82%A3%E8%8B%B1&year=banana&page=zero', fetch: rankingFetch });
+    const { client, router } = renderRoute({ path: '/rankings/90s-demo-ranking?q=%E9%82%A3%E8%8B%B1&year=banana&page=zero', fetch: rankingFetch });
     render(<ThemeProvider theme={theme}><QueryClientProvider client={client}><RouterProvider router={router} /></QueryClientProvider></ThemeProvider>);
     expect(await screen.findByLabelText('Search songs or artists')).toHaveValue('那英');
     expect(router.state.location.search).toEqual({ q: '那英' });
   });
 
-  it('shows a clear unavailable state for an unpublished combination', async () => {
+  it('shows a clear unavailable state for an unpublished ranking', async () => {
     const { client, router } = renderRoute({
-      path: '/rankings/80s/hk-tw',
+      path: '/rankings/unpublished-ranking',
       fetch: (path) => {
         if (path === '/api/auth/session') return jsonResponse({ user: null });
         if (path === '/api/rankings') return jsonResponse([catalog[3]]);
-        if (path.startsWith('/api/rankings/80s/hk-tw')) return jsonResponse({ code: 'RANKING_NOT_FOUND', message: 'Ranking not found' }, 404);
+        if (path.startsWith('/api/rankings/unpublished-ranking')) return jsonResponse({ code: 'RANKING_NOT_FOUND', message: 'Ranking not found' }, 404);
         throw new Error(`Unexpected request: ${path}`);
       }
     });

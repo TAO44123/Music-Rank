@@ -3,7 +3,7 @@ import { Link, useRouterState } from '@tanstack/react-router';
 import { useAppShell } from '../shell/AppShellContext';
 
 const tabs = [
-  { to: '/rankings/90s/mainland', short: 'Ranking', full: 'The Ranking', personal: false },
+  { to: '/', short: 'Ranking', full: 'The Ranking', personal: false },
   { to: '/personal', short: 'Personal', full: 'Personal Ranking', personal: true },
   { to: '/practice', short: 'Practice', full: 'Practice Library', personal: true }
 ] as const;
@@ -19,7 +19,7 @@ export function TabNav() {
   const { user } = useAppShell();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const visible = tabs.filter((tab) => !tab.personal || user);
-  const rankingPath = '/rankings/90s/mainland';
+  const rankingPath = '/';
   const current = pathname.startsWith('/rankings/') ? rankingPath : visible.some((tab) => tab.to === pathname) ? pathname : rankingPath;
 
   return <Box component="nav" aria-label="Primary" sx={{ borderBottom: 1, borderColor: 'divider', bgcolor: 'background.default' }}>

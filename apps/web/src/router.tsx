@@ -2,7 +2,7 @@ import type { QueryClient } from '@tanstack/react-query';
 import { createRouter, type RouterHistory } from '@tanstack/react-router';
 import { Route as rootRoute } from './routes/__root';
 import { Route as indexRoute } from './routes/index';
-import { Route as rankingRoute } from './routes/rankings.$decade.$region';
+import { Route as rankingRoute } from './routes/rankings.$slug';
 import { Route as personalRoute } from './routes/personal';
 import { Route as practiceRoute } from './routes/practice';
 import { Route as publicProfileRoute } from './routes/u.$username';

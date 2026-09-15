@@ -77,8 +77,8 @@ export const rankings = pgTable('rankings', {
   title: text('title').notNull(),
   slug: text('slug').notNull(),
   era: text('era'),
-  decadeStart: integer('decade_start').notNull(),
-  region: rankingRegionEnum('region').notNull(),
+  decadeStart: integer('decade_start'),
+  region: rankingRegionEnum('region'),
   displayOrder: integer('display_order').notNull(),
   sourceType: rankingSourceTypeEnum('source_type').notNull(),
   sourceUrl: text('source_url'),
@@ -88,9 +88,6 @@ export const rankings = pgTable('rankings', {
   ...timestamps
 }, (table) => [
   uniqueIndex('rankings_slug_unique').on(table.slug),
-  uniqueIndex('rankings_published_decade_region_unique')
-    .on(table.decadeStart, table.region)
-    .where(sql`${table.isPublished} = true`),
   check('rankings_decade_start_supported', sql`${table.decadeStart} IN (1980, 1990)`),
   check('rankings_display_order_positive', sql`${table.displayOrder} > 0`)
 ]);

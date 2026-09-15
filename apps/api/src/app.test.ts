@@ -31,13 +31,15 @@ beforeAll(async () => {
     { id: fixtureRankingIds[0], title: '80s Hong Kong/Taiwan Test Ranking', slug: 'test-80s-hk-tw', era: '1980s', decadeStart: 1980, region: 'HK_TW', displayOrder: 1, sourceType: 'MEDIA', sourceUrl: 'https://www.youtube.com/watch?v=80s-hk-tw', isPublished: true },
     { id: fixtureRankingIds[1], title: '80s Mainland Test Ranking', slug: 'test-80s-mainland', era: '1980s', decadeStart: 1980, region: 'MAINLAND', displayOrder: 2, sourceType: 'MEDIA', sourceUrl: 'https://www.youtube.com/watch?v=80s-mainland', isPublished: true },
     { id: fixtureRankingIds[2], title: '90s Hong Kong/Taiwan Test Ranking', slug: 'test-90s-hk-tw', era: '1990s', decadeStart: 1990, region: 'HK_TW', displayOrder: 3, sourceType: 'MEDIA', sourceUrl: 'https://www.youtube.com/watch?v=90s-hk-tw', isPublished: true },
-    { id: fixtureRankingIds[3], title: 'Unpublished Historical Test Ranking', slug: 'test-hidden-80s-hk-tw', era: '1980s', decadeStart: 1980, region: 'HK_TW', displayOrder: 99, sourceType: 'MEDIA', sourceUrl: 'https://www.youtube.com/watch?v=hidden', isPublished: false }
+    { id: fixtureRankingIds[3], title: 'General Test Ranking', slug: 'test-general', era: null, decadeStart: null, region: null, displayOrder: 4, sourceType: 'MEDIA', sourceUrl: 'https://www.youtube.com/watch?v=general', isPublished: true }
   ]);
   await db.insert(rankingEntries).values([
     { id: 'b0000000-0000-4000-8000-000000000001', rankingId: fixtureRankingIds[0], songId: songIds[1], rank: 1, verificationStatus: 'DEMO' },
     { id: 'b0000000-0000-4000-8000-000000000002', rankingId: fixtureRankingIds[0], songId: songIds[0], rank: 2, verificationStatus: 'DEMO' },
     { id: 'b0000000-0000-4000-8000-000000000003', rankingId: fixtureRankingIds[1], songId: songIds[0], rank: 1, verificationStatus: 'DEMO' },
-    { id: 'b0000000-0000-4000-8000-000000000004', rankingId: fixtureRankingIds[2], songId: songIds[2], rank: 1, verificationStatus: 'DEMO' }
+    { id: 'b0000000-0000-4000-8000-000000000004', rankingId: fixtureRankingIds[2], songId: songIds[2], rank: 1, verificationStatus: 'DEMO' },
+    { id: 'b0000000-0000-4000-8000-000000000005', rankingId: fixtureRankingIds[3], songId: songIds[0], rank: 1, verificationStatus: 'DEMO' },
+    { id: 'b0000000-0000-4000-8000-000000000006', rankingId: fixtureRankingIds[3], songId: songIds[1], rank: 2, verificationStatus: 'DEMO' }
   ]);
 });
 
@@ -154,63 +156,64 @@ describe('Music Rank API', () => {
     await request(app).get('/api/rankings').expect(200).expect(({ body }) => {
       const fixtureIds = new Set<string>([...fixtureRankingIds]);
       const fixtures = body.filter((ranking: { id: string }) => fixtureIds.has(ranking.id));
-      expect(fixtures.map((ranking: { id: string }) => ranking.id)).toEqual(fixtureRankingIds.slice(0, 3));
-      expect(fixtures.map((ranking: { decade: string; region: string }) => [ranking.decade, ranking.region])).toEqual([
-        ['80s', 'hk-tw'], ['80s', 'mainland'], ['90s', 'hk-tw']
+      expect(fixtures.map((ranking: { id: string }) => ranking.id)).toEqual(fixtureRankingIds);
+      expect(fixtures.map((ranking: { decade: string | null; region: string | null }) => [ranking.decade, ranking.region])).toEqual([
+        ['80s', 'hk-tw'], ['80s', 'mainland'], ['90s', 'hk-tw'], [null, null]
       ]);
       expect(fixtures.every((ranking: { hasSource: boolean }) => ranking.hasSource)).toBe(true);
       expect(fixtures.every((ranking: Record<string, unknown>) => !('sourceUrl' in ranking))).toBe(true);
-      expect(fixtures.some((ranking: { id: string }) => ranking.id === fixtureRankingIds[3])).toBe(false);
     });
   });
 
-  it('allows ranking history but prevents two published rankings for one catalog combination', async () => {
-    await expect(db.insert(rankings).values({
+  it('allows multiple published rankings to share optional catalog metadata', async () => {
+    await db.insert(rankings).values({
       id: conflictingRankingId,
-      title: 'Conflicting Published Ranking',
-      slug: 'test-conflicting-published-ranking',
+      title: 'Another 80s Hong Kong/Taiwan Ranking',
+      slug: 'test-another-80s-hk-tw-ranking',
       era: '1980s',
       decadeStart: 1980,
       region: 'HK_TW',
       displayOrder: 98,
       sourceType: 'MEDIA',
       isPublished: true
-    })).rejects.toThrow();
+    });
+    expect(await db.select().from(rankings).where(eq(rankings.id, conflictingRankingId))).toHaveLength(1);
+    await db.delete(rankings).where(eq(rankings.id, conflictingRankingId));
   });
 
   it('searches a ranking by song title and artist', async () => {
-    const path = '/api/rankings/90s/mainland';
+    const path = '/api/rankings/test-general';
     await request(app).get(`${path}?q=%E6%B6%9B%E5%A3%B0`).expect(200).expect(({ body }) => {
       expect(body.entries).toHaveLength(1);
-      expect(body.songCount).toBe(30);
+      expect(body.songCount).toBe(2);
     });
     await request(app).get(`${path}?q=%E6%AF%9B%E5%AE%81`).expect(200).expect(({ body }) => expect(body.entries[0].artist).toBe('毛宁'));
     await request(app).get(path).query({ artist: '毛宁', releaseYear: 1993 }).expect(200).expect(({ body }) => expect(body.entries).toMatchObject([{ title: '涛声依旧', artist: '毛宁', releaseYear: 1993 }]));
   });
 
   it('scopes filter facets and ranks to the selected ranking', async () => {
-    await request(app).get('/api/rankings/80s/hk-tw').expect(200).expect(({ body }) => {
+    await request(app).get('/api/rankings/test-80s-hk-tw').expect(200).expect(({ body }) => {
       expect(body.sourceUrl).toBe('https://www.youtube.com/watch?v=80s-hk-tw');
       expect(body.entries.map((entry: { rank: number }) => entry.rank)).toEqual([1, 2]);
       expect(body.facets.artists).toEqual(expect.arrayContaining(['杨钰莹', '毛宁']));
       expect(body.facets.artists).not.toContain('那英');
       expect(body.facets.releaseYears).toEqual([1993, 1992]);
     });
-    await request(app).get('/api/rankings/90s/mainland').expect(200)
+    await request(app).get('/api/rankings/test-general').expect(200)
       .expect(({ body }) => expect(body.entries.find((entry: { id: string }) => entry.id === songIds[0]).rank).toBe(1));
-    await request(app).get('/api/rankings/80s/hk-tw').expect(200)
+    await request(app).get('/api/rankings/test-80s-hk-tw').expect(200)
       .expect(({ body }) => expect(body.entries.find((entry: { id: string }) => entry.id === songIds[0]).rank).toBe(2));
   });
 
-  it('returns 404 when a supported ranking combination is unpublished', async () => {
+  it('returns 404 for an unpublished slug and rejects an invalid slug', async () => {
     await db.update(rankings).set({ isPublished: false }).where(eq(rankings.id, fixtureRankingIds[2]));
     try {
-      await request(app).get('/api/rankings/90s/hk-tw').expect(404)
+      await request(app).get('/api/rankings/test-90s-hk-tw').expect(404)
         .expect(({ body }) => expect(body.code).toBe('RANKING_NOT_FOUND'));
     } finally {
       await db.update(rankings).set({ isPublished: true }).where(eq(rankings.id, fixtureRankingIds[2]));
     }
-    await request(app).get('/api/rankings/00s/mainland').expect(400)
+    await request(app).get('/api/rankings/INVALID').expect(400)
       .expect(({ body }) => expect(body.code).toBe('INVALID_REQUEST'));
   });
 

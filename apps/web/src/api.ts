@@ -3,7 +3,7 @@ import type { RankingDecade as ContractRankingDecade, RankingRegionPath } from '
 export type Song = { id: string; title: string; artist: string; releaseYear: number | null };
 export type RankingDecade = ContractRankingDecade;
 export type RankingRegion = RankingRegionPath;
-export type Ranking = { id: string; title: string; slug: string; era: string | null; decadeStart: number; decade: RankingDecade; region: RankingRegion; displayOrder: number; sourceType: string; description: string | null; hasSource: boolean };
+export type Ranking = { id: string; title: string; slug: string; era: string | null; decadeStart: number | null; decade: RankingDecade | null; region: RankingRegion | null; displayOrder: number; sourceType: string; description: string | null; hasSource: boolean };
 export type RankingDetail = Ranking & { sourceUrl: string | null; songCount: number; facets: { artists: string[]; releaseYears: number[] }; entries: Array<Song & { rank: number }> };
 export type TopListEntry = Song & { position: number };
 export type SingingStatus = 'CAN_SING' | 'REGULARLY_SING' | 'PRACTICING' | 'WANT_TO_LEARN';

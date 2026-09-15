@@ -47,7 +47,8 @@ function safeSourceUrl(value: string | null | undefined) {
 
 export function RankingPanel({ ranking, isLoading, query, onQueryChange, artistFilter, onArtistFilterChange, releaseYearFilter, onReleaseYearFilterChange, artists, releaseYears, page, onPageChange, topSongIds, singingSongIds, topAtCapacity, onAddTop, onAddSinging }: Props) {
   const sourceUrl = safeSourceUrl(ranking?.sourceUrl);
-  const regionLabel = ranking?.region === 'hk-tw' ? 'Hong Kong/Taiwan' : 'Mainland China';
+  const regionLabel = ranking?.region === 'hk-tw' ? 'Hong Kong/Taiwan' : ranking?.region === 'mainland' ? 'Mainland China' : null;
+  const metadataLabels = ranking ? [ranking.decade ?? ranking.era, regionLabel].filter((value): value is string => Boolean(value)) : [];
   const pageCount = Math.max(1, Math.ceil((ranking?.entries.length ?? 0) / pageSize));
   const visibleEntries = ranking?.entries.slice((page - 1) * pageSize, page * pageSize) ?? [];
   const handleQueryChange = (value: string) => {
@@ -68,7 +69,9 @@ export function RankingPanel({ ranking, isLoading, query, onQueryChange, artistF
     <Stack spacing={2.5}>
       <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ md: 'center' }} spacing={2}>
         <Box>
-          <Typography variant="overline" color="secondary.main" fontWeight={800}>{ranking ? `${ranking.decade} · ${regionLabel}` : 'The ranking'}</Typography>
+          {metadataLabels.length > 0
+            ? <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap sx={{ mb: 0.75 }}>{metadataLabels.map((label) => <Chip key={label} size="small" label={label} variant="outlined" color="secondary" sx={{ fontWeight: 800 }} />)}</Stack>
+            : <Typography variant="overline" color="secondary.main" fontWeight={800}>The ranking</Typography>}
           <Typography id="ranking-heading" variant="h2" fontSize={{ xs: '1.75rem', sm: '2.15rem' }}>{ranking?.title ?? 'Loading ranking'}</Typography>
           <Typography color="text.secondary" sx={{ mt: 0.5 }}>{ranking?.description ?? 'Browse songs from this ranking.'}</Typography>
         </Box>
@@ -104,12 +107,13 @@ export function RankingPanel({ ranking, isLoading, query, onQueryChange, artistF
         {visibleEntries.map((entry) => {
           const inTop = topSongIds.has(entry.id);
           const inSinging = singingSongIds.has(entry.id);
-          return <ListItem key={entry.id} divider alignItems="center" sx={{ px: 0, py: 1.4, gap: 1.5 }} secondaryAction={<Stack direction={{ xs: 'column', sm: 'row' }} spacing={0.75} alignItems="stretch">
-            <Button variant={inTop ? 'outlined' : 'contained'} disabled={inTop || (!inTop && topAtCapacity)} startIcon={<AddIcon />} onClick={() => onAddTop(entry.id)} sx={{ width: 144, justifyContent: 'center' }}>{inTop ? 'In Top 10' : 'Add Top 10'}</Button>
-            <Button variant="outlined" disabled={inSinging} startIcon={<MicNoneIcon />} onClick={() => onAddSinging(entry.id)} sx={{ width: 164, justifyContent: 'center' }}>{inSinging ? 'In Practice Library' : 'Add Practice'}</Button>
-          </Stack>}>
+          return <ListItem key={entry.id} divider alignItems="center" sx={{ px: 0, py: 1.4, gap: 1.5, flexWrap: { xs: 'wrap', sm: 'nowrap' } }}>
             <Typography component="span" color="primary.main" fontWeight={800} sx={{ width: 34, fontSize: '1.1rem' }}>{entry.rank}</Typography>
-            <ListItemText primary={entry.title} secondary={`${entry.artist}${entry.releaseYear ? ` · ${entry.releaseYear}` : ''}`} primaryTypographyProps={{ fontWeight: 700 }} sx={{ pr: { xs: 0, sm: 25 } }} />
+            <ListItemText primary={entry.title} secondary={`${entry.artist}${entry.releaseYear ? ` · ${entry.releaseYear}` : ''}`} primaryTypographyProps={{ fontWeight: 700 }} sx={{ flex: 1, minWidth: 0 }} />
+            <Stack direction="row" spacing={0.75} alignItems="stretch" sx={{ width: { xs: '100%', sm: 'auto' }, pl: { xs: 5.75, sm: 0 } }}>
+              <Button variant={inTop ? 'outlined' : 'contained'} disabled={inTop || (!inTop && topAtCapacity)} startIcon={<AddIcon />} onClick={() => onAddTop(entry.id)} sx={{ width: { sm: 144 }, flex: { xs: 1, sm: 'none' }, minWidth: 0, justifyContent: 'center' }}>{inTop ? 'In Top 10' : 'Add Top 10'}</Button>
+              <Button variant="outlined" disabled={inSinging} startIcon={<MicNoneIcon />} onClick={() => onAddSinging(entry.id)} sx={{ width: { sm: 164 }, flex: { xs: 1, sm: 'none' }, minWidth: 0, justifyContent: 'center' }}>{inSinging ? 'In Practice Library' : 'Add Practice'}</Button>
+            </Stack>
           </ListItem>;
         })}
       </List>}
