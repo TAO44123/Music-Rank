@@ -1,3 +1,4 @@
+import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import { Alert, Button, Dialog, DialogActions, DialogContent, DialogTitle, Stack, TextField, Typography } from '@mui/material';
 import { useEffect, useState } from 'react';
 import type { ExistingSong } from '../api';
@@ -10,6 +11,12 @@ type UnlistedSongDialogProps = {
   onClose: () => void;
   onSubmit: (song: { title: string; artist: string }) => void;
 };
+
+export function UnlistedSongPrompt({ disabled = false, onClick }: { disabled?: boolean; onClick: () => void }) {
+  return <Button type="button" variant="text" endIcon={<ArrowForwardIcon />} disabled={disabled} onClick={onClick} sx={{ px: 0, minWidth: 0 }}>
+    Can’t find a song? Add it here
+  </Button>;
+}
 
 export function UnlistedSongDialog({ open, listLabel, isPending, error, onClose, onSubmit }: UnlistedSongDialogProps) {
   const [title, setTitle] = useState('');
@@ -24,7 +31,7 @@ export function UnlistedSongDialog({ open, listLabel, isPending, error, onClose,
 
   const canSubmit = title.trim().length > 0 && artist.trim().length > 0 && !isPending;
   return <Dialog open={open} onClose={isPending ? undefined : onClose} aria-labelledby="unlisted-song-title">
-    <DialogTitle id="unlisted-song-title">Add a song not listed</DialogTitle>
+    <DialogTitle id="unlisted-song-title">Add a song</DialogTitle>
     <DialogContent>
       <Typography color="text.secondary" mb={2}>Add a shared song to {listLabel}. It will not be added to a public ranking.</Typography>
       <Stack component="form" spacing={2} onSubmit={(event) => { event.preventDefault(); if (canSubmit) onSubmit({ title: title.trim(), artist: artist.trim() }); }}>

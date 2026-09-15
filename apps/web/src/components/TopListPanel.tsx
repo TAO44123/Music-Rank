@@ -31,7 +31,7 @@ function SortableItem({ entry, index, count, onMove, onRemove }: SortableItemPro
   </ListItem>;
 }
 
-export function TopListPanel({ entries, onReorder, onRemove, headerAction, statusLabel }: { entries: TopListEntry[]; onReorder: (ids: string[]) => void; onRemove: (songId: string) => void; headerAction?: ReactNode; statusLabel?: ReactNode }) {
+export function TopListPanel({ entries, onReorder, onRemove, headerAction, promptAction, statusLabel }: { entries: TopListEntry[]; onReorder: (ids: string[]) => void; onRemove: (songId: string) => void; headerAction?: ReactNode; promptAction?: ReactNode; statusLabel?: ReactNode }) {
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
   const handleDragEnd = ({ active, over }: DragEndEvent) => {
     if (!over || active.id === over.id) return;
@@ -41,7 +41,7 @@ export function TopListPanel({ entries, onReorder, onRemove, headerAction, statu
   };
   const move = (from: number, to: number) => onReorder(arrayMove(entries, from, to).map((entry) => entry.id));
   return <Paper component="section" sx={{ p: { xs: 1.75, sm: 2.5 } }} aria-labelledby="top-list-heading">
-    <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'flex-start', sm: 'center' }} gap={1.5}><Box><Typography variant="overline" color="secondary.main" fontWeight={800}>Personal ranking</Typography><Typography id="top-list-heading" variant="h2" fontSize="1.45rem">My Top 10</Typography>{statusLabel && <Box mt={0.75}>{statusLabel}</Box>}</Box><Stack direction="row" alignItems="center" gap={1}><Typography color="text.secondary" fontWeight={700}>{entries.length}/10</Typography>{headerAction}</Stack></Stack>
+    <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'flex-start', sm: 'center' }} gap={1.5}><Box><Typography variant="overline" color="secondary.main" fontWeight={800}>Personal ranking</Typography><Typography id="top-list-heading" variant="h2" fontSize="1.45rem">My Top 10</Typography>{promptAction && <Box mt={0.5}>{promptAction}</Box>}{statusLabel && <Box mt={0.5}>{statusLabel}</Box>}</Box><Stack direction="row" alignItems="center" gap={1}><Typography color="text.secondary" fontWeight={700}>{entries.length}/10</Typography>{headerAction}</Stack></Stack>
     {entries.length === 0 ? <Typography color="text.secondary" py={3}>Add songs from the ranking to start your list.</Typography> : <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}><SortableContext items={entries.map((entry) => entry.id)} strategy={verticalListSortingStrategy}><List disablePadding aria-label="My Top 10">{entries.map((entry, index) => <SortableItem key={entry.id} entry={entry} index={index} count={entries.length} onMove={move} onRemove={onRemove} />)}</List></SortableContext></DndContext>}
   </Paper>;
 }

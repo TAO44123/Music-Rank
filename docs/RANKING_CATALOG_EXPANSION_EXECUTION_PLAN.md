@@ -1,6 +1,6 @@
 # Ranking Catalog Expansion — Cross-Session Execution Plan
 
-> Status: Task 1, Task 3A, and the approved Cantonese import are verified, pushed, and merged into `main`; Task 2 is implemented and verified locally on `feature/user-submitted-songs`, awaiting review before commit/push
+> Status: Task 1, Task 3A, and the approved Cantonese import are verified, pushed, and merged into `main`; Task 2 core is committed locally at `20a257c`, with a verified uncommitted UI refinement on `feature/user-submitted-songs`; nothing from Task 2 is pushed
 >
 > Last updated: 2026-09-15 (America/New_York)
 >
@@ -482,7 +482,7 @@ and add the resolved song to the selected personal list atomically.
 
 ### 7.6 Web work
 
-- [x] Add an `Add a song not listed` action to Personal Ranking.
+- [x] Add a `Can’t find a song? Add it here` action to Personal Ranking.
 - [x] Add the same action to Practice Library.
 - [x] Collect only title and artist.
 - [x] Apply client validation but treat the API as authoritative.
@@ -1030,3 +1030,21 @@ Before ending a session:
   list behavior and private Practice Library notes remain unchanged.
 - Remaining: inspect the final diff and obtain explicit user authorization
   before committing, pushing, opening a PR, or merging.
+
+### 2026-09-15 — Task 2 UI refinement
+
+- The user selected the soft-filled filter treatment for the ranking page.
+  Search, artist, and year controls now share the same warm low-contrast fill;
+  the previous tinted outer toolbar and vertical divider were removed.
+- The user selected the conversational add-song entry. Personal Ranking and
+  Practice Library now show `Can’t find a song? Add it here` on the left above
+  the Public/Private status label. Count, visibility, and share actions remain
+  on the right. The dialog title is shortened to `Add a song`.
+- Updated route and E2E selectors. E2E song titles are now unique per run and
+  test-created shared songs are explicitly cleaned up after their submitting
+  user is removed, matching the production `ON DELETE SET NULL` behavior.
+- Verification: typecheck passed; the complete Web suite passed 44/44 across 13
+  files; targeted UI tests passed 14/14; Playwright passed 3/3; and
+  `git diff --check` passed.
+- Commit/push status: the core Task 2 implementation is committed locally at
+  `20a257c`. This UI refinement is uncommitted and nothing has been pushed.

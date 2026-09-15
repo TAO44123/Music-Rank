@@ -24,7 +24,9 @@ routing dimensions or a uniqueness key. The UI uses one row of direct ranking
 tabs, so future language or dialect rankings can overlap existing metadata.
 
 Task 2 (user-submitted songs) is implemented and verified locally on
-`feature/user-submitted-songs`, but has not been committed, pushed, or merged.
+`feature/user-submitted-songs`. Its core implementation is committed locally at
+`20a257c`; the user-selected UI refinement remains uncommitted. Nothing from
+Task 2 has been pushed or merged.
 Task 3A implementation, the approved Cantonese import, and their desktop/mobile
 acceptance gates are complete. On 2026-09-15 the user explicitly authorized
 synchronizing, pushing, and merging this ranking branch.
@@ -69,9 +71,9 @@ link, and no Console errors. The final dry run reused all 72 songs and entries.
 - The synchronized feature branch is pushed at `ecd1e45`; its pre-integration
   tip was `d2ef428`.
 - Task 2 started from synchronized `main` at `67a0ba6` on branch
-  `feature/user-submitted-songs`. Its working tree contains the new migration,
-  API, Web UI, tests, and this handoff update; preserve it until the user
-  authorizes a commit.
+  `feature/user-submitted-songs`. The core implementation is committed locally
+  at `20a257c`. Preserve the current uncommitted UI refinement until the user
+  authorizes a follow-up commit.
 - PR #3, PR #4, and PR #5 are already merged; the ranking integration preserves
   their responsive panels, account-label guard, and mobile bottom navigation.
 - The ranking commits include Task 1 (`be345ae`, `c15efc6`), the Task 3A plan
@@ -289,8 +291,9 @@ Fresh synchronized-branch verification on September 15, 2026 passed:
 
 ### Task 2 — User-submitted songs
 
-- Branch: `feature/user-submitted-songs`, based on `67a0ba6`; implementation is
-  complete locally and awaits user review before commit/push.
+- Branch: `feature/user-submitted-songs`, based on `67a0ba6`; the core
+  implementation is committed locally at `20a257c`, with an uncommitted UI
+  refinement on top. Nothing has been pushed.
 - `0004_abnormal_butterfly.sql` adds nullable submitter attribution to shared
   songs with `ON DELETE SET NULL` and an Admin-oriented index.
 - Personal Ranking and Practice Library now offer an accessible title/artist
@@ -329,7 +332,8 @@ outside this feature scope.
    `90s-demo-ranking` is not.
 4. Do not repeat completed desktop/mobile acceptance unless later UI changes
    require it; rerun the final diff check after edits.
-5. Review the uncommitted Task 2 diff before any commit, push, PR, or merge.
+5. Review the uncommitted Task 2 UI refinement before any follow-up commit,
+   push, PR, or merge.
    Do not start further Task 3 imports, Admin work, fuzzy matching, or
    aggregation without explicit user direction.
 6. Do not run destructive Git or database commands and do not terminate unknown

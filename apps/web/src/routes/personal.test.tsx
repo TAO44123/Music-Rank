@@ -45,6 +45,9 @@ describe('/personal', () => {
     });
     render(<ThemeProvider theme={theme}><QueryClientProvider client={client}><RouterProvider router={router} /></QueryClientProvider></ThemeProvider>);
     expect(await screen.findByRole('heading', { name: 'My Top 10' })).toBeVisible();
+    const prompt = screen.getByRole('button', { name: 'Can’t find a song? Add it here' });
+    const visibility = screen.getByLabelText('Top 10 visibility: private');
+    expect(prompt.compareDocumentPosition(visibility) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(router.state.location.pathname).toBe('/personal');
   });
 
@@ -72,8 +75,8 @@ describe('/personal', () => {
     });
     render(<ThemeProvider theme={theme}><QueryClientProvider client={client}><RouterProvider router={router} /></QueryClientProvider></ThemeProvider>);
     await screen.findByRole('heading', { name: 'My Top 10' });
-    fireEvent.click(screen.getByRole('button', { name: 'Add a song not listed' }));
-    const dialog = await screen.findByRole('dialog', { name: 'Add a song not listed' });
+    fireEvent.click(screen.getByRole('button', { name: 'Can’t find a song? Add it here' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Add a song' });
     fireEvent.change(within(dialog).getByRole('textbox', { name: 'Song title' }), { target: { value: 'Shared Song' } });
     fireEvent.change(within(dialog).getByRole('textbox', { name: 'Artist' }), { target: { value: 'Shared Artist' } });
     fireEvent.click(within(dialog).getByRole('button', { name: 'Add song' }));

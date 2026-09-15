@@ -1,10 +1,10 @@
-import { Box, Button, Container, Stack } from '@mui/material';
+import { Box, Container } from '@mui/material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { createRoute, redirect } from '@tanstack/react-router';
 import { useState } from 'react';
 import { ApiError, request, type AddSongToListInput, type ExistingSong, type SingingListEntry, type SingingStatus } from '../api';
 import { SingingListPanel } from '../components/SingingListPanel';
-import { ExistingSongConfirmationDialog, UnlistedSongDialog } from '../components/UnlistedSongDialog';
+import { ExistingSongConfirmationDialog, UnlistedSongDialog, UnlistedSongPrompt } from '../components/UnlistedSongDialog';
 import { VisibilityControl, VisibilityStatus } from '../components/VisibilityControl';
 import { listSettingsQueryOptions, sessionQueryOptions, singingListQueryOptions } from '../queries';
 import { useAppShell } from '../shell/AppShellContext';
@@ -67,11 +67,9 @@ function PracticeLibraryPage() {
       onFilterChange={setFilter}
       onSave={(songId, status, note) => mutate(`/api/me/singing-list/items/${songId}`, { method: 'PUT', body: JSON.stringify({ status, note }) })}
       onRemove={(songId) => mutate(`/api/me/singing-list/items/${songId}`, { method: 'DELETE' })}
+      promptAction={<UnlistedSongPrompt onClick={() => { setFormError(null); setIsAddOpen(true); }} />}
       statusLabel={<VisibilityStatus label="Practice Library" visibility={settings.singingList} />}
-      headerAction={<Stack direction="row" alignItems="center" gap={1} flexWrap="wrap" useFlexGap>
-        <Button variant="outlined" onClick={() => { setFormError(null); setIsAddOpen(true); }}>Add a song not listed</Button>
-        <VisibilityControl label="Practice Library" visibility={settings.singingList} publicUrl={publicUrl} privateNotes disabled={isVisibilityPending} onChange={(visibility) => setVisibility('singing-list', visibility)} onShareComplete={shareNotice} />
-      </Stack>}
+      headerAction={<VisibilityControl label="Practice Library" visibility={settings.singingList} publicUrl={publicUrl} privateNotes disabled={isVisibilityPending} onChange={(visibility) => setVisibility('singing-list', visibility)} onShareComplete={shareNotice} />}
     />
     <UnlistedSongDialog open={isAddOpen} listLabel="My Practice Library" isPending={addSongMutation.isPending} error={formError} onClose={closeAddDialog} onSubmit={(song) => addSongMutation.mutate({ input: { song }, fromConfirmation: false })} />
     <ExistingSongConfirmationDialog song={existingSong} listLabel="My Practice Library" isPending={addSongMutation.isPending} onCancel={() => { if (!addSongMutation.isPending) setExistingSong(null); }} onConfirm={() => { if (existingSong) addSongMutation.mutate({ input: { songId: existingSong.id }, fromConfirmation: true }); }} />

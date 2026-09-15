@@ -1,10 +1,10 @@
-import { Box, Button, Container, Stack } from '@mui/material';
+import { Box, Container } from '@mui/material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { createRoute, redirect } from '@tanstack/react-router';
 import { useState } from 'react';
 import { ApiError, request, type AddSongToListInput, type ExistingSong, type TopListEntry } from '../api';
 import { TopListPanel } from '../components/TopListPanel';
-import { ExistingSongConfirmationDialog, UnlistedSongDialog } from '../components/UnlistedSongDialog';
+import { ExistingSongConfirmationDialog, UnlistedSongDialog, UnlistedSongPrompt } from '../components/UnlistedSongDialog';
 import { VisibilityControl, VisibilityStatus } from '../components/VisibilityControl';
 import { listSettingsQueryOptions, queryKeys, sessionQueryOptions, topListQueryOptions } from '../queries';
 import { useAppShell } from '../shell/AppShellContext';
@@ -64,11 +64,9 @@ function PersonalRankingPage() {
       entries={topQuery.data ?? []}
       onReorder={(orderedSongIds) => mutate('/api/me/top-list/order', { method: 'PATCH', body: JSON.stringify({ orderedSongIds }) })}
       onRemove={(songId) => mutate(`/api/me/top-list/items/${songId}`, { method: 'DELETE' })}
+      promptAction={<UnlistedSongPrompt disabled={topQuery.data?.length === 10} onClick={() => { setFormError(null); setIsAddOpen(true); }} />}
       statusLabel={<VisibilityStatus label="Top 10" visibility={settings.topList} />}
-      headerAction={<Stack direction="row" alignItems="center" gap={1} flexWrap="wrap" useFlexGap>
-        <Button variant="outlined" onClick={() => { setFormError(null); setIsAddOpen(true); }} disabled={topQuery.data?.length === 10}>Add a song not listed</Button>
-        <VisibilityControl label="Top 10" visibility={settings.topList} publicUrl={publicUrl} disabled={isVisibilityPending} onChange={(visibility) => setVisibility('top-list', visibility)} onShareComplete={shareNotice} />
-      </Stack>}
+      headerAction={<VisibilityControl label="Top 10" visibility={settings.topList} publicUrl={publicUrl} disabled={isVisibilityPending} onChange={(visibility) => setVisibility('top-list', visibility)} onShareComplete={shareNotice} />}
     />
     <UnlistedSongDialog open={isAddOpen} listLabel="My Top 10" isPending={addSongMutation.isPending} error={formError} onClose={closeAddDialog} onSubmit={(song) => addSongMutation.mutate({ input: { song }, fromConfirmation: false })} />
     <ExistingSongConfirmationDialog song={existingSong} listLabel="My Top 10" isPending={addSongMutation.isPending} onCancel={() => { if (!addSongMutation.isPending) setExistingSong(null); }} onConfirm={() => { if (existingSong) addSongMutation.mutate({ input: { songId: existingSong.id }, fromConfirmation: true }); }} />

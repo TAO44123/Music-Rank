@@ -79,10 +79,11 @@ type SingingListPanelProps = {
   onSave: (songId: string, status: SingingStatus, note: string) => void;
   onRemove: (songId: string) => void;
   headerAction?: ReactNode;
+  promptAction?: ReactNode;
   statusLabel?: ReactNode;
 };
 
-export function SingingListPanel({ entries, filter, onFilterChange, onSave, onRemove, headerAction, statusLabel }: SingingListPanelProps) {
+export function SingingListPanel({ entries, filter, onFilterChange, onSave, onRemove, headerAction, promptAction, statusLabel }: SingingListPanelProps) {
   const theme = useTheme();
 
   return <Paper component="section" sx={{ p: { xs: 1.75, sm: 2.5 } }} aria-labelledby="singing-list-heading">
@@ -90,7 +91,8 @@ export function SingingListPanel({ entries, filter, onFilterChange, onSave, onRe
       <Box>
         <Typography variant="overline" color="secondary.main" fontWeight={800}>Practice library</Typography>
         <Typography id="singing-list-heading" variant="h2" fontSize="1.45rem">My Practice Library</Typography>
-        {statusLabel && <Box mt={0.75}>{statusLabel}</Box>}
+        {promptAction && <Box mt={0.5}>{promptAction}</Box>}
+        {statusLabel && <Box mt={0.5}>{statusLabel}</Box>}
       </Box>
       <Stack direction="row" alignItems="center" gap={1}><Typography variant="body2" color="text.secondary" fontWeight={700}>{entries.length} {entries.length === 1 ? 'song' : 'songs'}</Typography>{headerAction}</Stack>
     </Stack>
