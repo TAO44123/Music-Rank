@@ -2,7 +2,7 @@
 
 ## 1. Current Status
 
-The authentication and list-sharing iteration, the compact visibility-control refinement, DESIGN-002 routing, DESIGN-006 responsive panels, and the PR #4 account-label regression guard are implemented, verified, merged, and pushed to `main`. PR #5 implements DESIGN-004 mobile bottom navigation, is synchronized with the PR #4 baseline, and has passed fresh verification before delivery.
+The authentication and list-sharing iteration, the compact visibility-control refinement, DESIGN-002 routing, DESIGN-006 responsive panels, the PR #4 account-label regression guard, and PR #5's DESIGN-004 mobile bottom navigation are implemented, verified, merged, and pushed to `main`.
 
 The approved behavior is:
 
@@ -29,10 +29,10 @@ The full decisions and security model are recorded in [AUTHENTICATION_DESIGN.md]
 
 At the time of this update:
 
-- Branch: `feature/design-004-mobile-bottom-nav`, tracking `origin/feature/design-004-mobile-bottom-nav`; the local branch is ready for its delivery push.
-- Local and remote `main` are synchronized at `47efffa`, which merges PR #4's account-label regression into `main`.
+- Branch: `main`, tracking `origin/main`.
+- Local and remote `main` contain PR #5 through delivery merge `958b921`; this handoff refresh sits on top of that delivered state.
 - PR #3 was merged as `142a7d4`. PR #4 was merged into its stacked base as `89bc6bd` and then into `main` as `47efffa`.
-- Merge commit `7f3df89` synchronizes PR #5 with the latest `feature/design-006-responsive-panels` base, including PR #4. Inspect `git status --short --branch` and `git log` for the exact live state after delivery.
+- Merge commit `7f3df89` synchronized PR #5 with the latest base, GitHub recorded PR #5 as merged at `8ad0d25`, and `958b921` brought that result into `main`.
 - PR #2 was merged as `364cd26`; PR #1 was merged as `91bca4b`; the test-stability follow-up is `75424ee`.
 - The pre-merge runnable snapshot remains available locally and remotely as `codex/pre-pr-demo-backup-2026-09-11` at `4dcabdf`.
 - On 2026-09-15 the user authorized handling and pushing PR #3, PR #4, and PR #5. The separate `feature/90s-ranking-pilot` branch is pushed at `d2ef428` but is not authorized for merge as part of this PR-delivery task.
@@ -127,8 +127,7 @@ The production build retains a bundle-size warning: the main JavaScript asset is
 
 ### Current iteration
 
-- PR #3 and PR #4 are merged and pushed. PR #5 is synchronized with the PR #4 baseline through `7f3df89` and has passed its fresh acceptance gate.
-- Deliver PR #5 without changing the accepted anonymous navigation difference: phones show three items; desktop shows Ranking only.
+- PR #3, PR #4, and PR #5 are merged and pushed. Preserve the accepted anonymous navigation difference: phones show three items; desktop shows Ranking only.
 - After PR #5 is delivered, the next separate integration candidate is `feature/90s-ranking-pilot`. Rebase or merge it against the new `main` and rerun checks before merging, but do not treat this handoff as authorization to merge it.
 
 ### Near-term engineering maintenance
@@ -171,8 +170,8 @@ Start by reading this document, [AUTHENTICATION_DESIGN.md](AUTHENTICATION_DESIGN
 Report these facts to the user before taking further action:
 
 - Authentication, direct-link list sharing, compact visibility controls, DESIGN-002 routing, DESIGN-006 responsive panels, and the PR #4 account-label regression are merged to `main`.
-- `main` was synchronized at `47efffa` before PR #5 delivery. The pre-merge demo fallback is `codex/pre-pr-demo-backup-2026-09-11` at `4dcabdf`.
-- PR #5 passed fresh typecheck, API 11/11, Web 33/33, build, and Playwright 3/3 verification on 2026-09-15. Use live Git/GitHub state for its final merge commit after delivery.
+- `main` contains PR #5 through `958b921`. The pre-merge demo fallback is `codex/pre-pr-demo-backup-2026-09-11` at `4dcabdf`.
+- PR #5 passed fresh typecheck, API 11/11, Web 33/33, build, and Playwright 3/3 verification on 2026-09-15; GitHub recorded it merged at `8ad0d25`.
 - The phone-versus-desktop anonymous navigation difference is an accepted release behavior, not an unresolved blocker.
 - `feature/90s-ranking-pilot` is pushed at `d2ef428` but remains unmerged.
 - Friends and SSO are future candidates only and are not authorized implementation work.

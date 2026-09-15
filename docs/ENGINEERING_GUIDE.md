@@ -8,7 +8,7 @@
 | 目标读者 | 负责开发、测试、排障和后续维护的工程师 |
 | 当前产品版本 | Version 1 + 认证扩展，本地多用户应用 |
 | 最后更新日期 | 2026-09-15（America/New_York） |
-| 最后核对的代码提交 | PR #5 分支（DESIGN-004；叠加在已验证的 DESIGN-006 和 PR #4 基线上） |
+| 最后核对的代码提交 | `main`（PR #5 已通过 `958b921` 交付） |
 | 事实来源 | 当前仓库代码、配置、迁移和自动化测试 |
 
 这份文档描述系统现在如何工作。首次在本机配置和运行项目时，先执行 [LOCAL_FIRST_RUN_GUIDE.md](LOCAL_FIRST_RUN_GUIDE.md)；产品目标和范围以 [PROJECT_SPEC_ZH.md](PROJECT_SPEC_ZH.md) 与 [PROJECT_SPEC_EN.md](PROJECT_SPEC_EN.md) 为准；历史交接信息以 [IMPLEMENTATION_HANDOFF.md](IMPLEMENTATION_HANDOFF.md) 和 [SESSION_HANDOFF.md](SESSION_HANDOFF.md) 为准。若文档与代码不一致，应先核对代码和测试，再更新本文档。
@@ -1080,7 +1080,7 @@ E2E 不复用已有服务器；3101 被占用时应先定位占用者。
 
 | 日期 | 代码基线 | 内容 |
 | --- | --- | --- |
-| 2026-09-15 | PR #5 branch after `7f3df89` | 实现并验证 DESIGN-004：小于 600px 时主导航下沉为固定底栏，600px 及以上保持顶部 Tab；目的地表由两个导航共用；内容区与 Snackbar 为底栏让出空间；确认保留匿名手机三项、桌面仅 Ranking 的差异。 |
+| 2026-09-15 | PR #5 `8bafc41` / main `958b921` | 实现并验证 DESIGN-004：小于 600px 时主导航下沉为固定底栏，600px 及以上保持顶部 Tab；目的地表由两个导航共用；内容区与 Snackbar 为底栏让出空间；确认保留匿名手机三项、桌面仅 Ranking 的差异。 |
 | 2026-09-15 | PR #3 branch after `aa479f9` | 使用隔离临时数据库重新验证 DESIGN-006：typecheck、API 11/11、Web 28/28、production build 和 Playwright 2/2 均通过。 |
 | 2026-09-14 | 6b215be + 9717ff3 | 将 main 的跨平台启动、DESIGN-002、测试超时、端口、审计与 bundle 文档基线同步到 DESIGN-006 开发分支 |
 | 2026-09-13 | 6b215be | 实现 DESIGN-006：三个列表面板的响应式布局；榜单行操作从 `secondaryAction` 改为正常流并在 xs 下沉到文字下方，两个个人面板补上断点，新增 `e2e/responsive.spec.ts` 响应式回归 |

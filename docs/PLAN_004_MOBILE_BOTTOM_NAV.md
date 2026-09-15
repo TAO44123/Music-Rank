@@ -712,4 +712,4 @@ bar's top edge.
 | 2026-09-14 | chance | 初稿：三个任务 —— 抽目的地表、加底栏、断点切换与避让；记录 jsdom 下 `display:none` 会击穿 TabNav 现有 `toBeVisible` 断言，以及匿名访客在两个导航面看到的目的地集合不一致 | 当前工作树 |
 | 2026-09-14 | chance | 执行完成。两处与计划的偏差：`@testing-library/user-event` 未安装，改用项目既有的 `fireEvent`；jsdom 不应用 emotion 样式表，Task 3 Step 2-4 预测的 TabNav 断言失败没有发生，跳过改断言 | 当前工作树 |
 | 2026-09-14 | chance | 补上 §6.2 第 4 条的自动化覆盖，此前判断「无法自动化」有误；该用例的 locator 必须带 `disabled: false`，因为 Top 10 满员时按钮文案仍是 Add Top 10 只是不可点 | 当前工作树 |
-| 2026-09-15 | chance | 产品确认保留匿名访客在手机看到三项、桌面仅看到 Ranking 的差异；该差异不阻塞 PR #5 | 当前工作树 |
+| 2026-09-15 | chance | 产品确认保留匿名访客在手机看到三项、桌面仅看到 Ranking 的差异；该差异不阻塞 PR #5 | 8bafc41 |
