@@ -141,9 +141,9 @@ export function validateRankingManifest(value: unknown): RankingManifest {
   assert(parsedUrl.protocol === 'http:' || parsedUrl.protocol === 'https:', 'ranking.sourceUrl must use HTTP(S)');
 
   const entries = value.entries.map(parseEntry);
-  assert(entries.length === 100, 'manifest must contain exactly 100 entries');
+  assert(entries.length > 0, 'manifest must contain at least one entry');
   const sortedRanks = entries.map((entry) => entry.rank).sort((left, right) => left - right);
-  assert(sortedRanks.every((rank, index) => rank === index + 1), 'manifest ranks must be unique and contiguous from 1 through 100');
+  assert(sortedRanks.every((rank, index) => rank === index + 1), `manifest ranks must be unique and contiguous from 1 through ${entries.length}`);
   const songKeys = entries.map((entry) => `${normalize(entry.title)}\u0000${normalize(entry.artist)}`);
   assert(new Set(songKeys).size === songKeys.length, 'manifest must not contain duplicate normalized title-and-artist pairs');
 
@@ -345,8 +345,8 @@ async function writeRankingManifest(manifest: RankingManifest, replaceExisting: 
 
     const finalEntries = await transaction.select({ rank: rankingEntries.rank }).from(rankingEntries)
       .where(eq(rankingEntries.rankingId, ranking.id));
-    assert(finalEntries.length === 100, `imported ranking ${manifest.ranking.slug} must contain exactly 100 entries`);
-    assert(finalEntries.map((entry) => entry.rank).sort((left, right) => left - right).every((rank, index) => rank === index + 1), `imported ranking ${manifest.ranking.slug} ranks must remain contiguous`);
+    assert(finalEntries.length === manifest.entries.length, `imported ranking ${manifest.ranking.slug} must contain ${manifest.entries.length} entries`);
+    assert(finalEntries.map((entry) => entry.rank).sort((left, right) => left - right).every((rank, index) => rank === index + 1), `imported ranking ${manifest.ranking.slug} ranks must remain contiguous from 1 through ${manifest.entries.length}`);
 
     let orphanedSongsDeleted = 0;
     for (const songId of previousSongIds) {
@@ -397,27 +397,27 @@ export async function replaceRankingManifest(value: unknown): Promise<RankingRep
 export async function publishRankingReplacingDemo(rankingSlug: string): Promise<RankingPublishSummary> {
   const slug = parseRankingSlug(rankingSlug, 'rankingSlug');
   return db.transaction(async (transaction) => {
-    const [pilot] = await transaction.select().from(rankings).where(eq(rankings.slug, slug)).limit(1);
-    assert(pilot, `ranking ${slug} does not exist`);
-    const pilotEntries = await transaction.select({ rank: rankingEntries.rank }).from(rankingEntries)
-      .where(eq(rankingEntries.rankingId, pilot.id));
-    assert(pilotEntries.length === 100, `ranking ${slug} must contain exactly 100 entries before publishing`);
-    assert(pilotEntries.map((entry) => entry.rank).sort((left, right) => left - right).every((rank, index) => rank === index + 1), `ranking ${slug} ranks must be contiguous before publishing`);
+    const [targetRanking] = await transaction.select().from(rankings).where(eq(rankings.slug, slug)).limit(1);
+    assert(targetRanking, `ranking ${slug} does not exist`);
+    const targetEntries = await transaction.select({ rank: rankingEntries.rank }).from(rankingEntries)
+      .where(eq(rankingEntries.rankingId, targetRanking.id));
+    assert(targetEntries.length > 0, `ranking ${slug} must contain at least one entry before publishing`);
+    assert(targetEntries.map((entry) => entry.rank).sort((left, right) => left - right).every((rank, index) => rank === index + 1), `ranking ${slug} ranks must be contiguous before publishing`);
 
     const [demo] = await transaction.select().from(rankings).where(eq(rankings.slug, '90s-demo-ranking')).limit(1);
     assert(demo, '90s Demo ranking is required before publishing a ranking');
     assert(demo.sourceType === 'DEMO', '90s Demo ranking metadata is invalid');
 
-    if (pilot.isPublished) {
-      assert(!demo.isPublished, 'Demo must be unpublished when the pilot is already published');
+    if (targetRanking.isPublished) {
+      assert(!demo.isPublished, 'Demo must be unpublished when a ranking is already published');
     } else {
       await transaction.update(rankings).set({ isPublished: false, updatedAt: new Date() }).where(eq(rankings.id, demo.id));
-      await transaction.update(rankings).set({ isPublished: true, verifiedAt: new Date(), updatedAt: new Date() }).where(eq(rankings.id, pilot.id));
+      await transaction.update(rankings).set({ isPublished: true, verifiedAt: new Date(), updatedAt: new Date() }).where(eq(rankings.id, targetRanking.id));
     }
 
     return {
-      rankingId: pilot.id,
-      rankingSlug: pilot.slug,
+      rankingId: targetRanking.id,
+      rankingSlug: targetRanking.slug,
       demoRankingId: demo.id,
       demoRankingSlug: demo.slug
     };

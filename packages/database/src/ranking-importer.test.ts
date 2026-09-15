@@ -9,7 +9,7 @@ const slugPrefix = 'ranking-importer-test-';
 const createdRankingSlugs = new Set<string>();
 const createdSongIds = new Set<string>();
 
-function manifestFor(slug: string): RankingManifest {
+function manifestFor(slug: string, entryCount = 100): RankingManifest {
   createdRankingSlugs.add(slug);
   return {
     version: 1,
@@ -29,7 +29,7 @@ function manifestFor(slug: string): RankingManifest {
       sourceTitle: 'Importer test fixture',
       notes: 'Synthetic test data.'
     },
-    entries: Array.from({ length: 100 }, (_, index) => ({
+    entries: Array.from({ length: entryCount }, (_, index) => ({
       rank: index + 1,
       title: `${slug} song ${index + 1}`,
       artist: `${slug} artist ${index + 1}`,
@@ -142,7 +142,7 @@ describe('ranking importer', () => {
   });
 
   it('publishes a complete ranking and retains the Demo as unpublished data', async () => {
-    const manifest = manifestFor(`${slugPrefix}publish`);
+    const manifest = manifestFor(`${slugPrefix}publish`, 72);
     const [demoBefore] = await db.select().from(rankings).where(eq(rankings.slug, '90s-demo-ranking'));
     expect(demoBefore).toBeDefined();
 
@@ -154,6 +154,7 @@ describe('ranking importer', () => {
       const [demoDuring] = await db.select().from(rankings).where(eq(rankings.slug, '90s-demo-ranking'));
       expect(pilot.isPublished).toBe(true);
       expect(demoDuring.isPublished).toBe(false);
+      expect(await db.select().from(rankingEntries).where(eq(rankingEntries.rankingId, pilot.id))).toHaveLength(72);
       await expect(publishRankingReplacingDemo(manifest.ranking.slug)).resolves.toMatchObject({ rankingSlug: manifest.ranking.slug });
     } finally {
       await db.transaction(async (transaction) => {

@@ -1,6 +1,6 @@
 # Ranking Catalog Expansion — Cross-Session Execution Plan
 
-> Status: Task 1 and Task 3A implementation/acceptance complete; awaiting review and commit authorization
+> Status: Task 1, Task 3A, and the approved Cantonese import are complete and committed locally; awaiting the user's next-task choice and any push/merge authorization
 >
 > Last updated: 2026-09-15 (America/New_York)
 >
@@ -378,8 +378,9 @@ Publication and acceptance:
 - [x] Publish only after extraction and database verification are complete.
 - [x] If the pilot occupies 90s/Mainland, publish it and unpublish the Demo in
   one transaction. Never delete the Demo ranking, entries, or songs.
-- [x] Verify exactly 100 entries, expected song reuse/create counts, source URL,
-  `songCount`, scoped facets, search, pagination, and stable route behavior.
+- [x] Verify the manifest's approved entry count, expected song reuse/create
+  counts, source URL, `songCount`, scoped facets, search, pagination, and stable
+  route behavior.
 - [x] Run database migration/seed checks, typecheck, full tests, production
   build, Playwright E2E, and `git diff --check`.
 - [x] Desktop and 390 × 844 mobile interactive-browser checks passed on the
@@ -907,6 +908,33 @@ Before ending a session:
   database 6/6 passed; production build passed; Playwright E2E 1/1 passed; and
   final `git diff --check` passed after documentation edits.
 - No commit, push, or merge was performed.
+
+### 2026-09-15 — Cantonese Top 70 import
+
+- The user supplied `1990年代粤语歌曲排行榜.json`, approved its 72 entries as the
+  source of truth, chose the title `90s Cantonese Songs Top 70`, the
+  source-neutral slug `90s-cantonese-top-70`, and a Bilibili source URL.
+- Added `packages/database/manifests/90s-cantonese-top-70.json`. It keeps the
+  supplied rank/title/artist/release-year values, stores 1990s as optional
+  decade metadata, and leaves `region` null because Cantonese is not a region.
+- Generalized manifest validation and publication from a fixed 100 entries to
+  any positive count of ranks that are unique and contiguous from 1. The
+  100-entry requirement remains specific to the original Mainland pilot, not a
+  global importer rule.
+- Dry run reported 72 new songs and 72 entries. The unpublished import and
+  transactional publication both succeeded; direct database checks found 72
+  entries, ranks 1–72, 72 unique ranks, no missing release years, the exact
+  Bilibili source URL, and published state. The 100-entry Mainland pilot stayed
+  published and the 30-entry Demo stayed unpublished.
+- Verification: typecheck passed; full tests passed (database 8/8, API 15/15,
+  Web 35/35 across 11 files, contracts no tests); production build passed with
+  the existing 821.00 KB bundle warning; Playwright E2E passed 1/1; desktop and
+  390 × 844 browser acceptance passed without Console errors. A final dry run
+  reused all 72 songs and entries. Final `git diff --check` passed.
+- The user authorized committing the latest working tree on 2026-09-15. The
+  Cantonese manifest, importer generalization, regression test, and synchronized
+  documentation are included in the latest local commit; nothing was pushed or
+  merged.
 
 ### 2026-09-15 — Source-neutral ranking identity refinement
 

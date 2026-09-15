@@ -8,7 +8,7 @@
 | 目标读者 | 负责开发、测试、排障和后续维护的工程师 |
 | 当前产品版本 | Version 1 + 认证扩展 + 多榜单目录 Task 1，本地多用户应用 |
 | 最后更新日期 | 2026-09-15（America/New_York） |
-| 最后核对的代码提交 | `feature/90s-ranking-pilot` 当前工作树（基于 2b0a0a3） |
+| 最后核对的代码提交 | `feature/90s-ranking-pilot` 最新本地提交（叠加在 Task 3A 提交 `6729972` 上） |
 | 事实来源 | 当前仓库代码、配置、迁移和自动化测试 |
 
 这份文档描述系统现在如何工作。首次在本机配置和运行项目时，先执行 [LOCAL_FIRST_RUN_GUIDE.md](LOCAL_FIRST_RUN_GUIDE.md)；PROJECT_SPEC_ZH.md、PROJECT_SPEC_EN.md 与 IMPLEMENTATION_HANDOFF.md 保留 Version 1 历史基线，当前已批准扩展以 [AUTHENTICATION_DESIGN.md](AUTHENTICATION_DESIGN.md)、[RANKING_CATALOG_DESIGN.md](RANKING_CATALOG_DESIGN.md) 和 [SESSION_HANDOFF.md](SESSION_HANDOFF.md) 为准。若文档与代码不一致，应先核对代码和测试，再更新本文档。
@@ -391,15 +391,16 @@ DEMO_USER_ID 只控制 demo fixture，不再参与普通请求的当前用户解
 
 ### 7.12 Pilot ranking import
 
-`packages/database/manifests/90s-mainland-top-100.json` is the
-version-controlled, user-approved Bilibili source manifest for the 90s Mainland
-pilot. `packages/database/src/ranking-importer.ts` validates source metadata,
-exactly 100 contiguous unique ranks, and normalized-song uniqueness before it
-writes anything. The importer is transactional and idempotent: a failed later
-row rolls back earlier writes, and a repeated manifest reuses its existing songs
-and entries. It imports unpublished first. The dedicated publication operation
-then unpublishes `90s-demo-ranking` before publishing the verified pilot in the
-same transaction, without deleting Demo data.
+`packages/database/manifests/90s-mainland-top-100.json` and
+`packages/database/manifests/90s-cantonese-top-70.json` are version-controlled,
+user-approved Bilibili source manifests. `packages/database/src/ranking-importer.ts`
+validates source metadata, one or more contiguous unique ranks beginning at 1,
+and normalized-song uniqueness before it writes anything. The importer is
+transactional and idempotent: a failed later row rolls back earlier writes, and
+a repeated manifest reuses its existing songs and entries. It imports
+unpublished first. The dedicated publication operation then preserves an
+unpublished `90s-demo-ranking` while publishing the verified target in the same
+transaction, without deleting Demo data.
 
 `--replace` is the controlled path for an authoritative manifest correction. It
 deletes and recreates the target ranking and entries inside one transaction,
@@ -1108,6 +1109,7 @@ E2E 不复用已有服务器；3101 被占用时应先定位占用者。
 
 | 日期 | 代码基线 | 内容 |
 | --- | --- | --- |
+| 2026-09-15 | `feature/90s-ranking-pilot` latest local commit after `6729972` | 新增 72 首 `90s Cantonese Songs Top 70`；导入器取消恰好 100 条的限制，改为支持任意正数的连续唯一名次；Cantonese 榜单不设置 region，来源 URL 仅用于 Watch source。 |
 | 2026-09-15 | `feature/90s-ranking-pilot` working tree on `2b0a0a3` | 将榜单公开身份改为来源无关 slug；API/路由使用 `/rankings/:slug`，decade/region 改为可空元数据，UI 改为直接榜单标签，并保留跨榜共享歌曲的独立名次。 |
 | 2026-09-15 | `feature/90s-ranking-pilot` working tree on `2b0a0a3` | Replaced the pilot from the user's authoritative 100-entry JSON, populated every release year, stored the exact Bilibili Watch source URL, and added atomic replacement plus safe orphan cleanup. |
 | 2026-09-14 | `feature/90s-ranking-pilot` working tree on `2b0a0a3` | Added a version-controlled Bilibili 90s Mainland Top 100 manifest, transactional/idempotent import and publish tooling, rollback/idempotence tests, and a seed that preserves an intentionally unpublished Demo. The pilot is locally published with 100 entries; the Demo remains with 30 unpublished entries. |

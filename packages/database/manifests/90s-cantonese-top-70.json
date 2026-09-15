@@ -1,0 +1,453 @@
+{
+  "version": 1,
+  "ranking": {
+    "title": "90s Cantonese Songs Top 70",
+    "slug": "90s-cantonese-top-70",
+    "era": "1990s",
+    "decadeStart": 1990,
+    "region": null,
+    "displayOrder": 5,
+    "sourceType": "COMMUNITY",
+    "sourceUrl": "https://www.bilibili.com/video/BV1vX4y1L7ep/?spm_id_from=333.337.search-card.all.click&vd_source=1544c032ccb715323d499a09f8bbca66",
+    "description": "User-provided 1990s Cantonese songs ranking with a Bilibili source link."
+  },
+  "extraction": {
+    "sourcePlatform": "Bilibili",
+    "sourceTitle": "1990年代粤语歌曲排行榜",
+    "notes": "Ranks, titles, artists, and release years are taken verbatim from the user-provided JSON. The linked Bilibili source was not accessed or used to validate the data, per user instruction."
+  },
+  "entries": [
+  {
+    "rank": 72,
+    "title": "爱是永恒",
+    "artist": "张学友",
+    "releaseYear": 1997
+  },
+  {
+    "rank": 71,
+    "title": "爱的呼唤",
+    "artist": "郭富城",
+    "releaseYear": 1997
+  },
+  {
+    "rank": 70,
+    "title": "头发乱了",
+    "artist": "张学友",
+    "releaseYear": 1998
+  },
+  {
+    "rank": 69,
+    "title": "离开以后",
+    "artist": "张学友",
+    "releaseYear": 1995
+  },
+  {
+    "rank": 68,
+    "title": "都是你的错",
+    "artist": "陈慧琳",
+    "releaseYear": 1999
+  },
+  {
+    "rank": 67,
+    "title": "再见亦是泪",
+    "artist": "谭咏麟",
+    "releaseYear": 1994
+  },
+  {
+    "rank": 66,
+    "title": "分手总要在雨天",
+    "artist": "张学友",
+    "releaseYear": 1992
+  },
+  {
+    "rank": 65,
+    "title": "月亮",
+    "artist": "陈慧娴",
+    "releaseYear": 1992
+  },
+  {
+    "rank": 64,
+    "title": "唉声叹气",
+    "artist": "郑秀文",
+    "releaseYear": 1997
+  },
+  {
+    "rank": 63,
+    "title": "热血燃烧",
+    "artist": "郑伊健、陈小春",
+    "releaseYear": 1997
+  },
+  {
+    "rank": 62,
+    "title": "暗涌",
+    "artist": "王菲",
+    "releaseYear": 1997
+  },
+  {
+    "rank": 61,
+    "title": "半点心",
+    "artist": "草蜢",
+    "releaseYear": 1990
+  },
+  {
+    "rank": 60,
+    "title": "再见二丁目",
+    "artist": "杨千嬅",
+    "releaseYear": 1997
+  },
+  {
+    "rank": 59,
+    "title": "春夏秋冬",
+    "artist": "张国荣",
+    "releaseYear": 1999
+  },
+  {
+    "rank": 58,
+    "title": "倾城",
+    "artist": "许美静",
+    "releaseYear": 1997
+  },
+  {
+    "rank": 57,
+    "title": "孤单背影",
+    "artist": "陈慧娴",
+    "releaseYear": 1992
+  },
+  {
+    "rank": 56,
+    "title": "农民",
+    "artist": "Beyond",
+    "releaseYear": 1992
+  },
+  {
+    "rank": 55,
+    "title": "天若有情",
+    "artist": "袁凤瑛",
+    "releaseYear": 1990
+  },
+  {
+    "rank": 54,
+    "title": "无尽空虚",
+    "artist": "Beyond",
+    "releaseYear": 1992
+  },
+  {
+    "rank": 53,
+    "title": "随缘",
+    "artist": "温兆伦",
+    "releaseYear": 1991
+  },
+  {
+    "rank": 52,
+    "title": "自作多情",
+    "artist": "周慧敏",
+    "releaseYear": 1992
+  },
+  {
+    "rank": 51,
+    "title": "长路漫漫伴你闯",
+    "artist": "林子祥",
+    "releaseYear": 1992
+  },
+  {
+    "rank": 50,
+    "title": "爱多一次痛多一次",
+    "artist": "谭咏麟",
+    "releaseYear": 1993
+  },
+  {
+    "rank": 49,
+    "title": "情人知己",
+    "artist": "叶倩文",
+    "releaseYear": 1992
+  },
+  {
+    "rank": 48,
+    "title": "怪你过分美丽",
+    "artist": "张国荣",
+    "releaseYear": 1996
+  },
+  {
+    "rank": 47,
+    "title": "独自去偷欢",
+    "artist": "刘德华",
+    "releaseYear": 1992
+  },
+  {
+    "rank": 46,
+    "title": "夏日倾情",
+    "artist": "黎明",
+    "releaseYear": 1993
+  },
+  {
+    "rank": 45,
+    "title": "片片枫叶情",
+    "artist": "张智霖、许秋怡",
+    "releaseYear": 1991
+  },
+  {
+    "rank": 44,
+    "title": "约定",
+    "artist": "王菲",
+    "releaseYear": 1997
+  },
+  {
+    "rank": 43,
+    "title": "归来吧",
+    "artist": "陈慧娴",
+    "releaseYear": 1992
+  },
+  {
+    "rank": 42,
+    "title": "暧昧",
+    "artist": "王菲",
+    "releaseYear": 1995
+  },
+  {
+    "rank": 41,
+    "title": "晚秋",
+    "artist": "黄凯芹",
+    "releaseYear": 1992
+  },
+  {
+    "rank": 40,
+    "title": "李香兰",
+    "artist": "张学友",
+    "releaseYear": 1990
+  },
+  {
+    "rank": 39,
+    "title": "相逢在雨中",
+    "artist": "黎明",
+    "releaseYear": 1990
+  },
+  {
+    "rank": 38,
+    "title": "相逢何必曾相识",
+    "artist": "蒋志光、韦绮姗",
+    "releaseYear": 1990
+  },
+  {
+    "rank": 37,
+    "title": "情人",
+    "artist": "Beyond",
+    "releaseYear": 1993
+  },
+  {
+    "rank": 36,
+    "title": "雨中的恋人们",
+    "artist": "黄凯芹",
+    "releaseYear": 1992
+  },
+  {
+    "rank": 35,
+    "title": "谁伴我闯荡",
+    "artist": "Beyond",
+    "releaseYear": 1991
+  },
+  {
+    "rank": 34,
+    "title": "现代爱情故事",
+    "artist": "张智霖、许秋怡",
+    "releaseYear": 1991
+  },
+  {
+    "rank": 33,
+    "title": "一人有一个梦想",
+    "artist": "黎瑞恩",
+    "releaseYear": 1993
+  },
+  {
+    "rank": 32,
+    "title": "祝福你",
+    "artist": "华纳群星",
+    "releaseYear": 1993
+  },
+  {
+    "rank": 31,
+    "title": "痴心换情深",
+    "artist": "周慧敏",
+    "releaseYear": 1993
+  },
+  {
+    "rank": 30,
+    "title": "笑看风云",
+    "artist": "郑少秋",
+    "releaseYear": 1994
+  },
+  {
+    "rank": 29,
+    "title": "等你等到我心痛",
+    "artist": "张学友",
+    "releaseYear": 1993
+  },
+  {
+    "rank": 28,
+    "title": "最爱",
+    "artist": "周慧敏",
+    "releaseYear": 1993
+  },
+  {
+    "rank": 27,
+    "title": "暗里着迷",
+    "artist": "刘德华",
+    "releaseYear": 1993
+  },
+  {
+    "rank": 26,
+    "title": "乱世巨星",
+    "artist": "陈小春",
+    "releaseYear": 1997
+  },
+  {
+    "rank": 25,
+    "title": "爱的故事（上集）",
+    "artist": "孙耀威",
+    "releaseYear": 1994
+  },
+  {
+    "rank": 24,
+    "title": "神话情话",
+    "artist": "周华健、齐豫",
+    "releaseYear": 1995
+  },
+  {
+    "rank": 23,
+    "title": "友情岁月",
+    "artist": "郑伊健",
+    "releaseYear": 1996
+  },
+  {
+    "rank": 22,
+    "title": "似是故人来",
+    "artist": "梅艳芳",
+    "releaseYear": 1991
+  },
+  {
+    "rank": 21,
+    "title": "相思风雨中",
+    "artist": "张学友、汤宝如",
+    "releaseYear": 1992
+  },
+  {
+    "rank": 20,
+    "title": "灰色轨迹",
+    "artist": "Beyond",
+    "releaseYear": 1990
+  },
+  {
+    "rank": 19,
+    "title": "只想一生跟你走",
+    "artist": "张学友",
+    "releaseYear": 1993
+  },
+  {
+    "rank": 18,
+    "title": "初恋情人",
+    "artist": "刘小慧",
+    "releaseYear": 1991
+  },
+  {
+    "rank": 17,
+    "title": "每天爱你多一些",
+    "artist": "张学友",
+    "releaseYear": 1991
+  },
+  {
+    "rank": 16,
+    "title": "今夜你会不会来",
+    "artist": "黎明",
+    "releaseYear": 1991
+  },
+  {
+    "rank": 15,
+    "title": "飘雪",
+    "artist": "陈慧娴",
+    "releaseYear": 1992
+  },
+  {
+    "rank": 14,
+    "title": "容易受伤的女人",
+    "artist": "王菲",
+    "releaseYear": 1992
+  },
+  {
+    "rank": 13,
+    "title": "一生中最爱",
+    "artist": "谭咏麟",
+    "releaseYear": 1991
+  },
+  {
+    "rank": 12,
+    "title": "饿狼传说",
+    "artist": "张学友",
+    "releaseYear": 1994
+  },
+  {
+    "rank": 11,
+    "title": "一生所爱",
+    "artist": "卢冠廷",
+    "releaseYear": 1995
+  },
+  {
+    "rank": 10,
+    "title": "一起走过的日子",
+    "artist": "刘德华",
+    "releaseYear": 1991
+  },
+  {
+    "rank": 9,
+    "title": "不再犹豫",
+    "artist": "Beyond",
+    "releaseYear": 1991
+  },
+  {
+    "rank": 8,
+    "title": "难念的经",
+    "artist": "周华健",
+    "releaseYear": 1996
+  },
+  {
+    "rank": 7,
+    "title": "护花使者",
+    "artist": "李克勤",
+    "releaseYear": 1991
+  },
+  {
+    "rank": 6,
+    "title": "红日",
+    "artist": "李克勤",
+    "releaseYear": 1992
+  },
+  {
+    "rank": 5,
+    "title": "讲不出再见",
+    "artist": "谭咏麟",
+    "releaseYear": 1994
+  },
+  {
+    "rank": 4,
+    "title": "光辉岁月",
+    "artist": "Beyond",
+    "releaseYear": 1990
+  },
+  {
+    "rank": 3,
+    "title": "沧海一声笑",
+    "artist": "许冠杰",
+    "releaseYear": 1990
+  },
+  {
+    "rank": 2,
+    "title": "男儿当自强",
+    "artist": "林子祥",
+    "releaseYear": 1991
+  },
+  {
+    "rank": 1,
+    "title": "海阔天空",
+    "artist": "Beyond",
+    "releaseYear": 1993
+  }
+  ]
+}

@@ -12,8 +12,8 @@ Task 1 and its UI refinement are implemented on the Task 1 stack. Task 3A has
 also been implemented on a stacked local branch: the user-approved Bilibili
 90s Mainland China Top 100 pilot is now locally published. The 90s Demo remains
 in the database, with all 30 entries and songs intact, but is intentionally
-unpublished. No commit, push, merge, Task 2 work, or remaining-ranking import
-has been performed.
+unpublished. Task 3A is committed locally as `6729972`; no push, merge, Task 2
+work, or additional unapproved ranking import has been performed.
 
 The application now treats each published ranking as a first-class catalog item
 with a source-neutral `/rankings/:slug` route. The published pilot is available
@@ -22,17 +22,35 @@ source link. `decade` and `region` are nullable display metadata rather than
 routing dimensions or a uniqueness key. The UI uses one row of direct ranking
 tabs, so future language or dialect rankings can overlap existing metadata.
 
-Task 2 (user-submitted songs) and the remaining three ranking imports have not
-started. Task 3A implementation and its desktop/mobile acceptance gates are
-complete; review and explicit commit authorization remain.
+Task 2 (user-submitted songs) and any further ranking imports have not started.
+Task 3A implementation, the approved Cantonese import, and their desktop/mobile
+acceptance gates are complete. The user authorized committing the latest local
+working tree on 2026-09-15; push and merge authorization have not been given.
+
+The user subsequently approved and imported a second published ranking,
+`90s Cantonese Songs Top 70` (`90s-cantonese-top-70`). It has 72 continuous
+entries, all with release years, a Bilibili source link, and no `region`
+metadata. The generic importer now supports any positive count of contiguous
+unique ranks; the original 100-entry pilot constraints remain data-specific,
+not importer-wide.
+
+After this addition, `npm run typecheck` passed; `npm test` passed (API 15/15,
+Web 35/35 across 11 files, database 8/8); the production build passed with the
+existing 821.00 KB bundle warning; and Playwright E2E passed 1/1. Desktop and
+390 × 844 browser checks confirmed both direct ranking tabs, the optional 90s
+chip without a region chip on the Cantonese ranking, the 72-song count, source
+link, and no Console errors. The final dry run reused all 72 songs and entries.
 
 ## 2. Repository State
 
 - Branch: `feature/90s-ranking-pilot`.
-- HEAD: `2b0a0a3` — `docs: plan pilot ranking import`; it is stacked on Task 1
-  commits `be345ae` and `c15efc6`, never on stale `9717ff3` alone.
-- Task 3A changes are uncommitted in the working tree. The user has not
-  authorized a commit, push, or merge.
+- The latest local commit is stacked on Task 3A commit `6729972`, Task 3A plan
+  commit `2b0a0a3`, and Task 1 commits `be345ae` and `c15efc6`; it was never
+  built from stale `9717ff3` alone. Use `git log -5 --oneline --decorate` for
+  the exact current HEAD.
+- The latest local commit contains the approved Cantonese manifest, generalized
+  importer validation/publication, its regression test, and synchronized
+  documentation. It has not been pushed or merged.
 - Preserve every working-tree change. Do not reset, discard, or overwrite it.
 - Use `git status --short --branch` and the live diff for the exact file list.
 - Migrations through `0003_red_silver_samurai.sql` have been applied to the
@@ -40,6 +58,9 @@ complete; review and explicit commit authorization remain.
   nullable, and removes published decade/region uniqueness.
 - PostgreSQL uses 5432; Playwright uses 3101 temporarily. Do not terminate
   unknown development services.
+- A 2026-09-15 read-only database check found the Mainland pilot published with
+  100 entries, the Cantonese ranking published with 72 entries, and the Demo
+  unpublished with all 30 entries retained.
 
 ## 3. Task 1 Implementation
 
@@ -178,13 +199,14 @@ jsdom's unimplemented `window.scrollTo()` notices during Web tests.
 - Push or merge the Task 1 commits only when the user explicitly asks.
 - Merge Task 1 before creating Task 2 from an updated `main`.
 
-### Finish Task 3A delivery
+### Finish current delivery
 
-- Rerun `git diff --check` after any documentation edit.
-- Ask the user whether to commit the current working tree only after that gate
-  and review are complete. Do not push or merge without explicit authorization.
-- Do not add release years unless the user asks to restart that work and supplies
-  an acceptance rule for source/version conflicts.
+- The Task 3A and Cantonese implementations are committed locally. Do not push,
+  open a PR, or merge without explicit authorization.
+- Keep the approved manifest values unchanged unless the user supplies a new
+  authoritative replacement and explicitly requests it.
+- Ask the user to choose Task 2 or further Task 3 imports before creating
+  another feature branch.
 
 ### Task 2 — User-submitted songs
 
@@ -200,10 +222,10 @@ jsdom's unimplemented `window.scrollTo()` notices during Web tests.
 
 - Planned branch: `feature/ranking-data-import`, used only if the user selects
   more rankings after reviewing the pilot.
-- Requires the remaining user-selected YouTube URLs and user approval of every
-  extracted ranking table before import.
-- Import real rankings unpublished, validate them, then atomically publish all
-  four and unpublish—but do not delete—the demo ranking.
+- Requires user-selected source URLs or authoritative data and explicit approval
+  of every additional ranking table before import.
+- Import each real ranking unpublished, validate it, and publish it only after
+  its acceptance gate; preserve the unpublished Demo ranking and its entries.
 
 Friends, SSO, Admin tools, and broader dependency/performance maintenance remain
 outside this feature scope.
@@ -214,8 +236,9 @@ outside this feature scope.
    `docs/RANKING_CATALOG_EXPANSION_EXECUTION_PLAN.md` completely.
 2. Inspect `git status --short --branch`, recent commits, staged changes, and the
    full working-tree diff before editing.
-3. Preserve the imported pilot and its current publication state; verify that
-   `90s-mainland-top-100` is published and `90s-demo-ranking` is not.
+3. Preserve both imported rankings and their current publication state; verify
+   that `90s-mainland-top-100` and `90s-cantonese-top-70` are published and
+   `90s-demo-ranking` is not.
 4. Do not repeat completed desktop/mobile acceptance unless later UI changes
    require it; rerun the final diff check after edits.
 5. Do not start Task 2 or the remaining Task 3 imports until the user reviews
@@ -260,10 +283,11 @@ clean temporary database. Record exact test counts and any skipped check.
 ## 10. Copy-Paste Prompt for the Task 3A Follow-up
 
 ```text
-Continue the Music Rank Task 3A follow-up. Read docs/SESSION_HANDOFF.md and
+Continue the Music Rank ranking-catalog follow-up. Read docs/SESSION_HANDOFF.md and
 docs/RANKING_CATALOG_EXPANSION_EXECUTION_PLAN.md completely, then inspect and
 preserve the working tree. The active branch is feature/90s-ranking-pilot at
-HEAD 2b0a0a3, stacked on Task 1 commits be345ae and c15efc6.
+the latest local commit, stacked on Task 3A commit 6729972 and Task 1 commits
+be345ae and c15efc6. Use the live Git log for the exact HEAD.
 
 The approved Bilibili 90s Mainland Top 100 pilot is already imported and
 published as 90s-mainland-top-100. Its 100-entry manifest and reusable
@@ -273,10 +297,11 @@ all 100 release years are populated, and the Bilibili URL is only the displayed
 source link. Do not access the video to revalidate the data or alter publication
 state unless I explicitly request it.
 
-Review the source-neutral slug/API/UI refactor and current pilot. Desktop and
-390 × 844 mobile acceptance have passed. Rerun git diff --check after edits and
-ask before any commit, push, or merge. Do not start Task 2, remaining ranking
-imports, Admin work, fuzzy matching, or aggregation.
+The approved 90s Cantonese Top 70 is also imported and published with 72 entries;
+its region metadata is intentionally null. Desktop and 390 × 844 mobile
+acceptance have passed for both rankings. Do not push or merge, and do not start
+Task 2, further ranking imports, Admin work, fuzzy matching, or aggregation
+without explicit user direction.
 
 Communicate with me in Chinese; keep code, identifiers, commit messages, and
 English project documents in English. If any required product decision is
