@@ -8,6 +8,19 @@ import type { RankingDetail } from '../api';
 
 const pageSize = 25;
 
+// The rank column plus the row gap, so stacked actions align under the title
+// rather than under the rank number.
+const textColumnOffset = '46px';
+
+// Same short/long pattern as TabNav: the hidden span is dropped from the
+// accessible name, so each width exposes exactly one label.
+function ActionLabel({ short, full }: { short: string; full: string }) {
+  return <>
+    <Box component="span" sx={{ display: { xs: 'inline', sm: 'none' } }}>{short}</Box>
+    <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>{full}</Box>
+  </>;
+}
+
 type Props = {
   ranking?: RankingDetail;
   isLoading: boolean;
@@ -107,13 +120,20 @@ export function RankingPanel({ ranking, isLoading, query, onQueryChange, artistF
         {visibleEntries.map((entry) => {
           const inTop = topSongIds.has(entry.id);
           const inSinging = singingSongIds.has(entry.id);
-          return <ListItem key={entry.id} divider alignItems="center" sx={{ px: 0, py: 1.4, gap: 1.5, flexWrap: { xs: 'wrap', sm: 'nowrap' } }}>
-            <Typography component="span" color="primary.main" fontWeight={800} sx={{ width: 34, fontSize: '1.1rem' }}>{entry.rank}</Typography>
-            <ListItemText primary={entry.title} secondary={`${entry.artist}${entry.releaseYear ? ` · ${entry.releaseYear}` : ''}`} primaryTypographyProps={{ fontWeight: 700 }} sx={{ flex: 1, minWidth: 0 }} />
-            <Stack direction="row" spacing={0.75} alignItems="stretch" sx={{ width: { xs: '100%', sm: 'auto' }, pl: { xs: 5.75, sm: 0 } }}>
-              <Button variant={inTop ? 'outlined' : 'contained'} disabled={inTop || (!inTop && topAtCapacity)} startIcon={<AddIcon />} onClick={() => onAddTop(entry.id)} sx={{ width: { sm: 144 }, flex: { xs: 1, sm: 'none' }, minWidth: 0, justifyContent: 'center' }}>{inTop ? 'In Top 10' : 'Add Top 10'}</Button>
-              <Button variant="outlined" disabled={inSinging} startIcon={<MicNoneIcon />} onClick={() => onAddSinging(entry.id)} sx={{ width: { sm: 164 }, flex: { xs: 1, sm: 'none' }, minWidth: 0, justifyContent: 'center' }}>{inSinging ? 'In Practice Library' : 'Add Practice'}</Button>
-            </Stack>
+          // The actions deliberately sit in the normal flow instead of MUI's
+          // `secondaryAction` slot. That slot is absolutely positioned, so it
+          // reserves no space and the row text renders underneath it.
+          return <ListItem key={entry.id} divider disableGutters sx={{ display: 'block', px: 0, py: 1.4 }}>
+            <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'stretch', sm: 'center' }, gap: 1.5 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flex: 1, minWidth: 0 }}>
+                <Typography component="span" color="primary.main" fontWeight={800} sx={{ width: 34, flexShrink: 0, fontSize: '1.1rem' }}>{entry.rank}</Typography>
+                <ListItemText primary={entry.title} secondary={`${entry.artist}${entry.releaseYear ? ` · ${entry.releaseYear}` : ''}`} primaryTypographyProps={{ fontWeight: 700 }} sx={{ my: 0, minWidth: 0 }} />
+              </Box>
+              <Stack direction="row" spacing={0.75} sx={{ flexShrink: 0, pl: { xs: textColumnOffset, sm: 0 } }}>
+                <Button variant={inTop ? 'outlined' : 'contained'} disabled={inTop || (!inTop && topAtCapacity)} startIcon={<AddIcon />} onClick={() => onAddTop(entry.id)} sx={{ flex: { xs: 1, sm: '0 0 auto' }, width: { sm: 144 }, justifyContent: 'center' }}>{inTop ? 'In Top 10' : 'Add Top 10'}</Button>
+                <Button variant="outlined" disabled={inSinging} startIcon={<MicNoneIcon />} onClick={() => onAddSinging(entry.id)} sx={{ flex: { xs: 1, sm: '0 0 auto' }, width: { sm: 164 }, justifyContent: 'center' }}>{inSinging ? <ActionLabel short="In Library" full="In Practice Library" /> : <ActionLabel short="Practice" full="Add Practice" />}</Button>
+              </Stack>
+            </Box>
           </ListItem>;
         })}
       </List>}

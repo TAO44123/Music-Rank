@@ -8,12 +8,12 @@
 
 ## 1. Current Status
 
-Task 1 and its UI refinement are implemented on the Task 1 stack. Task 3A has
-also been implemented on a stacked local branch: the user-approved Bilibili
-90s Mainland China Top 100 pilot is now locally published. The 90s Demo remains
-in the database, with all 30 entries and songs intact, but is intentionally
-unpublished. Task 3A is committed locally as `6729972`; no push, merge, Task 2
-work, or additional unapproved ranking import has been performed.
+The authentication and list-sharing iteration, compact visibility controls,
+DESIGN-002 routing, DESIGN-006 responsive panels, the PR #4 account-label
+regression guard, and PR #5's DESIGN-004 mobile bottom navigation are merged
+and pushed to `main`. The ranking-catalog work is synchronized and freshly
+verified on top of that baseline. It adds the user-approved 90s Mainland China Top 100 and 90s
+Cantonese Songs Top 70 while retaining the 30-entry Demo as unpublished data.
 
 The application now treats each published ranking as a first-class catalog item
 with a source-neutral `/rankings/:slug` route. The published pilot is available
@@ -24,8 +24,27 @@ tabs, so future language or dialect rankings can overlap existing metadata.
 
 Task 2 (user-submitted songs) and any further ranking imports have not started.
 Task 3A implementation, the approved Cantonese import, and their desktop/mobile
-acceptance gates are complete. The user authorized committing the latest local
-working tree on 2026-09-15; push and merge authorization have not been given.
+acceptance gates are complete. On 2026-09-15 the user explicitly authorized
+synchronizing, pushing, and merging this ranking branch.
+
+Established application behavior remains:
+
+- Local username/password registration and login.
+- Opaque server-managed cookie sessions that expire after seven days.
+- Anonymous access to the global ranking and explicitly public personal lists.
+- Independent `private`/`public` settings for My Top 10 and My Singing List; both default to `private`.
+- A shareable `/u/:username` page that shows only lists the owner has made public.
+- `PUBLIC` currently means accessible through the shareable profile URL. There is no public directory, user search, feed, or other in-app discovery path.
+- Public Singing List responses omit private notes.
+- Existing demo data remains attached to the credential-free demo user and is private.
+- TanStack Router owns the code-based route tree: `/`, guarded `/personal`, guarded `/practice`, and public `/u/:username`.
+- At 600px and above, authenticated users see The Ranking, Personal Ranking, and Practice Library in the top tab bar; anonymous users see only The Ranking.
+- Below 600px, all visitors see the same three fixed bottom-navigation destinations. For an anonymous visitor, Personal and Practice are buttons that open sign-in without changing the URL.
+- The anonymous destination-count difference between phone and desktop is intentional for this release: on 2026-09-15 the user accepted it as non-blocking and asked that it remain unchanged.
+- Ranking filters are validated URL search parameters, so they survive refresh and browser history navigation.
+- User-facing copy now says Practice Library; database, API, error-code, and component identifiers retain the existing `singing` terminology.
+- DESIGN-006 keeps RankingPanel, TopListPanel, SingingListPanel, and the account header usable without horizontal overflow from 320px upward. Narrow rows move actions below text; desktop layouts remain side by side.
+- Future SSO is supported by the separation between users, credentials, and sessions, but no SSO provider tables or routes are part of this iteration.
 
 The user subsequently approved and imported a second published ranking,
 `90s Cantonese Songs Top 70` (`90s-cantonese-top-70`). It has 72 continuous
@@ -43,14 +62,17 @@ link, and no Console errors. The final dry run reused all 72 songs and entries.
 
 ## 2. Repository State
 
-- Branch: `feature/90s-ranking-pilot`.
-- The latest local commit is stacked on Task 3A commit `6729972`, Task 3A plan
-  commit `2b0a0a3`, and Task 1 commits `be345ae` and `c15efc6`; it was never
-  built from stale `9717ff3` alone. Use `git log -5 --oneline --decorate` for
-  the exact current HEAD.
-- The latest local commit contains the approved Cantonese manifest, generalized
-  importer validation/publication, its regression test, and synchronized
-  documentation. It has not been pushed or merged.
+- Branch: `feature/90s-ranking-pilot`, synchronized with `main` during the
+  current integration. Its pre-integration tip is `d2ef428`; inspect the live
+  Git log for the synchronization commit.
+- `main` and `origin/main` were synchronized at `8a4c951` before this merge.
+- PR #3, PR #4, and PR #5 are already merged; the ranking integration preserves
+  their responsive panels, account-label guard, and mobile bottom navigation.
+- The ranking commits include Task 1 (`be345ae`, `c15efc6`), the Task 3A plan
+  (`2b0a0a3`), the Mainland import (`6729972`), and the Cantonese import
+  (`d2ef428`).
+- The user authorized pushing the synchronized feature branch and merging it
+  into `main` on 2026-09-15.
 - Preserve every working-tree change. Do not reset, discard, or overwrite it.
 - Use `git status --short --branch` and the live diff for the exact file list.
 - Migrations through `0003_red_silver_samurai.sql` have been applied to the
@@ -111,6 +133,17 @@ link, and no Console errors. The final dry run reused all 72 songs and entries.
   authentication cache isolation, and public-list privacy behavior remain
   intact. Anonymous personal/practice deep links now return to the default
   ranking route with the sign-in dialog.
+- Anonymous visitors see the global ranking and a sign-in/register entry point.
+- Authentication uses a dialog with separate login and registration modes.
+- Authenticated users can edit personal lists and independently publish or privatize each list from a compact lock button in its panel header. A closed lock means private and an open lock means public; a small label beneath the list title states the current visibility. Publishing still requires confirmation, while returning to private is immediate. Public lists also show a curved-arrow share action, using the native share sheet when available and copying the link as a fallback.
+- TanStack Router provides one root layout plus The Ranking (`/`), Personal Ranking (`/personal`), Practice Library (`/practice`), and public profile (`/u/:username`) routes.
+- `/personal` and `/practice` use Session-backed route guards; anonymous deep links return to `/` and open the sign-in dialog.
+- The ranking page is full-width. Personal Ranking and Practice Library are independent full-width pages rather than side columns.
+- Ranking text, artist, and year filters are validated as URL search parameters and update with history replacement.
+- `/u/:username` is the shareable public profile route.
+- On logout or an authentication failure, in-flight personal queries are cancelled, cached private data is erased, and personal query entries are removed after observers detach.
+- DESIGN-006 moves narrow-screen list actions into normal document flow, adds responsive panel padding/header layouts, and truncates only the painted account-button username while preserving its full accessible name.
+- DESIGN-004 moves primary navigation to a fixed bottom bar below 600px, reserves content and Snackbar clearance, and keeps the existing top tab bar at 600px and above.
 
 ## 4. Verification on 2026-09-14
 
@@ -194,15 +227,55 @@ jsdom's unimplemented `window.scrollTo()` notices during Web tests.
 
 ## 6. Remaining Work
 
-### Finish Task 1 delivery
+### Integration baseline verification
 
-- Push or merge the Task 1 commits only when the user explicitly asks.
-- Merge Task 1 before creating Task 2 from an updated `main`.
+- API integration tests: 11 passing.
+- Web tests: 10 files and 28 tests passing; the complete Web suite passed three consecutive parallel runs after the timing fix.
+- Playwright E2E on `main`: 1 passing. The DESIGN-006 branch adds `e2e/responsive.spec.ts`, bringing the development branch to 2 E2E cases.
+- TypeScript typecheck and production build: passing.
+- Production-shaped startup, `/api/health`, database health, and history fallback for `/personal`: passing.
+- PR #2 and PR #1 merge simulation and actual merge: no conflicts.
+- No CRLF, Windows-only path, or executable-mode pollution was found in either PR.
+
+Fresh PR #3 verification on September 15, 2026 used an isolated temporary database because the normal local database and ignored build artifacts belong to the newer ranking-catalog branch:
+
+- `npm run typecheck`: passed.
+- API integration tests: 11/11 passed.
+- Web tests: 10 files and 28/28 passed.
+- Database workspace: no source tests in this branch; ignored `dist/**` artifacts were excluded.
+- Production build: passed; the main asset was 818.17 KB (255.26 KB gzip).
+- Playwright E2E: 2/2 passed, including the 320–900px responsive regression.
+- The first normal-database run was invalidated by the newer local schema/data and ignored artifacts; it was not treated as a product failure.
+
+Fresh PR #4 and PR #5 verification on September 15, 2026 used the same isolated-database approach:
+
+- PR #4: typecheck passed and Playwright passed 3/3, covering the account-label pixel guard, the primary flow, and responsive behavior.
+- PR #5: typecheck passed; API integration tests passed 11/11; Web tests passed 33/33 across 11 files; the database workspace had no source tests; and the production build passed.
+- PR #5 Playwright passed 3/3, including the DESIGN-004 bottom-bar breakpoint, fixed positioning, content clearance, and notification-clearance assertions.
+- The PR #5 main asset was 822.18 KB (256.41 KB gzip). The existing bundle-size warning remains non-blocking.
+
+The Web test configuration now uses a 10-second per-test timeout, and the ranking-loading assertion uses a targeted 5-second async wait. This keeps normal file parallelism while avoiding load-sensitive failures observed with the default limits.
+
+Fresh synchronized-branch verification on September 15, 2026 passed:
+
+- `npm run typecheck`: passed for every workspace.
+- API integration tests: 15/15 passed.
+- Web tests: 12 files and 40/40 passed.
+- Database importer integration tests: 8/8 passed; Contracts has no source tests.
+- Production build: passed; the main asset was 826.41 KB (258.01 KB gzip).
+- Playwright on a clean temporary database: 3/3 passed, covering the catalog
+  critical path, account-label pixel guard, and 320–900px responsive/bottom-nav
+  behavior.
+- Clean migration and Seed produced the expected published 30-entry Demo.
+- The normal database remained intact: Mainland 100 and Cantonese 72 are
+  published, while the 30-entry Demo is retained and unpublished.
+- The first all-workspace test attempt was blocked only by sandbox database
+  access (`EPERM`); the identical command passed with local PostgreSQL access.
 
 ### Finish current delivery
 
-- The Task 3A and Cantonese implementations are committed locally. Do not push,
-  open a PR, or merge without explicit authorization.
+- The Task 3A and Cantonese implementations are synchronized, freshly verified,
+  and authorized for push and merge in the current task.
 - Keep the approved manifest values unchanged unless the user supplies a new
   authoritative replacement and explicitly requests it.
 - Ask the user to choose Task 2 or further Task 3 imports before creating

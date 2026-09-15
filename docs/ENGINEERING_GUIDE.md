@@ -6,9 +6,9 @@
 | --- | --- |
 | 文档性质 | 持续维护的工程实现说明 |
 | 目标读者 | 负责开发、测试、排障和后续维护的工程师 |
-| 当前产品版本 | Version 1 + 认证扩展 + 多榜单目录 Task 1，本地多用户应用 |
+| 当前产品版本 | Version 1 + 认证扩展 + 响应式导航 + 多榜单目录，本地多用户应用 |
 | 最后更新日期 | 2026-09-15（America/New_York） |
-| 最后核对的代码提交 | `feature/90s-ranking-pilot` 最新本地提交（叠加在 Task 3A 提交 `6729972` 上） |
+| 最后核对的代码提交 | `feature/90s-ranking-pilot` 与 `main` 的整合工作树 |
 | 事实来源 | 当前仓库代码、配置、迁移和自动化测试 |
 
 这份文档描述系统现在如何工作。首次在本机配置和运行项目时，先执行 [LOCAL_FIRST_RUN_GUIDE.md](LOCAL_FIRST_RUN_GUIDE.md)；PROJECT_SPEC_ZH.md、PROJECT_SPEC_EN.md 与 IMPLEMENTATION_HANDOFF.md 保留 Version 1 历史基线，当前已批准扩展以 [AUTHENTICATION_DESIGN.md](AUTHENTICATION_DESIGN.md)、[RANKING_CATALOG_DESIGN.md](RANKING_CATALOG_DESIGN.md) 和 [SESSION_HANDOFF.md](SESSION_HANDOFF.md) 为准。若文档与代码不一致，应先核对代码和测试，再更新本文档。
@@ -117,7 +117,7 @@ Vite 7.2.1 和 @vitejs/plugin-react 5.1.1 是有意锁定的组合。此前更�
 | apps/web/src/shell/AppShellContext.tsx | Session、认证对话框、Snackbar 和全部 Mutation 的唯一持有者 |
 | apps/web/src/queries.ts | queryOptions 工厂，供组件与路由守卫共用同一份定义 |
 | apps/web/src/api.ts | 前端 API 类型、请求封装和 ApiError |
-| apps/web/src/components | Ranking、Top 10、Practice Library 和 TabNav UI |
+| apps/web/src/components | Ranking、Top 10、Practice Library、TabNav 和 BottomNav UI |
 | apps/web/src/theme.ts | Material UI 主题和状态颜色 |
 | apps/api | Express API |
 | apps/api/src/app.ts | Middleware、路由注册和请求校验入口 |
@@ -807,7 +807,11 @@ DESIGN-002 起，用户可见文案统一使用 Practice Library：Tab 名称、
 - 头部仅在存在时以次要 Chip 显示 decade/region，并集中显示未过滤歌曲总数与来源标签；仅为合法 HTTP(S) sourceUrl 显示 `Watch source` 外链（无障碍名称仍说明原视频）。
 - 搜索、歌手、年份和 Clear 收入同一浅色响应式工具栏；移动端纵向排列。
 - Top 10 已满时禁用尚未加入歌曲的 Add Top 10。
-- 操作按钮使用固定宽度保持行对齐。
+- 行操作按钮位于正常文档流中，不使用 MUI `secondaryAction`。该插槽是绝对定位的，不占布局空间，行文字会直接渲染到按钮下面。
+- `sm` 及以上：文字在左、按钮在右，两个按钮保持 144px / 164px 固定宽度以保证跨行对齐。
+- 小于 `sm`：按钮整体下沉到文字下方，左缩进 46px（名次列 34px + 行间距 12px）与标题对齐，并用 `flex: 1` 等分行宽。
+- 文字列使用 `minWidth: 0` 才能在 flex 容器内收缩；缺少它会让文字列保持内容宽度并把按钮挤出屏幕。
+- Practice 按钮文案有长短两套（`Practice` / `Add Practice`、`In Library` / `In Practice Library`），用 `sx` 断点切换 `display`，与 TabNav 同一套做法。隐藏的一套不参与可访问名称计算。
 
 ### 12.4 RankingCatalogNav
 
@@ -822,6 +826,9 @@ DESIGN-002 起，用户可见文案统一使用 Practice Library：Tab 名称、
 - 支持拖放、键盘排序，以及独立的上移/下移按钮。
 - 每次重排向 API 提交完整 orderedSongIds。
 - 标题下方通过 statusLabel 插槽显示当前 Public/Private 小标签；右侧只保留数量和紧凑操作按钮。
+- 小于 `sm` 时行拆成两段：第一段是名次、拖拽柄、歌名和歌手，第二段是上移/下移/移除三个按钮，缩进 28px 对齐文字。三个按钮约占 130px，不下沉会把 320px 下的文字列压到 100px 以内。
+- 拖拽柄在所有断点都留在标题旁边，它是这一行的抓取点而不是对这一行的操作。
+- 卡片内边距和标题栏方向随断点变化（`p: { xs: 1.75, sm: 2.5 }`、标题栏在 xs 竖排）。
 
 ### 12.5 SingingListPanel
 
@@ -833,6 +840,9 @@ DESIGN-002 起，用户可见文案统一使用 Practice Library：Tab 名称、
 - 备注输入使用 multiline standard TextField，HTML maxLength 为 300。
 - 状态和 Top 10 成员资格互相独立。
 - 与 TopListPanel 一样，标题下方显示可见性标签，数量和操作按钮保持在标题区右侧。
+- 行网格在小于 `sm` 时从 `4px minmax(0, 1fr) auto` 降为两列，状态 Chip 与编辑/删除按钮移到第二网格行并跨到文字列；状态色条用 `gridRow: '1 / -1'` 纵贯两行。
+- 展开的编辑器在小于 `sm` 时去掉 `ml: 2` 缩进并收紧内边距。
+- 行列表带 `aria-label="My Practice Library"`，与另外两个面板的列表标签一致。
 
 ### 12.6 认证与公开页
 
@@ -850,9 +860,19 @@ DESIGN-002 起，用户可见文案统一使用 Practice Library：Tab 名称、
 - TabNav 始终使用 MUI `Tabs` 的 `fullWidth` 变体；`sm` 断点通过 `flex: '0 0 auto'` 让整行收缩为自然宽度并左对齐。同一个 Tabs 实例贯穿所有断点，不做变体切换，避免 Tab 列表重新挂载。
 - Tab 文案有长短两套，同时存在于 DOM 中，由 `sx` 断点切换 `display`：小于 `sm` 显示 Ranking / Personal / Practice，`sm` 及以上显示 The Ranking / Personal Ranking / Practice Library。不使用 `useMediaQuery`，它首帧返回 false 会导致桌面端闪一下短文案。
 - TabNav 容器高度固定为 52px，Session 解析完成后另外两个 Tab 出现时不会推动下方内容。
-- Ranking 行操作在 xs 下纵向排列，在 sm 及以上横向排列。
+- 唯一断点是 MUI 的 `sm`（600px），全部通过 `sx` 的断点对象表达，不使用 `useMediaQuery`。
+- 主导航有两套并存的实现，由同一个断点互斥显隐：`sm` 及以上显示顶部 TabNav，小于 `sm` 显示固定在视口底部的 BottomNav。两者都渲染在 DOM 里，靠 `sx` 的 `display` 切换，不做 JS 宽度判断。
+- 目的地表是 `apps/web/src/navigation.ts` 的 `destinations`，TabNav 和 BottomNav 共用，同时导出 `bottomNavHeight`（56）。改导航目的地只改这一处。
+- BottomNav 对匿名访客显示全部三项：受守卫的两项渲染成按钮而非链接，点击直接打开登录弹窗。渲染成链接会走到 `routes/personal.tsx` 的 `beforeLoad` 守卫、被重定向回 `/` 并闪过一个访客没要求的页面。守卫本身不变，它负责的是直接输入 URL 这个入口。
+- TabNav 对匿名访客仍然过滤掉受守卫的两项，所以匿名访客在手机上看到三个目的地、在桌面上只看到一个。用户于 2026-09-15 确认该差异不影响本次发布并选择保留，后续除非产品决策变化，无需统一。
+- BottomNav 是 `position: fixed`，不占布局空间，因此 AppShellContext 给内容区加了 `pb: calc(56px + env(safe-area-inset-bottom))`，Snackbar 也在 xs 下相应上移，否则列表最后一行和通知都会压在底栏下面。
+- 断点行为只能由 Playwright 验证：jsdom 的 `getComputedStyle` 不把 emotion 注入的样式表计入 computed style，两个导航在单元测试里都表现为可见，而 `window.matchMedia` 在 jsdom 中未实现。
+- 三个列表面板（RankingPanel / TopListPanel / SingingListPanel）遵循同一条规则：小于 `sm` 时，一行放不下的操作控件下沉到文字下方并缩进对齐文字列；`sm` 及以上保持原有的左文右操作布局。细节见 12.3–12.5。
+- 行文字一律换行，不做省略号截断。操作控件进入正常流之后没有再隐藏歌名的理由。
 - Practice Library 状态 Chip 允许换行。
-- 375px 实测：三个 Tab 等宽各约 114px，三个页面横向溢出均为 0。
+- 顶栏（Brand）高度和字号随断点变化：`minHeight: { xs: 56, sm: 66 }`、`fontSize: { xs: '1.25rem', sm: '1.45rem' }`；副标题在小于 `sm` 时隐藏。
+- 顶栏账户按钮必须限宽并省略号截断（`minWidth: 0` + `maxWidth: { xs: 150, sm: 320 }`）。用户名是任意长度且不可断行的文本，按钮作为 flex item 默认 `min-width: auto` 不会收缩，28 个字符的用户名就能把 320px 视口的 `scrollWidth` 顶到 331px。顶栏在每个页面都渲染，所以这一个元素会让**所有**页面横向滚动。截断只影响绘制的文本，可访问名称仍然是完整用户名。
+- 断点行为由 `e2e/responsive.spec.ts` 验证，不由组件测试验证：Vitest 跑在 jsdom 上，不求值 media query，`sx` 断点对它不可见。
 
 ### 12.8 视觉与无障碍
 
@@ -905,7 +925,7 @@ npm run typecheck 会先构建 contracts 和 database，再执行所有 workspac
 
 ### 14.2 前端组件测试
 
-当前有 11 个测试文件、35 项测试，覆盖匿名/登录/退出缓存状态、路由守卫、404 与公开路由、直接榜单导航、可选元数据展示、URL Search 与页码参数、TabNav、AppShell、RankingPanel、来源链接安全、SingingListPanel、登录注册对话框、紧凑可见性锁控件、公开前确认和备注私密提示。
+当前有 12 个测试文件、40 项测试，覆盖匿名/登录/退出缓存状态、路由守卫、404 与公开路由、直接榜单导航、可选元数据展示、URL Search 与页码参数、TabNav、BottomNav、AppShell、RankingPanel、来源链接安全、SingingListPanel、登录注册对话框、紧凑可见性锁控件、公开前确认和备注私密提示。
 
 Vitest 保持文件级并行。`apps/web/vite.config.ts` 把单测试超时设为 10 秒；首页排名加载断言另用 5 秒 Testing Library 等待窗口。该设置来自合并后对负载敏感超时的复现：默认限制下完整套件可能失败，而测试文件单独或串行运行可以通过。调整并行度、测试运行器或查询初始化时，应连续运行完整 Web 套件至少三次确认稳定性，不要只验证单个测试文件。
 
@@ -921,7 +941,18 @@ dry-run 无写入、幂等导入、可空 decade/region、事务回滚、原子�
 
 ### 14.4 Playwright E2E
 
-当前 1 条关键流程覆盖：`/` 进入 displayOrder 最前的 `/rankings/:slug`、匿名时两个个人 Tab 不存在、注册、退出、密码登录后 Tab 出现、搜索写入 URL Search 参数、添加 Top 10 与 Practice Library、经 Tab 跳转到 `/personal` 和 `/practice`、设置状态与私密备注、刷新后仍停在 `/practice`、通过锁按钮分别公开列表并验证标题下方 Public 标签、后退回 `/personal` 且选中态正确、登出后落在同一默认榜单且不弹登录框、匿名深链接 `/personal` 被重定向并弹出登录框，以及匿名读取公开页时无 Tab 栏且看不到备注。
+当前 3 条用例。第 1 条是关键流程覆盖：`/` 进入 displayOrder 最前的 `/rankings/:slug`、匿名时桌面顶部导航只显示 Ranking、注册、退出、密码登录后个人目的地出现、搜索写入 URL Search 参数、添加 Top 10 与 Practice Library、经导航跳转到 `/personal` 和 `/practice`、设置状态与私密备注、刷新后仍停在 `/practice`、分别公开列表、登出后落在同一默认榜单、匿名深链接被重定向并弹出登录框，以及匿名读取公开页时看不到备注。
+
+第 2 条是响应式回归 `e2e/responsive.spec.ts`：注册用户后把种子里最宽的一行（`纤夫的爱 / 尹相杰、于文华 · 1993`）放进两个个人列表并写入一条长备注，然后在 320 / 375 / 414 / 600 / 900 五个视口下依次访问 `/`、`/personal`、`/practice`，逐项断言页面无横向溢出、且行内没有任何文字压在控件下面。
+
+它还验证小于 600px 的固定底部导航、600px 及以上的顶部导航、列表末行和 Snackbar 不被底栏遮挡。匿名访客在手机看到三个目的地、桌面只看到 Ranking，是产品已接受的差异。
+
+第 3 条 `e2e/account-label.spec.ts` 使用像素级边界检查，防止账户按钮文字下伸部被裁切。
+
+这条用例有两个容易写错的地方，实现时都踩过：
+
+- **必须量文字的字形盒，不能量容器。** 用 `document.createRange()` 逐个 text node 取 `getClientRects()`。文字容器会铺满整行，即使里面的字已经钻到按钮底下，容器矩形看上去仍然是干净的，量容器会得到假阴性。
+- **必须等列表行渲染出来再量。** `page.goto` 返回时 SPA 还没渲染任何 `li`，此时量到的是用户看不到的中间态：行数为 0 会让碰撞断言空过，横向溢出也会给出与最终布局无关的数值。用例因此先等首行可见，再做全部测量，并额外断言"量到的行数和文字盒数量大于 0"，让"什么都没量到"无法伪装成通过。
 
 playwright.config.ts 使用端口 3101、production 形态 Express 服务和 reuseExistingServer: false。启动前执行 build、Migration 和公共 Seed，并把 APP_ORIGIN 指向 3101。测试注册带时间戳的唯一用户，结束后级联删除该账户；不影响 demo 用户。
 
@@ -1109,6 +1140,7 @@ E2E 不复用已有服务器；3101 被占用时应先定位占用者。
 
 | 日期 | 代码基线 | 内容 |
 | --- | --- | --- |
+| 2026-09-15 | `feature/90s-ranking-pilot` 与 `main` 的整合工作树 | 合并多榜单目录与 DESIGN-004/006：保留来源无关 slug 路由、两份已发布真实榜单、移动底栏和响应式列表；更新 BottomNav 测试夹具与 Session 等待；typecheck、API 15/15、Web 40/40、database 8/8、build、Playwright 3/3 均通过。 |
 | 2026-09-15 | `feature/90s-ranking-pilot` latest local commit after `6729972` | 新增 72 首 `90s Cantonese Songs Top 70`；导入器取消恰好 100 条的限制，改为支持任意正数的连续唯一名次；Cantonese 榜单不设置 region，来源 URL 仅用于 Watch source。 |
 | 2026-09-15 | `feature/90s-ranking-pilot` working tree on `2b0a0a3` | 将榜单公开身份改为来源无关 slug；API/路由使用 `/rankings/:slug`，decade/region 改为可空元数据，UI 改为直接榜单标签，并保留跨榜共享歌曲的独立名次。 |
 | 2026-09-15 | `feature/90s-ranking-pilot` working tree on `2b0a0a3` | Replaced the pilot from the user's authoritative 100-entry JSON, populated every release year, stored the exact Bilibili Watch source URL, and added atomic replacement plus safe orphan cleanup. |
@@ -1116,6 +1148,10 @@ E2E 不复用已有服务器；3101 被占用时应先定位占用者。
 | 2026-09-14 | `be345ae` 之后的工作树 | 按轻量编辑式草图重构榜单头部：页面级下划线分类 Tabs、集中元数据、响应式浅色筛选工具栏，并在详情 API 增加不受筛选影响的 songCount |
 | 2026-09-14 | `feature/ranking-catalog-expansion` 当前工作树 | 实现多榜单 Task 1：年代/地区元数据与约束、稳定目录 API、榜单级 Facet、`/rankings/:decade/:region` 路由、两层选择器、URL 页码和安全来源链接；保留并重命名 Demo 榜单 |
 | 2026-09-14 | 75424ee | 同步 PR #1/#2 合并后的真实基线：跨平台 production 启动、DESIGN-002 路由、28 项 Web 测试、测试超时策略、端口冲突说明、审计与 bundle 基线 |
+| 2026-09-15 | PR #5 `8bafc41` / main `958b921` | 实现并验证 DESIGN-004：小于 600px 时主导航下沉为固定底栏，600px 及以上保持顶部 Tab；目的地表由两个导航共用；内容区与 Snackbar 为底栏让出空间；确认保留匿名手机三项、桌面仅 Ranking 的差异。 |
+| 2026-09-15 | PR #3 branch after `aa479f9` | 使用隔离临时数据库重新验证 DESIGN-006：typecheck、API 11/11、Web 28/28、production build 和 Playwright 2/2 均通过。 |
+| 2026-09-14 | 6b215be + 9717ff3 | 将 main 的跨平台启动、DESIGN-002、测试超时、端口、审计与 bundle 文档基线同步到 DESIGN-006 开发分支 |
+| 2026-09-13 | 6b215be | 实现 DESIGN-006：三个列表面板的响应式布局；榜单行操作从 `secondaryAction` 改为正常流并在 xs 下沉到文字下方，两个个人面板补上断点，新增 `e2e/responsive.spec.ts` 响应式回归 |
 | 2026-09-11 | 91bca4b / 75424ee | 实现 DESIGN-002：TanStack Router 客户端路由、三 Tab 响应式导航、受守卫的 `/personal` 与 `/practice`、榜单筛选进 URL Search 参数、Singing List 更名为 Practice Library；随后稳定并行 Web 测试 |
 | 2026-09-10 | 40b8ff1 之后的工作树 | 将可见性选择框改为开/闭锁按钮与标题下状态标签，增加原生分享/复制降级，并隔离 signed-out 与 personal Query Key |
 | 2026-09-10 | 40b8ff1 | 实现用户名/密码认证、数据库 Session、多用户隔离、Public/Private 个人榜单、公开资料页和未来 SSO 边界 |
