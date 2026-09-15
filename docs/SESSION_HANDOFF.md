@@ -2,7 +2,7 @@
 
 ## 1. Current Status
 
-The approved authentication and list-sharing iteration is implemented, verified, and committed locally. The user-approved compact visibility-control refinement is implemented in the working tree and has passed Web tests, typecheck, production build, and the full Playwright flow. There is no remaining implementation work in the current scope.
+The authentication and list-sharing iteration, the compact visibility-control refinement, and DESIGN-002 tab navigation/client routing are implemented, verified, merged, and pushed to `main`. The production-shaped start command is cross-platform, and the post-merge Web test timing fix is committed and pushed. PR #3 delivers the implemented and freshly verified DESIGN-006 responsive list-panel layouts; use the live GitHub state to determine whether the PR has been merged.
 
 The approved behavior is:
 
@@ -14,6 +14,11 @@ The approved behavior is:
 - `PUBLIC` currently means accessible through the shareable profile URL. There is no public directory, user search, feed, or other in-app discovery path.
 - Public Singing List responses omit private notes.
 - Existing demo data remains attached to the credential-free demo user and is private.
+- TanStack Router owns the code-based route tree: `/`, guarded `/personal`, guarded `/practice`, and public `/u/:username`.
+- Authenticated users see The Ranking, Personal Ranking, and Practice Library tabs; anonymous users see only The Ranking.
+- Ranking filters are validated URL search parameters, so they survive refresh and browser history navigation.
+- User-facing copy now says Practice Library; database, API, error-code, and component identifiers retain the existing `singing` terminology.
+- DESIGN-006 keeps RankingPanel, TopListPanel, SingingListPanel, and the account header usable without horizontal overflow from 320px upward. Narrow rows move actions below text; desktop layouts remain side by side.
 - Future SSO is supported by the separation between users, credentials, and sessions, but no SSO provider tables or routes are part of this iteration.
 
 The full decisions and security model are recorded in [AUTHENTICATION_DESIGN.md](AUTHENTICATION_DESIGN.md).
@@ -22,10 +27,13 @@ The full decisions and security model are recorded in [AUTHENTICATION_DESIGN.md]
 
 At the time of this update:
 
-- Branch: `main`, two local commits ahead of `origin/main`, plus the current uncommitted UI refinement.
-- Current HEAD: `40b8ff1` — `feat: add authentication and list sharing`.
-- The compact visibility-control refinement after that commit is intentionally uncommitted.
-- No commit or push is authorized by this task.
+- Branch: `feature/design-006-responsive-panels`, tracking `origin/feature/design-006-responsive-panels`.
+- The development branch's pre-sync tip is `6b215be`; its original base was the pushed `main` commit `75424ee`.
+- Local and remote `main` are synchronized at documentation refresh `9717ff3`.
+- Merge commit `aa479f9` combines PR #3 tip `6b215be` with `main` at `9717ff3`; the latest documentation commit sits on top of that verified merge. Inspect `git status --short --branch` and `git log` for the exact current HEAD and live ahead/behind counts.
+- PR #2 was merged as `364cd26`; PR #1 was merged as `91bca4b`; the test-stability follow-up is `75424ee`.
+- The pre-merge runnable snapshot remains available locally and remotely as `codex/pre-pr-demo-backup-2026-09-11` at `4dcabdf`.
+- On 2026-09-15 the user authorized pushing the synchronized branch and handling PR #3. This does not authorize merging PR #4, PR #5, or the separate ranking-catalog branch.
 
 Preserve all working-tree changes. Do not reset or discard them. Use `git status --short --branch` for the live file list rather than relying on a copied snapshot here.
 
@@ -56,8 +64,20 @@ Preserve all working-tree changes. Do not reset or discard them. Use `git status
 - Anonymous visitors see the global ranking and a sign-in/register entry point.
 - Authentication uses a dialog with separate login and registration modes.
 - Authenticated users can edit personal lists and independently publish or privatize each list from a compact lock button in its panel header. A closed lock means private and an open lock means public; a small label beneath the list title states the current visibility. Publishing still requires confirmation, while returning to private is immediate. Public lists also show a curved-arrow share action, using the native share sheet when available and copying the link as a fallback.
+- TanStack Router provides one root layout plus The Ranking (`/`), Personal Ranking (`/personal`), Practice Library (`/practice`), and public profile (`/u/:username`) routes.
+- `/personal` and `/practice` use Session-backed route guards; anonymous deep links return to `/` and open the sign-in dialog.
+- The ranking page is full-width. Personal Ranking and Practice Library are independent full-width pages rather than side columns.
+- Ranking text, artist, and year filters are validated as URL search parameters and update with history replacement.
 - `/u/:username` is the shareable public profile route.
 - On logout or an authentication failure, in-flight personal queries are cancelled, cached private data is erased, and personal query entries are removed after observers detach.
+- DESIGN-006 moves narrow-screen list actions into normal document flow, adds responsive panel padding/header layouts, and truncates only the painted account-button username while preserving its full accessible name.
+
+### Local runtime
+
+- `npm run dev` uses Vite on 5173 and Express on 3001; Vite proxies `/api` to Express.
+- `npm run start:prod` loads `NODE_ENV`, `PORT`, and `APP_ORIGIN` from `config/production.env` through Node `--env-file`, avoiding POSIX-only shell prefixes.
+- Development API and the default production-shaped server both use 3001 and must not run simultaneously unless production is explicitly moved to another port.
+- Playwright owns 3101 for the duration of E2E and sets environment variables through `webServer.env`, which works on Windows and POSIX systems.
 
 ## 4. Automated Coverage
 
@@ -69,24 +89,46 @@ The suite currently covers:
 - Anonymous, authenticated, logout/cache cleanup, and public-profile application states.
 - A Playwright critical path for register, edit, publish, logout, and anonymous public viewing.
 
-The final verification results on September 10, 2026 were:
+The final post-merge verification results on September 11, 2026 were:
 
 - API integration tests: 11 passing.
-- Web tests: 12 passing after the compact visibility-control refinement.
-- Playwright E2E: 1 passing.
-- Desktop and mobile manual browser checks: no console errors or warnings.
-- Database migration and seed: successful and repeatable.
-- Existing demo data check: credential-free demo user preserved with 3 Top 10 entries and 2 Singing List entries; missing visibility rows resolve to private.
-- TypeScript typecheck, production build, and `git diff --check`: passing.
+- Web tests: 10 files and 28 tests passing; the complete Web suite passed three consecutive parallel runs after the timing fix.
+- Playwright E2E on `main`: 1 passing. The DESIGN-006 branch adds `e2e/responsive.spec.ts`, bringing the development branch to 2 E2E cases.
+- TypeScript typecheck and production build: passing.
+- Production-shaped startup, `/api/health`, database health, and history fallback for `/personal`: passing.
+- PR #2 and PR #1 merge simulation and actual merge: no conflicts.
+- No CRLF, Windows-only path, or executable-mode pollution was found in either PR.
 
-The production build retains the previously documented bundle-size warning. It does not fail the build and was not added to this iteration's scope.
+Fresh PR #3 verification on September 15, 2026 used an isolated temporary database because the normal local database and ignored build artifacts belong to the newer ranking-catalog branch:
+
+- `npm run typecheck`: passed.
+- API integration tests: 11/11 passed.
+- Web tests: 10 files and 28/28 passed.
+- Database workspace: no source tests in this branch; ignored `dist/**` artifacts were excluded.
+- Production build: passed; the main asset was 818.17 KB (255.26 KB gzip).
+- Playwright E2E: 2/2 passed, including the 320–900px responsive regression.
+- The first normal-database run was invalidated by the newer local schema/data and ignored artifacts; it was not treated as a product failure.
+
+The Web test configuration now uses a 10-second per-test timeout, and the ranking-loading assertion uses a targeted 5-second async wait. This keeps normal file parallelism while avoiding load-sensitive failures observed with the default limits.
+
+The production build retains a bundle-size warning: the main JavaScript asset is approximately 816.64 KB (254.80 KB gzip). It does not fail the build. The npm audit baseline remains 6 findings (4 moderate, 2 high); the merged PRs did not add findings.
 
 ## 5. Current TODO
 
 ### Current iteration
 
-- No code change is currently pending.
-- Do not commit or push unless the user explicitly requests it.
+- DESIGN-006 is synchronized with `main` through `aa479f9` and has passed its fresh acceptance gate.
+- PR #4 and PR #5 remain stacked on the DESIGN-006 branch. Preserve this branch after handling PR #3 so their bases can be retargeted safely.
+- Handle PR #4 next. Before PR #5, resolve its documented anonymous desktop-versus-mobile navigation inconsistency.
+
+### Near-term engineering maintenance
+
+- Evaluate and upgrade the vulnerable Drizzle ORM, Vite, and legacy drizzle-kit/esbuild dependency chains without using `npm audit fix --force`.
+- Add GitHub Actions that run the supported Node/npm versions on Linux and Windows.
+- Add a shared `.gitattributes` policy so text files use LF across contributor environments.
+- Investigate route-level lazy loading or deliberate vendor chunking if bundle size becomes a performance goal.
+- Remove expected jsdom `window.scrollTo()` and MUI out-of-range warnings from Web test output.
+- Consider explicit startup port checks or clearer error messages for the shared development/production 3001 port.
 
 ### Candidate next iteration: friends and friend-visible lists
 
@@ -118,9 +160,10 @@ Start by reading this document, [AUTHENTICATION_DESIGN.md](AUTHENTICATION_DESIGN
 
 Report these facts to the user before taking further action:
 
-- The authentication and direct-link list-sharing iteration is implemented, verified, and committed locally at `40b8ff1`.
-- The later compact visibility-control refinement is implemented and tested but remains uncommitted.
-- The current iteration has no pending code task.
+- Authentication, direct-link list sharing, compact visibility controls, and DESIGN-002 routing are implemented and merged to `main`.
+- Local and remote `main` were synchronized at `9717ff3` before PR #3 delivery. The pre-merge demo fallback is `codex/pre-pr-demo-backup-2026-09-11` at `4dcabdf`.
+- The development branch `feature/design-006-responsive-panels` adds responsive panels and a second Playwright regression test on top of main; `aa479f9` records its main synchronization.
+- PR #3 passed fresh typecheck, API 11/11, Web 28/28, build, and Playwright 2/2 verification on 2026-09-15. Use live Git/GitHub state for its current merge status.
 - Friends and SSO are future candidates only and are not authorized implementation work.
 
 Ask the user which next action they want: investigate acceptance feedback, prepare a commit/push, discuss the next version, or another explicitly scoped task. If a requirement, target, or authorization is unclear, ask the user instead of guessing. Do not create friendship schema, endpoints, or UI until the unresolved decisions in Section 5 have been answered and implementation has been explicitly approved.
@@ -153,8 +196,10 @@ When changes resume, also inspect:
 
 - `APP_ORIGIN` is the exact allowed browser origin and controls the secure cookie name when HTTPS is used.
 - The normal local web origin is `http://localhost:5173`; Playwright uses `http://127.0.0.1:3101`.
+- The default production-shaped origin is `http://localhost:3001`. Stop `npm run dev` before `npm run start:prod`, or override both `PORT` and `APP_ORIGIN` together. Do not use 3101 for a long-running manual server.
 - Do not terminate an unknown process already using a development port. Confirm ownership first or select an alternate port.
 - The production frontend still has the previously documented bundle-size warning; it is not part of this scope.
+- Test output may include jsdom `scrollTo()` and MUI select warnings even when the suite passes; treat new failures separately from these known warnings.
 - Password reset, email verification, account deletion, user/friend discovery, friendship management, unlisted links, and actual SSO providers remain out of the completed scope.
 
 ## 9. Separate Future Iteration: SSO
