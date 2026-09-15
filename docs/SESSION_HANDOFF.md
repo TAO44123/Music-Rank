@@ -2,7 +2,7 @@
 
 ## 1. Current Status
 
-The authentication and list-sharing iteration, the compact visibility-control refinement, and DESIGN-002 tab navigation/client routing are implemented, verified, merged, and pushed to `main`. The production-shaped start command is cross-platform, and the post-merge Web test timing fix is committed and pushed. The current development branch additionally implements DESIGN-006 responsive list-panel layouts; that work has not yet been merged to `main`.
+The authentication and list-sharing iteration, the compact visibility-control refinement, and DESIGN-002 tab navigation/client routing are implemented, verified, merged, and pushed to `main`. The production-shaped start command is cross-platform, and the post-merge Web test timing fix is committed and pushed. PR #3 delivers the implemented and freshly verified DESIGN-006 responsive list-panel layouts; use the live GitHub state to determine whether the PR has been merged.
 
 The approved behavior is:
 
@@ -28,12 +28,12 @@ The full decisions and security model are recorded in [AUTHENTICATION_DESIGN.md]
 At the time of this update:
 
 - Branch: `feature/design-006-responsive-panels`, tracking `origin/feature/design-006-responsive-panels`.
-- The development branch's pre-sync tip is `6b215be`; its base is the pushed `main` commit `75424ee`.
-- Local `main` contains the documentation refresh `9717ff3`, which is not yet pushed to `origin/main`.
-- This development branch is being synchronized with local `main`; inspect `git status --short --branch` and `git log` for the final merge commit and live ahead/behind counts.
+- The development branch's pre-sync tip is `6b215be`; its original base was the pushed `main` commit `75424ee`.
+- Local and remote `main` are synchronized at documentation refresh `9717ff3`.
+- Merge commit `aa479f9` combines PR #3 tip `6b215be` with `main` at `9717ff3`; the latest documentation commit sits on top of that verified merge. Inspect `git status --short --branch` and `git log` for the exact current HEAD and live ahead/behind counts.
 - PR #2 was merged as `364cd26`; PR #1 was merged as `91bca4b`; the test-stability follow-up is `75424ee`.
 - The pre-merge runnable snapshot remains available locally and remotely as `codex/pre-pr-demo-backup-2026-09-11` at `4dcabdf`.
-- Do not push the local main documentation commit or the synchronized development branch unless the user explicitly authorizes a push.
+- On 2026-09-15 the user authorized pushing the synchronized branch and handling PR #3. This does not authorize merging PR #4, PR #5, or the separate ranking-catalog branch.
 
 Preserve all working-tree changes. Do not reset or discard them. Use `git status --short --branch` for the live file list rather than relying on a copied snapshot here.
 
@@ -99,6 +99,16 @@ The final post-merge verification results on September 11, 2026 were:
 - PR #2 and PR #1 merge simulation and actual merge: no conflicts.
 - No CRLF, Windows-only path, or executable-mode pollution was found in either PR.
 
+Fresh PR #3 verification on September 15, 2026 used an isolated temporary database because the normal local database and ignored build artifacts belong to the newer ranking-catalog branch:
+
+- `npm run typecheck`: passed.
+- API integration tests: 11/11 passed.
+- Web tests: 10 files and 28/28 passed.
+- Database workspace: no source tests in this branch; ignored `dist/**` artifacts were excluded.
+- Production build: passed; the main asset was 818.17 KB (255.26 KB gzip).
+- Playwright E2E: 2/2 passed, including the 320–900px responsive regression.
+- The first normal-database run was invalidated by the newer local schema/data and ignored artifacts; it was not treated as a product failure.
+
 The Web test configuration now uses a 10-second per-test timeout, and the ranking-loading assertion uses a targeted 5-second async wait. This keeps normal file parallelism while avoiding load-sensitive failures observed with the default limits.
 
 The production build retains a bundle-size warning: the main JavaScript asset is approximately 816.64 KB (254.80 KB gzip). It does not fail the build. The npm audit baseline remains 6 findings (4 moderate, 2 high); the merged PRs did not add findings.
@@ -107,9 +117,9 @@ The production build retains a bundle-size warning: the main JavaScript asset is
 
 ### Current iteration
 
-- DESIGN-006 responsive panels are implemented on the development branch but are not yet merged to `main`.
-- The local task is to synchronize the latest main documentation baseline into this development branch and verify the combined state.
-- Do not push or merge DESIGN-006 to `main` without explicit user authorization.
+- DESIGN-006 is synchronized with `main` through `aa479f9` and has passed its fresh acceptance gate.
+- PR #4 and PR #5 remain stacked on the DESIGN-006 branch. Preserve this branch after handling PR #3 so their bases can be retargeted safely.
+- Handle PR #4 next. Before PR #5, resolve its documented anonymous desktop-versus-mobile navigation inconsistency.
 
 ### Near-term engineering maintenance
 
@@ -151,9 +161,9 @@ Start by reading this document, [AUTHENTICATION_DESIGN.md](AUTHENTICATION_DESIGN
 Report these facts to the user before taking further action:
 
 - Authentication, direct-link list sharing, compact visibility controls, and DESIGN-002 routing are implemented and merged to `main`.
-- The pushed main code baseline is `75424ee`; local main also has the unpushed documentation commit `9717ff3`. The pre-merge demo fallback is `codex/pre-pr-demo-backup-2026-09-11` at `4dcabdf`.
-- The development branch `feature/design-006-responsive-panels` adds responsive panels and a second Playwright regression test on top of main.
-- DESIGN-006 is not yet merged to main and must be verified before any requested push or merge.
+- Local and remote `main` were synchronized at `9717ff3` before PR #3 delivery. The pre-merge demo fallback is `codex/pre-pr-demo-backup-2026-09-11` at `4dcabdf`.
+- The development branch `feature/design-006-responsive-panels` adds responsive panels and a second Playwright regression test on top of main; `aa479f9` records its main synchronization.
+- PR #3 passed fresh typecheck, API 11/11, Web 28/28, build, and Playwright 2/2 verification on 2026-09-15. Use live Git/GitHub state for its current merge status.
 - Friends and SSO are future candidates only and are not authorized implementation work.
 
 Ask the user which next action they want: investigate acceptance feedback, prepare a commit/push, discuss the next version, or another explicitly scoped task. If a requirement, target, or authorization is unclear, ask the user instead of guessing. Do not create friendship schema, endpoints, or UI until the unresolved decisions in Section 5 have been answered and implementation has been explicitly approved.
