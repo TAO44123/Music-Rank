@@ -1,12 +1,14 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import request from 'supertest';
 import { eq, inArray } from 'drizzle-orm';
-import { authSessions, closeDatabase, db, demoUserId, rankingEntries, rankings, singingListEntries, users, userTopListEntries } from '@music-rank/database';
+import { authSessions, closeDatabase, db, demoUserId, rankingEntries, rankings, singingListEntries, songs, users, userTopListEntries } from '@music-rank/database';
 import { createApp } from './app.js';
 import { hashSessionToken } from './auth.js';
 
 const testUserId = '0ec26a67-6b68-4c23-b164-53f02bb49961';
+const otherTestUserId = 'eea26a67-6b68-4c23-b164-53f02bb49961';
 const app = createApp({ currentUserId: testUserId, enforceOrigin: false });
+const otherApp = createApp({ currentUserId: otherTestUserId, enforceOrigin: false });
 const allowedOrigin = 'http://localhost:5173';
 const authApp = createApp({ allowedOrigin, authRateLimit: { maxAttempts: 100 } });
 const authUsernames = ['auth_alice', 'auth_bob', 'auth_case_user'];
@@ -22,10 +24,19 @@ const fixtureRankingIds = [
   'a0000000-0000-4000-8000-000000000004'
 ] as const;
 const conflictingRankingId = 'a0000000-0000-4000-8000-000000000005';
+const submittedSongTitles = [
+  'API submitted Top song',
+  'API submitted Practice song',
+  'API submitted duplicate song',
+  'API submitted capacity song',
+  'API submitted public song'
+];
 
 beforeAll(async () => {
   await db.insert(users).values({ id: testUserId, displayName: 'API Test Listener' })
     .onConflictDoUpdate({ target: users.id, set: { displayName: 'API Test Listener', updatedAt: new Date() } });
+  await db.insert(users).values({ id: otherTestUserId, displayName: 'Another API Test Listener' })
+    .onConflictDoUpdate({ target: users.id, set: { displayName: 'Another API Test Listener', updatedAt: new Date() } });
   await db.delete(rankings).where(inArray(rankings.id, fixtureRankingIds));
   await db.insert(rankings).values([
     { id: fixtureRankingIds[0], title: '80s Hong Kong/Taiwan Test Ranking', slug: 'test-80s-hk-tw', era: '1980s', decadeStart: 1980, region: 'HK_TW', displayOrder: 1, sourceType: 'MEDIA', sourceUrl: 'https://www.youtube.com/watch?v=80s-hk-tw', isPublished: true },
@@ -46,7 +57,10 @@ beforeAll(async () => {
 beforeEach(async () => {
   await db.delete(userTopListEntries).where(eq(userTopListEntries.userId, testUserId));
   await db.delete(singingListEntries).where(eq(singingListEntries.userId, testUserId));
+  await db.delete(userTopListEntries).where(eq(userTopListEntries.userId, otherTestUserId));
+  await db.delete(singingListEntries).where(eq(singingListEntries.userId, otherTestUserId));
   await db.delete(users).where(inArray(users.username, authUsernames));
+  await db.delete(songs).where(inArray(songs.title, submittedSongTitles));
 });
 
 afterAll(async () => {
@@ -54,6 +68,8 @@ afterAll(async () => {
   await db.delete(rankings).where(inArray(rankings.id, fixtureRankingIds));
   await db.delete(users).where(inArray(users.username, authUsernames));
   await db.delete(users).where(eq(users.id, testUserId));
+  await db.delete(users).where(eq(users.id, otherTestUserId));
+  await db.delete(songs).where(inArray(songs.title, submittedSongTitles));
   await closeDatabase();
 });
 
@@ -104,6 +120,12 @@ describe('Authentication and public lists', () => {
     await request(authApp).post('/api/auth/register')
       .send({ username: 'auth_alice', displayName: 'Alice', password: 'correct horse battery staple' })
       .expect(403).expect(({ body }) => expect(body.code).toBe('INVALID_ORIGIN'));
+  });
+
+  it('rejects anonymous user-submitted songs', async () => {
+    await request(authApp).post('/api/me/top-list/items').set('Origin', allowedOrigin)
+      .send({ song: { title: 'API submitted Top song', artist: 'API Artist' } })
+      .expect(401).expect(({ body }) => expect(body.code).toBe('AUTH_REQUIRED'));
   });
 
   it('isolates users and publishes only approved list fields', async () => {
@@ -224,6 +246,68 @@ describe('Music Rank API', () => {
     await request(app).post('/api/me/top-list/items').send({ songId: songIds[10] }).expect(409).expect(({ body }) => expect(body.code).toBe('TOP_LIST_CAPACITY_REACHED'));
   });
 
+  it('creates an attributed unverified song and atomically adds it to My Top 10 without ranking entries', async () => {
+    const response = await request(app).post('/api/me/top-list/items')
+      .send({ song: { title: ' API submitted Top song ', artist: ' API Artist ' } })
+      .expect(201);
+    const submittedSong = response.body[0];
+    expect(submittedSong).toMatchObject({ title: 'API submitted Top song', artist: 'API Artist', position: 1 });
+    const [storedSong] = await db.select({ id: songs.id, verificationStatus: songs.verificationStatus, submittedByUserId: songs.submittedByUserId })
+      .from(songs).where(eq(songs.id, submittedSong.id));
+    expect(storedSong).toEqual({ id: submittedSong.id, verificationStatus: 'UNVERIFIED', submittedByUserId: testUserId });
+    expect(await db.select({ id: rankingEntries.id }).from(rankingEntries).where(eq(rankingEntries.songId, submittedSong.id))).toHaveLength(0);
+  });
+
+  it('returns a safe confirmation response for an exact normalized duplicate and reuses it after confirmation', async () => {
+    const first = await request(app).post('/api/me/singing-list/items')
+      .send({ song: { title: 'API submitted Practice song', artist: 'API Artist' } }).expect(201);
+    const submittedSongId = first.body[0].id as string;
+    await request(app).post('/api/me/top-list/items')
+      .send({ song: { title: ' api submitted practice song ', artist: 'api artist' } })
+      .expect(409).expect(({ body }) => {
+        expect(body).toEqual({
+          code: 'SONG_ALREADY_EXISTS',
+          message: 'This song already exists. Confirm that you want to use it.',
+          existingSong: { id: submittedSongId, title: 'API submitted Practice song', artist: 'API Artist' }
+        });
+      });
+    await request(app).post('/api/me/top-list/items').send({ songId: submittedSongId }).expect(201);
+    expect(await db.select({ id: songs.id }).from(songs).where(eq(songs.id, submittedSongId))).toHaveLength(1);
+  });
+
+  it('creates only one shared song when matching submissions race', async () => {
+    await db.delete(userTopListEntries).where(eq(userTopListEntries.userId, testUserId));
+    await db.delete(songs).where(eq(songs.normalizedTitle, 'api submitted duplicate song'));
+    const responses = await Promise.all([
+      request(app).post('/api/me/top-list/items').send({ song: { title: 'API submitted duplicate song', artist: 'API Artist' } }),
+      request(app).post('/api/me/top-list/items').send({ song: { title: ' api submitted duplicate song ', artist: 'api artist' } })
+    ]);
+    expect(responses.map((response) => response.status).sort()).toEqual([201, 409]);
+    const duplicate = responses.find((response) => response.status === 409)?.body;
+    expect(duplicate).toMatchObject({ code: 'SONG_ALREADY_EXISTS', existingSong: { id: expect.any(String) } });
+    expect(duplicate.existingSong.title.toLowerCase()).toBe('api submitted duplicate song');
+    expect(duplicate.existingSong.artist.toLowerCase()).toBe('api artist');
+    expect(await db.select({ id: songs.id }).from(songs).where(eq(songs.title, 'API submitted duplicate song'))).toHaveLength(1);
+  });
+
+  it('lets another user discover and reuse a submitted shared song', async () => {
+    const created = await request(app).post('/api/me/top-list/items')
+      .send({ song: { title: 'API submitted public song', artist: 'API Artist' } }).expect(201);
+    const songId = created.body[0].id as string;
+    await request(otherApp).get('/api/songs').query({ q: 'submitted public' }).expect(200)
+      .expect(({ body }) => expect(body).toMatchObject([{ id: songId, title: 'API submitted public song', artist: 'API Artist' }]));
+    await request(otherApp).post('/api/me/singing-list/items').send({ songId }).expect(201)
+      .expect(({ body }) => expect(body).toMatchObject([{ id: songId, status: 'WANT_TO_LEARN', note: null }]));
+  });
+
+  it('does not leave a submitted song behind when My Top 10 is full', async () => {
+    for (const songId of songIds.slice(0, 10)) await request(app).post('/api/me/top-list/items').send({ songId }).expect(201);
+    await request(app).post('/api/me/top-list/items')
+      .send({ song: { title: 'API submitted capacity song', artist: 'API Artist' } })
+      .expect(409).expect(({ body }) => expect(body.code).toBe('TOP_LIST_CAPACITY_REACHED'));
+    expect(await db.select({ id: songs.id }).from(songs).where(eq(songs.title, 'API submitted capacity song'))).toHaveLength(0);
+  });
+
   it('reorders atomically and closes Top 10 position gaps on removal', async () => {
     for (const songId of songIds.slice(0, 3)) await request(app).post('/api/me/top-list/items').send({ songId }).expect(201);
     const reordered = [songIds[2], songIds[0], songIds[1]];
@@ -238,5 +322,13 @@ describe('Music Rank API', () => {
     await request(app).get('/api/me/singing-list?status=PRACTICING').expect(200).expect(({ body }) => expect(body).toMatchObject([{ id: songIds[0], status: 'PRACTICING', note: 'Work on the bridge.' }]));
     await request(app).delete(`/api/me/top-list/items/${songIds[0]}`).expect(200);
     await request(app).get('/api/me/singing-list?status=PRACTICING').expect(200).expect(({ body }) => expect(body).toHaveLength(1));
+  });
+
+  it('adds a submitted song to Practice Library with the default status and no note', async () => {
+    await request(app).post('/api/me/singing-list/items')
+      .send({ song: { title: 'API submitted Practice song', artist: 'API Artist' } })
+      .expect(201).expect(({ body }) => expect(body).toMatchObject([{
+        title: 'API submitted Practice song', artist: 'API Artist', status: 'WANT_TO_LEARN', note: null
+      }]));
   });
 });

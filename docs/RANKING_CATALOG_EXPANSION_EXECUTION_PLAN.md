@@ -1,6 +1,6 @@
 # Ranking Catalog Expansion — Cross-Session Execution Plan
 
-> Status: Task 1, Task 3A, and the approved Cantonese import are verified, pushed, and merged into `main`; Task 2 is ready to start when explicitly requested
+> Status: Task 1, Task 3A, the approved Cantonese import, and Task 2 are verified, pushed, and merged into `main`; Task 2 was delivered through PR #6 from `feature/user-submitted-songs`
 >
 > Last updated: 2026-09-15 (America/New_York)
 >
@@ -433,104 +433,104 @@ and add the resolved song to the selected personal list atomically.
 
 ### 7.3 Database and normalization work
 
-- [ ] Add nullable `submittedByUserId` to `songs`.
-- [ ] Reference `users.id` with behavior that preserves the shared song if the
+- [x] Add nullable `submittedByUserId` to `songs`.
+- [x] Reference `users.id` with behavior that preserves the shared song if the
   submitting account is later removed; clear the attribution instead of
   deleting the song.
-- [ ] Add an index suitable for future Admin attribution queries.
-- [ ] Keep the normalized-title-and-artist unique constraint.
-- [ ] Make production song creation explicitly set a verification status;
+- [x] Add an index suitable for future Admin attribution queries.
+- [x] Keep the normalized-title-and-artist unique constraint.
+- [x] Make production song creation explicitly set a verification status;
   user-submitted rows must be `UNVERIFIED`.
-- [ ] Centralize the normalization function so seed, imports, duplicate checks,
+- [x] Centralize the normalization function so seed, imports, duplicate checks,
   and user creation cannot drift.
-- [ ] Normalization for this task is exact after trimming and case
+- [x] Normalization for this task is exact after trimming and case
   normalization. Do not implement fuzzy matching, alias resolution, or
   simplified/traditional Chinese conversion.
-- [ ] Generate and inspect a forward-only migration.
+- [x] Generate and inspect a forward-only migration.
 
 ### 7.4 Contracts and error behavior
 
-- [ ] Add trimmed, non-empty `title` and `artist` schemas with bounded lengths.
-- [ ] Define request variants for an existing `songId` and a new `{ title,
+- [x] Add trimmed, non-empty `title` and `artist` schemas with bounded lengths.
+- [x] Define request variants for an existing `songId` and a new `{ title,
   artist }` submission.
-- [ ] Define `SONG_ALREADY_EXISTS` as a 409 response containing only the safe
+- [x] Define `SONG_ALREADY_EXISTS` as a 409 response containing only the safe
   existing-song summary required for confirmation.
-- [ ] Keep the existing duplicate-list and Top 10 capacity errors distinct.
-- [ ] Ensure malformed bodies do not create songs or list entries.
+- [x] Keep the existing duplicate-list and Top 10 capacity errors distinct.
+- [x] Ensure malformed bodies do not create songs or list entries.
 
 ### 7.5 API and transaction work
 
-- [ ] Extend the Top 10 add flow to accept either an existing song or a new
+- [x] Extend the Top 10 add flow to accept either an existing song or a new
   title-and-artist submission.
-- [ ] Add the corresponding create-and-add flow for Practice Library while
+- [x] Add the corresponding create-and-add flow for Practice Library while
   preserving the current update endpoint for status and note edits.
-- [ ] Require authentication and the existing unsafe-request Origin checks.
-- [ ] For a new Top 10 submission, check capacity before leaving any new song
+- [x] Require authentication and the existing unsafe-request Origin checks.
+- [x] For a new Top 10 submission, check capacity before leaving any new song
   record behind.
-- [ ] Resolve the normalized exact duplicate before insertion.
-- [ ] If a duplicate exists, return 409 and do not alter the user's list.
-- [ ] After UI confirmation, add the returned existing `songId` through the
+- [x] Resolve the normalized exact duplicate before insertion.
+- [x] If a duplicate exists, return 409 and do not alter the user's list.
+- [x] After UI confirmation, add the returned existing `songId` through the
   normal existing-song path.
-- [ ] If no duplicate exists, create the `UNVERIFIED` song and list entry in one
+- [x] If no duplicate exists, create the `UNVERIFIED` song and list entry in one
   transaction.
-- [ ] Handle a concurrent unique-key race by resolving the winning existing song
+- [x] Handle a concurrent unique-key race by resolving the winning existing song
   and returning the same duplicate-confirmation result.
-- [ ] Never create a `ranking_entries` row from this flow.
-- [ ] Do not add user-facing edit or global-delete endpoints.
-- [ ] Keep public-list projections unchanged except that submitted songs may now
+- [x] Never create a `ranking_entries` row from this flow.
+- [x] Do not add user-facing edit or global-delete endpoints.
+- [x] Keep public-list projections unchanged except that submitted songs may now
   naturally appear through the existing joins.
 
 ### 7.6 Web work
 
-- [ ] Add an `Add a song not listed` action to Personal Ranking.
-- [ ] Add the same action to Practice Library.
-- [ ] Collect only title and artist.
-- [ ] Apply client validation but treat the API as authoritative.
-- [ ] Disable or clearly block Top 10 submission at capacity.
-- [ ] Prevent duplicate form submissions while a request is pending.
-- [ ] On 409, show the existing title and artist in a confirmation dialog.
-- [ ] On confirm, add the existing song by ID.
-- [ ] On cancel, make no mutation.
-- [ ] Add a new Top 10 song at the final position.
-- [ ] Add a new Practice Library song with `WANT_TO_LEARN` and no note.
-- [ ] Preserve the existing status/note editor after creation.
-- [ ] Invalidate only the authenticated user's relevant private queries.
-- [ ] Preserve logout and unauthorized-response cache cleanup.
-- [ ] Provide accessible labels, focus return, pending state, and error text for
+- [x] Add a `Can’t find a song? Add it here` action to Personal Ranking.
+- [x] Add the same action to Practice Library.
+- [x] Collect only title and artist.
+- [x] Apply client validation but treat the API as authoritative.
+- [x] Disable or clearly block Top 10 submission at capacity.
+- [x] Prevent duplicate form submissions while a request is pending.
+- [x] On 409, show the existing title and artist in a confirmation dialog.
+- [x] On confirm, add the existing song by ID.
+- [x] On cancel, make no mutation.
+- [x] Add a new Top 10 song at the final position.
+- [x] Add a new Practice Library song with `WANT_TO_LEARN` and no note.
+- [x] Preserve the existing status/note editor after creation.
+- [x] Invalidate only the authenticated user's relevant private queries.
+- [x] Preserve logout and unauthorized-response cache cleanup.
+- [x] Provide accessible labels, focus return, pending state, and error text for
   both dialogs.
 
 ### 7.7 Task 2 tests
 
-- [ ] Anonymous submission is rejected.
-- [ ] A new submission creates one `UNVERIFIED` song with submitter attribution.
-- [ ] It atomically creates the correct personal-list entry.
-- [ ] It creates no ranking entry.
-- [ ] An exact duplicate returns 409 and does not modify the list.
-- [ ] Confirmation reuses the existing shared song.
-- [ ] Concurrent duplicate creation produces one shared song record.
-- [ ] A full Top 10 produces no orphan song.
-- [ ] A song already in the target list is not duplicated.
-- [ ] Another user can search for and reuse a submitted song.
-- [ ] A submitted song may appear on a public personal page.
-- [ ] Public Practice Library output still omits notes.
-- [ ] Both forms cover validation, pending, cancel, confirm, success, and error
+- [x] Anonymous submission is rejected.
+- [x] A new submission creates one `UNVERIFIED` song with submitter attribution.
+- [x] It atomically creates the correct personal-list entry.
+- [x] It creates no ranking entry.
+- [x] An exact duplicate returns 409 and does not modify the list.
+- [x] Confirmation reuses the existing shared song.
+- [x] Concurrent duplicate creation produces one shared song record.
+- [x] A full Top 10 produces no orphan song.
+- [x] A song already in the target list is not duplicated.
+- [x] Another user can search for and reuse a submitted song.
+- [x] A submitted song may appear on a public personal page.
+- [x] Public Practice Library output still omits notes.
+- [x] Both forms cover validation, pending, cancel, confirm, success, and error
   states.
-- [ ] Authentication loss still clears private queries and redirects guarded
+- [x] Authentication loss still clears private queries and redirects guarded
   routes.
-- [ ] E2E covers creation in both personal pages and absence from public
+- [x] E2E covers creation in both personal pages and absence from public
   rankings.
 
 ### 7.8 Task 2 acceptance gate
 
 Run the same full command set listed in Task 1. In addition:
 
-- [ ] Query the database or assert through integration tests that submitted
+- [x] Query the database or assert through integration tests that submitted
   songs have zero ranking entries.
-- [ ] Confirm that no global song edit/delete UI or route was added.
-- [ ] Confirm that the two existing list types and their visibility behavior
+- [x] Confirm that no global song edit/delete UI or route was added.
+- [x] Confirm that the two existing list types and their visibility behavior
   remain unchanged.
-- [ ] Update this document's progress log and `docs/SESSION_HANDOFF.md`.
-- [ ] Do not commit or push without user authorization.
+- [x] Update this document's progress log and `docs/SESSION_HANDOFF.md`.
+- [x] Do not commit or push without user authorization.
 
 ### 7.9 Suggested Task 2 commit groups
 
@@ -990,3 +990,62 @@ Before ending a session:
   fuzzy matching, or aggregation work was started.
 - Remaining decision gate: create `feature/user-submitted-songs` from the latest
   `main` only when the user explicitly starts Task 2.
+
+### 2026-09-15 — Task 2 implementation complete locally
+
+- Task: 2 — User-submitted songs
+- Branch: `feature/user-submitted-songs`, created from synchronized `main` at
+  `67a0ba6`.
+- Completed:
+  - Added nullable `songs.submitted_by_user_id` with `ON DELETE SET NULL` and
+    an attribution index through forward migration
+    `0004_abnormal_butterfly.sql`.
+  - Centralized exact trim-and-case normalization in the database package and
+    applied it consistently to the seed, ranking importer, and submission flow.
+  - Extended the Top 10 add endpoint and added a Practice Library creation
+    endpoint. Both accept either an existing `songId` or `{ song: { title,
+    artist } }`.
+  - New songs are inserted with `UNVERIFIED`, submitter attribution, and their
+    target list entry in one transaction; they never create ranking entries.
+  - Exact normalized matches return safe `SONG_ALREADY_EXISTS` confirmation
+    data. `ON CONFLICT DO NOTHING` resolves concurrent creation to that same
+    confirmation path.
+  - Added accessible title/artist dialogs plus existing-song confirmation in
+    Personal Ranking and Practice Library. Top 10 submission is disabled at
+    capacity; new Practice Library rows begin as `WANT_TO_LEARN` with no note.
+  - Scoped post-mutation cache invalidation to the authenticated user's affected
+    personal list while retaining the established logout/401 cleanup.
+- Verification:
+  - Applied the migration successfully to the normal local database.
+  - `npm run typecheck`: passed.
+  - `npm test`: API 22/22, Web 44/44 across 13 files, database importer 8/8;
+    contracts has no source tests.
+  - `npm run build`: passed with the existing bundle-size and third-party Zod
+    annotation warnings.
+  - `npm run test:e2e`: 3/3 passed, including the two new personal-list
+    submission flows, public personal-list display, and the absence of a
+    submitted song from a public ranking search.
+  - `git diff --check`: passed.
+- Scope checks: no shared-song edit/delete endpoint or UI was added; published
+  list behavior and private Practice Library notes remain unchanged.
+- Delivery: the core implementation was committed at `20a257c`, reviewed with
+  the UI refinement below, and delivered through PR #6.
+
+### 2026-09-15 — Task 2 UI refinement
+
+- The user selected the soft-filled filter treatment for the ranking page.
+  Search, artist, and year controls now share the same warm low-contrast fill;
+  the previous tinted outer toolbar and vertical divider were removed.
+- The user selected the conversational add-song entry. Personal Ranking and
+  Practice Library now show `Can’t find a song? Add it here` on the left above
+  the Public/Private status label. Count, visibility, and share actions remain
+  on the right. The dialog title is shortened to `Add a song`.
+- Updated route and E2E selectors. E2E song titles are now unique per run and
+  test-created shared songs are explicitly cleaned up after their submitting
+  user is removed, matching the production `ON DELETE SET NULL` behavior.
+- Verification: typecheck passed; the complete Web suite passed 44/44 across 13
+  files; targeted UI tests passed 14/14; Playwright passed 3/3; and
+  `git diff --check` passed.
+- Commit/push status: the core Task 2 implementation is `20a257c`; the UI
+  refinement is `711e870`. Both were pushed on
+  `feature/user-submitted-songs` and delivered through PR #6.

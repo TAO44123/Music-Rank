@@ -23,7 +23,9 @@ source link. `decade` and `region` are nullable display metadata rather than
 routing dimensions or a uniqueness key. The UI uses one row of direct ranking
 tabs, so future language or dialect rankings can overlap existing metadata.
 
-Task 2 (user-submitted songs) and any further ranking imports have not started.
+Task 2 (user-submitted songs) is implemented, verified, and merged into `main`
+through PR #6. Its core implementation is `20a257c`; the user-selected UI
+refinement is `711e870`.
 Task 3A implementation, the approved Cantonese import, and their desktop/mobile
 acceptance gates are complete. On 2026-09-15 the user explicitly authorized
 synchronizing, pushing, and merging this ranking branch.
@@ -67,6 +69,9 @@ link, and no Console errors. The final dry run reused all 72 songs and entries.
   and the final documentation refresh sits on top of it.
 - The synchronized feature branch is pushed at `ecd1e45`; its pre-integration
   tip was `d2ef428`.
+- Task 2 started from synchronized `main` at `67a0ba6` on branch
+  `feature/user-submitted-songs`. The core implementation (`20a257c`) and UI
+  refinement (`711e870`) were delivered through PR #6.
 - PR #3, PR #4, and PR #5 are already merged; the ranking integration preserves
   their responsive panels, account-label guard, and mobile bottom navigation.
 - The ranking commits include Task 1 (`be345ae`, `c15efc6`), the Task 3A plan
@@ -76,9 +81,10 @@ link, and no Console errors. The final dry run reused all 72 songs and entries.
   into `main` on 2026-09-15.
 - Preserve every working-tree change. Do not reset, discard, or overwrite it.
 - Use `git status --short --branch` and the live diff for the exact file list.
-- Migrations through `0003_red_silver_samurai.sql` have been applied to the
+- Migrations through `0004_abnormal_butterfly.sql` have been applied to the
   normal local database. `0003` renames the pilot slug, makes decade/region
-  nullable, and removes published decade/region uniqueness.
+  nullable, and removes published decade/region uniqueness; `0004` adds
+  nullable submitter attribution for shared songs.
 - PostgreSQL uses 5432; Playwright uses 3101 temporarily. Do not terminate
   unknown development services.
 - A 2026-09-15 read-only database check found the Mainland pilot published with
@@ -277,20 +283,33 @@ Fresh synchronized-branch verification on September 15, 2026 passed:
 
 - The Task 3A and Cantonese implementations are synchronized, freshly verified,
   pushed, and merged into `main`.
+- Task 2 is also verified and merged through PR #6; normal users can submit
+  shared catalog songs from either personal list without creating ranking
+  entries.
 - Keep the approved manifest values unchanged unless the user supplies a new
   authoritative replacement and explicitly requests it.
-- Ask the user to choose Task 2 or further Task 3 imports before creating
-  another feature branch.
+- Ask the user to choose further Task 3 imports or another explicitly scoped
+  feature before creating a new branch.
 
 ### Task 2 — User-submitted songs
 
-- Planned branch: `feature/user-submitted-songs`, created from updated `main`
-  only if the user selects Task 2 after reviewing the pilot.
-- Add title/artist submission from Personal Ranking and Practice Library.
-- Store shared songs as `UNVERIFIED`, support exact duplicate confirmation and
-  reuse, and never create public ranking entries through this flow.
-- Normal users may remove songs from their own lists but cannot edit or delete
-  global song records.
+- Delivered through PR #6 from `feature/user-submitted-songs`, based on
+  `67a0ba6`; the core implementation is `20a257c` and the UI refinement is
+  `711e870`.
+- `0004_abnormal_butterfly.sql` adds nullable submitter attribution to shared
+  songs with `ON DELETE SET NULL` and an Admin-oriented index.
+- Personal Ranking and Practice Library now offer an accessible title/artist
+  submission dialog, exact duplicate confirmation, pending and error states.
+- New shared songs are `UNVERIFIED`, atomically join the chosen list, and never
+  receive a ranking entry. Top 10 capacity is checked before creation; Practice
+  Library starts at `WANT_TO_LEARN` with no note.
+- A normalized duplicate returns only a safe song summary for confirmation;
+  concurrent creates resolve to the same result. Existing shared songs may be
+  reused by another user, but normal users still cannot edit or delete them.
+- Verification: migration applied to the normal local database; typecheck
+  passed; tests passed (API 22/22, Web 44/44 across 13 files, database 8/8); production build
+  passed with existing warnings; Playwright passed 3/3; and `git diff --check`
+  passed.
 
 ### Task 3 — Ranking data import
 
@@ -315,8 +334,8 @@ outside this feature scope.
    `90s-demo-ranking` is not.
 4. Do not repeat completed desktop/mobile acceptance unless later UI changes
    require it; rerun the final diff check after edits.
-5. Do not start Task 2 or the remaining Task 3 imports until the user reviews
-   the pilot and chooses the next direction.
+5. Do not start further Task 3 imports, Admin work, fuzzy matching, or
+   aggregation without explicit user direction.
 6. Do not run destructive Git or database commands and do not terminate unknown
    processes.
 

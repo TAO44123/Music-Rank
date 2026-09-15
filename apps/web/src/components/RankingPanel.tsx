@@ -3,7 +3,7 @@ import FilterAltOffIcon from '@mui/icons-material/FilterAltOff';
 import MicNoneIcon from '@mui/icons-material/MicNone';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import SearchIcon from '@mui/icons-material/Search';
-import { Box, Button, Chip, CircularProgress, Divider, FormControl, InputAdornment, InputLabel, List, ListItem, ListItemText, MenuItem, Pagination, Paper, Select, Stack, TextField, Typography } from '@mui/material';
+import { Box, Button, Chip, CircularProgress, FormControl, InputAdornment, InputLabel, List, ListItem, ListItemText, MenuItem, Pagination, Paper, Select, Stack, TextField, Typography } from '@mui/material';
 import type { RankingDetail } from '../api';
 
 const pageSize = 25;
@@ -46,6 +46,15 @@ const sourceLabels: Record<string, string> = {
   OFFICIAL: 'Official Source',
   MEDIA: 'Media Source',
   COMMUNITY: 'Community Source'
+};
+
+const softFilterFieldSx = {
+  '& .MuiOutlinedInput-root': {
+    bgcolor: '#F3EADB',
+    '& fieldset': { borderColor: 'transparent' },
+    '&:hover fieldset': { borderColor: 'divider' },
+    '&.Mui-focused fieldset': { borderColor: 'primary.main' }
+  }
 };
 
 function safeSourceUrl(value: string | null | undefined) {
@@ -94,18 +103,17 @@ export function RankingPanel({ ranking, isLoading, query, onQueryChange, artistF
           {sourceUrl && <Button component="a" href={sourceUrl} target="_blank" rel="noopener noreferrer" aria-label="Watch original video" variant="outlined" endIcon={<OpenInNewIcon />}>Watch source</Button>}
         </Stack>}
       </Stack>
-      <Box sx={{ p: { xs: 1.25, sm: 1.5 }, bgcolor: 'background.default', borderRadius: 2 }}>
+      <Box>
         <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.25} alignItems={{ md: 'center' }}>
-          <TextField size="small" label="Search songs or artists" value={query} onChange={(event) => handleQueryChange(event.target.value)} fullWidth sx={{ flex: 1 }} slotProps={{ input: { startAdornment: <InputAdornment position="start"><SearchIcon /></InputAdornment> } }} />
-          <Divider orientation="vertical" flexItem sx={{ display: { xs: 'none', md: 'block' } }} />
-          <FormControl size="small" sx={{ width: { xs: '100%', md: 210 }, flexShrink: 0 }}>
+          <TextField size="small" label="Search songs or artists" value={query} onChange={(event) => handleQueryChange(event.target.value)} fullWidth sx={{ flex: 1, ...softFilterFieldSx }} slotProps={{ input: { startAdornment: <InputAdornment position="start"><SearchIcon color="secondary" /></InputAdornment> } }} />
+          <FormControl size="small" sx={{ width: { xs: '100%', md: 210 }, flexShrink: 0, ...softFilterFieldSx }}>
             <InputLabel id="artist-filter-label">Artist</InputLabel>
             <Select labelId="artist-filter-label" label="Artist" value={artistFilter} onChange={(event) => handleArtistFilterChange(event.target.value)}>
               <MenuItem value="ALL">All artists</MenuItem>
               {artists.map((artist) => <MenuItem key={artist} value={artist}>{artist}</MenuItem>)}
             </Select>
           </FormControl>
-          <FormControl size="small" sx={{ width: { xs: '100%', md: 165 }, flexShrink: 0 }}>
+          <FormControl size="small" sx={{ width: { xs: '100%', md: 165 }, flexShrink: 0, ...softFilterFieldSx }}>
             <InputLabel id="release-year-filter-label">Release year</InputLabel>
             <Select labelId="release-year-filter-label" label="Release year" value={releaseYearFilter} onChange={(event) => handleReleaseYearFilterChange(event.target.value as number | 'ALL')}>
               <MenuItem value="ALL">All years</MenuItem>
