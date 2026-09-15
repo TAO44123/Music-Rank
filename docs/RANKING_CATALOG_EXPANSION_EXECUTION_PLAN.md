@@ -1,12 +1,14 @@
 # Ranking Catalog Expansion — Cross-Session Execution Plan
 
-> Status: Task 1, Task 3A, and the approved Cantonese import are complete and committed locally; awaiting the user's next-task choice and any push/merge authorization
+> Status: Task 1, Task 3A, and the approved Cantonese import are verified, pushed, and merged into `main`; Task 2 is ready to start when explicitly requested
 >
 > Last updated: 2026-09-15 (America/New_York)
 >
-> Base commit: `9717ff3` (`docs: refresh handoff and engineering guide`)
+> Original planning base: `9717ff3` (`docs: refresh handoff and engineering guide`)
 >
 > Task 1 branch: `feature/ranking-catalog-expansion`
+>
+> Integrated delivery: feature `ecd1e45`, main merge `62292ba`, handoff refresh `3606979`
 >
 > Project-wide handoff authority: `docs/SESSION_HANDOFF.md`
 
@@ -961,3 +963,30 @@ Before ending a session:
   Demo seed preserved publication state and the final manifest dry-run reused
   all 100 songs and entries. Final `git diff --check` passed.
 - No commit, push, or merge was performed.
+
+### 2026-09-15 — Final integration and delivery
+
+- Synchronized `feature/90s-ranking-pilot` with the latest `main`, preserving
+  DESIGN-006 responsive list rows, the PR #4 account-label regression guard,
+  and DESIGN-004 mobile bottom navigation alongside the ranking catalog.
+- Resolved the integration points in `RankingPanel`, `TabNav`, the engineering
+  guide, and the session handoff. Updated the BottomNav fixture for the catalog
+  API shape and made the Snackbar E2E wait for Session restoration before
+  mutating a personal list.
+- Pushed the synchronized feature branch at `ecd1e45`, merged it into `main` at
+  `62292ba`, and pushed the final handoff refresh at `3606979`.
+- Final verification passed: typecheck; API 15/15; Web 40/40 across 12 files;
+  database importer 8/8; production build; and Playwright 3/3 on a clean
+  temporary database.
+- The production build retained the known non-blocking bundle warning; the main
+  asset was 826.41 KB (258.01 KB gzip). The existing Zod annotation,
+  Playwright color, and jsdom `scrollTo()` warnings also remain non-blocking.
+- The normal database was preserved with `90s-mainland-top-100` published at
+  100 entries, `90s-cantonese-top-70` published at 72 entries, and the Demo
+  retained unpublished at 30 entries. The temporary integration database was
+  removed after verification.
+- Repository state after delivery: local and remote `main` synchronized and the
+  working tree clean. No Task 2, further ranking import, Admin, friends, SSO,
+  fuzzy matching, or aggregation work was started.
+- Remaining decision gate: create `feature/user-submitted-songs` from the latest
+  `main` only when the user explicitly starts Task 2.
