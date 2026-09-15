@@ -4,7 +4,7 @@ title: Mobile Bottom Navigation
 status: Approved
 author: chance
 created: 2026-09-14
-updated: 2026-09-14
+updated: 2026-09-15
 supersedes: null
 related:
   - DESIGN_002_TAB_NAVIGATION.md
@@ -40,6 +40,11 @@ Approved behavior:
   home indicator.
 - Transient notifications render above the bottom bar, not underneath it.
 - No API, schema, route table, or route guard change.
+
+The resulting anonymous experience intentionally differs by breakpoint: phones
+show all three destinations, while the desktop top tab bar continues to show
+only Ranking. On 2026-09-15 the user accepted this difference as non-blocking
+and chose to retain the implemented behavior.
 
 ### 1.1 Why this is no longer blocked
 
@@ -261,3 +266,4 @@ extended at those same viewports:
 | --- | --- | --- | --- |
 | 2026-09-14 | chance | 初稿：xs 下导航下沉为固定底栏，sm 及以上保持顶部 tab；目的地表抽到 `navigation.ts`；匿名访客三项常驻且受限项点击弹登录框而不导航；DESIGN-005 明确延后，解除 DESIGN-006 §5 记录的阻塞 | 137211c |
 | 2026-09-14 | chance | 按 PLAN-004 实现完毕，§6.1 与 §6.2 四条断言全部落地并逐条做过破坏性验证 | 当前工作树 |
+| 2026-09-15 | chance | 确认匿名导航在手机显示三项、桌面仅显示 Ranking 的差异为本次发布可接受的非阻塞行为，保留现有实现 | 当前工作树 |

@@ -4,7 +4,7 @@ title: Mobile Bottom Navigation Implementation Plan
 status: Completed
 author: chance
 created: 2026-09-14
-updated: 2026-09-14
+updated: 2026-09-15
 implements: DESIGN_004_MOBILE_BOTTOM_NAV.md
 related:
   - DESIGN_004_MOBILE_BOTTOM_NAV.md
@@ -54,7 +54,7 @@ unresolved flake.
 re-run the file alone before investigating. If any *other* test fails, that is
 yours.
 
-## Open question for the spec author — raise before Task 2
+## Resolved product decision
 
 `TabNav` filters guarded destinations out for anonymous visitors
 (`TabNav.tsx:22`, asserted by `TabNav.test.tsx:38`). DESIGN-004 D4 has
@@ -64,9 +64,8 @@ it does leave the two surfaces advertising different destination sets to the
 same anonymous visitor: three on a phone, one on a desktop.
 
 This plan implements the spec as written: `TabNav` keeps filtering, `BottomNav`
-does not. Flag it to the spec author before Task 2. If they want the surfaces
-unified, that is a change to DESIGN-002 D2 or DESIGN-004 D4 and needs a spec
-revision, not a decision made here.
+does not. On 2026-09-15 the user reviewed this difference, classified it as
+non-blocking, and chose to retain it. No implementation change is required.
 
 ---
 
@@ -713,3 +712,4 @@ bar's top edge.
 | 2026-09-14 | chance | 初稿：三个任务 —— 抽目的地表、加底栏、断点切换与避让；记录 jsdom 下 `display:none` 会击穿 TabNav 现有 `toBeVisible` 断言，以及匿名访客在两个导航面看到的目的地集合不一致 | 当前工作树 |
 | 2026-09-14 | chance | 执行完成。两处与计划的偏差：`@testing-library/user-event` 未安装，改用项目既有的 `fireEvent`；jsdom 不应用 emotion 样式表，Task 3 Step 2-4 预测的 TabNav 断言失败没有发生，跳过改断言 | 当前工作树 |
 | 2026-09-14 | chance | 补上 §6.2 第 4 条的自动化覆盖，此前判断「无法自动化」有误；该用例的 locator 必须带 `disabled: false`，因为 Top 10 满员时按钮文案仍是 Add Top 10 只是不可点 | 当前工作树 |
+| 2026-09-15 | chance | 产品确认保留匿名访客在手机看到三项、桌面仅看到 Ranking 的差异；该差异不阻塞 PR #5 | 当前工作树 |

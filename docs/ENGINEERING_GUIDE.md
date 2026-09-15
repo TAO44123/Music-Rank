@@ -815,7 +815,7 @@ DESIGN-002 起，用户可见文案统一使用 Practice Library：Tab 名称、
 - 主导航有两套并存的实现，由同一个断点互斥显隐：`sm` 及以上显示顶部 TabNav，小于 `sm` 显示固定在视口底部的 BottomNav。两者都渲染在 DOM 里，靠 `sx` 的 `display` 切换，不做 JS 宽度判断。
 - 目的地表是 `apps/web/src/navigation.ts` 的 `destinations`，TabNav 和 BottomNav 共用，同时导出 `bottomNavHeight`（56）。改导航目的地只改这一处。
 - BottomNav 对匿名访客显示全部三项：受守卫的两项渲染成按钮而非链接，点击直接打开登录弹窗。渲染成链接会走到 `routes/personal.tsx` 的 `beforeLoad` 守卫、被重定向回 `/` 并闪过一个访客没要求的页面。守卫本身不变，它负责的是直接输入 URL 这个入口。
-- TabNav 对匿名访客仍然过滤掉受守卫的两项，所以匿名访客在手机上看到三个目的地、在桌面上只看到一个。这是 DESIGN-004 D4 与 DESIGN-002 D2 的已知不一致，尚未裁决。
+- TabNav 对匿名访客仍然过滤掉受守卫的两项，所以匿名访客在手机上看到三个目的地、在桌面上只看到一个。用户于 2026-09-15 确认该差异不影响本次发布并选择保留，后续除非产品决策变化，无需统一。
 - BottomNav 是 `position: fixed`，不占布局空间，因此 AppShellContext 给内容区加了 `pb: calc(56px + env(safe-area-inset-bottom))`，Snackbar 也在 xs 下相应上移，否则列表最后一行和通知都会压在底栏下面。
 - 断点行为只能由 Playwright 验证：jsdom 的 `getComputedStyle` 不把 emotion 注入的样式表计入 computed style，两个导航在单元测试里都表现为可见，而 `window.matchMedia` 在 jsdom 中未实现。
 - 三个列表面板（RankingPanel / TopListPanel / SingingListPanel）遵循同一条规则：小于 `sm` 时，一行放不下的操作控件下沉到文字下方并缩进对齐文字列；`sm` 及以上保持原有的左文右操作布局。细节见 12.3–12.5。
@@ -1080,7 +1080,7 @@ E2E 不复用已有服务器；3101 被占用时应先定位占用者。
 
 | 日期 | 代码基线 | 内容 |
 | --- | --- | --- |
-| 2026-09-15 | PR #5 branch on the PR #4 baseline | 实现 DESIGN-004：小于 600px 时主导航下沉为固定底栏，600px 及以上保持顶部 Tab；目的地表抽到 `apps/web/src/navigation.ts` 由两个导航共用；内容区与 Snackbar 为底栏让出空间。 |
+| 2026-09-15 | PR #5 branch after `7f3df89` | 实现并验证 DESIGN-004：小于 600px 时主导航下沉为固定底栏，600px 及以上保持顶部 Tab；目的地表由两个导航共用；内容区与 Snackbar 为底栏让出空间；确认保留匿名手机三项、桌面仅 Ranking 的差异。 |
 | 2026-09-15 | PR #3 branch after `aa479f9` | 使用隔离临时数据库重新验证 DESIGN-006：typecheck、API 11/11、Web 28/28、production build 和 Playwright 2/2 均通过。 |
 | 2026-09-14 | 6b215be + 9717ff3 | 将 main 的跨平台启动、DESIGN-002、测试超时、端口、审计与 bundle 文档基线同步到 DESIGN-006 开发分支 |
 | 2026-09-13 | 6b215be | 实现 DESIGN-006：三个列表面板的响应式布局；榜单行操作从 `secondaryAction` 改为正常流并在 xs 下沉到文字下方，两个个人面板补上断点，新增 `e2e/responsive.spec.ts` 响应式回归 |
