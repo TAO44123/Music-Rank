@@ -7,8 +7,8 @@
 | 文档性质 | 持续维护的工程实现说明 |
 | 目标读者 | 负责开发、测试、排障和后续维护的工程师 |
 | 当前产品版本 | Version 1 + 认证扩展，本地多用户应用 |
-| 最后更新日期 | 2026-09-14（America/New_York） |
-| 最后核对的代码提交 | 75424ee（两个 PR 合并及 Web 测试稳定性修复） |
+| 最后更新日期 | 2026-09-15（America/New_York） |
+| 最后核对的代码提交 | PR #3 分支（DESIGN-006；`aa479f9` 合入 main 基线 `9717ff3`） |
 | 事实来源 | 当前仓库代码、配置、迁移和自动化测试 |
 
 这份文档描述系统现在如何工作。首次在本机配置和运行项目时，先执行 [LOCAL_FIRST_RUN_GUIDE.md](LOCAL_FIRST_RUN_GUIDE.md)；产品目标和范围以 [PROJECT_SPEC_ZH.md](PROJECT_SPEC_ZH.md) 与 [PROJECT_SPEC_EN.md](PROJECT_SPEC_EN.md) 为准；历史交接信息以 [IMPLEMENTATION_HANDOFF.md](IMPLEMENTATION_HANDOFF.md) 和 [SESSION_HANDOFF.md](SESSION_HANDOFF.md) 为准。若文档与代码不一致，应先核对代码和测试，再更新本文档。
@@ -764,7 +764,11 @@ DESIGN-002 起，用户可见文案统一使用 Practice Library：Tab 名称、
 - Clear 只清除歌手和年份，不清除搜索词。
 - 对 API 返回的过滤后 entries 做每页 25 条的客户端分页。
 - Top 10 已满时禁用尚未加入歌曲的 Add Top 10。
-- 操作按钮使用固定宽度保持行对齐。
+- 行操作按钮位于正常文档流中，不使用 MUI `secondaryAction`。该插槽是绝对定位的，不占布局空间，行文字会直接渲染到按钮下面。
+- `sm` 及以上：文字在左、按钮在右，两个按钮保持 144px / 164px 固定宽度以保证跨行对齐。
+- 小于 `sm`：按钮整体下沉到文字下方，左缩进 46px（名次列 34px + 行间距 12px）与标题对齐，并用 `flex: 1` 等分行宽。
+- 文字列使用 `minWidth: 0` 才能在 flex 容器内收缩；缺少它会让文字列保持内容宽度并把按钮挤出屏幕。
+- Practice 按钮文案有长短两套（`Practice` / `Add Practice`、`In Library` / `In Practice Library`），用 `sx` 断点切换 `display`，与 TabNav 同一套做法。隐藏的一套不参与可访问名称计算。
 
 ### 12.4 TopListPanel
 
@@ -773,6 +777,9 @@ DESIGN-002 起，用户可见文案统一使用 Practice Library：Tab 名称、
 - 支持拖放、键盘排序，以及独立的上移/下移按钮。
 - 每次重排向 API 提交完整 orderedSongIds。
 - 标题下方通过 statusLabel 插槽显示当前 Public/Private 小标签；右侧只保留数量和紧凑操作按钮。
+- 小于 `sm` 时行拆成两段：第一段是名次、拖拽柄、歌名和歌手，第二段是上移/下移/移除三个按钮，缩进 28px 对齐文字。三个按钮约占 130px，不下沉会把 320px 下的文字列压到 100px 以内。
+- 拖拽柄在所有断点都留在标题旁边，它是这一行的抓取点而不是对这一行的操作。
+- 卡片内边距和标题栏方向随断点变化（`p: { xs: 1.75, sm: 2.5 }`、标题栏在 xs 竖排）。
 
 ### 12.5 SingingListPanel
 
@@ -784,6 +791,9 @@ DESIGN-002 起，用户可见文案统一使用 Practice Library：Tab 名称、
 - 备注输入使用 multiline standard TextField，HTML maxLength 为 300。
 - 状态和 Top 10 成员资格互相独立。
 - 与 TopListPanel 一样，标题下方显示可见性标签，数量和操作按钮保持在标题区右侧。
+- 行网格在小于 `sm` 时从 `4px minmax(0, 1fr) auto` 降为两列，状态 Chip 与编辑/删除按钮移到第二网格行并跨到文字列；状态色条用 `gridRow: '1 / -1'` 纵贯两行。
+- 展开的编辑器在小于 `sm` 时去掉 `ml: 2` 缩进并收紧内边距。
+- 行列表带 `aria-label="My Practice Library"`，与另外两个面板的列表标签一致。
 
 ### 12.6 认证与公开页
 
@@ -801,9 +811,13 @@ DESIGN-002 起，用户可见文案统一使用 Practice Library：Tab 名称、
 - TabNav 始终使用 MUI `Tabs` 的 `fullWidth` 变体；`sm` 断点通过 `flex: '0 0 auto'` 让整行收缩为自然宽度并左对齐。同一个 Tabs 实例贯穿所有断点，不做变体切换，避免 Tab 列表重新挂载。
 - Tab 文案有长短两套，同时存在于 DOM 中，由 `sx` 断点切换 `display`：小于 `sm` 显示 Ranking / Personal / Practice，`sm` 及以上显示 The Ranking / Personal Ranking / Practice Library。不使用 `useMediaQuery`，它首帧返回 false 会导致桌面端闪一下短文案。
 - TabNav 容器高度固定为 52px，Session 解析完成后另外两个 Tab 出现时不会推动下方内容。
-- Ranking 行操作在 xs 下纵向排列，在 sm 及以上横向排列。
+- 唯一断点是 MUI 的 `sm`（600px），全部通过 `sx` 的断点对象表达，不使用 `useMediaQuery`。
+- 三个列表面板（RankingPanel / TopListPanel / SingingListPanel）遵循同一条规则：小于 `sm` 时，一行放不下的操作控件下沉到文字下方并缩进对齐文字列；`sm` 及以上保持原有的左文右操作布局。细节见 12.3–12.5。
+- 行文字一律换行，不做省略号截断。操作控件进入正常流之后没有再隐藏歌名的理由。
 - Practice Library 状态 Chip 允许换行。
-- 375px 实测：三个 Tab 等宽各约 114px，三个页面横向溢出均为 0。
+- 顶栏（Brand）高度和字号随断点变化：`minHeight: { xs: 56, sm: 66 }`、`fontSize: { xs: '1.25rem', sm: '1.45rem' }`；副标题在小于 `sm` 时隐藏。
+- 顶栏账户按钮必须限宽并省略号截断（`minWidth: 0` + `maxWidth: { xs: 150, sm: 320 }`）。用户名是任意长度且不可断行的文本，按钮作为 flex item 默认 `min-width: auto` 不会收缩，28 个字符的用户名就能把 320px 视口的 `scrollWidth` 顶到 331px。顶栏在每个页面都渲染，所以这一个元素会让**所有**页面横向滚动。截断只影响绘制的文本，可访问名称仍然是完整用户名。
+- 断点行为由 `e2e/responsive.spec.ts` 验证，不由组件测试验证：Vitest 跑在 jsdom 上，不求值 media query，`sx` 断点对它不可见。
 
 ### 12.8 视觉与无障碍
 
@@ -868,7 +882,14 @@ Vitest 保持文件级并行。`apps/web/vite.config.ts` 把单测试超时设�
 
 ### 14.4 Playwright E2E
 
-当前 1 条关键流程覆盖：匿名时两个个人 Tab 不存在、注册、退出、密码登录后 Tab 出现、搜索写入 URL Search 参数、添加 Top 10 与 Practice Library、经 Tab 跳转到 `/personal` 和 `/practice`、设置状态与私密备注、刷新后仍停在 `/practice`、通过锁按钮分别公开列表并验证标题下方 Public 标签、后退回 `/personal` 且选中态正确、登出后落在 `/` 且不弹登录框、匿名深链接 `/personal` 被重定向并弹出登录框，以及匿名读取公开页时无 Tab 栏且看不到备注。
+当前 2 条用例。第 1 条是关键流程覆盖：匿名时两个个人 Tab 不存在、注册、退出、密码登录后 Tab 出现、搜索写入 URL Search 参数、添加 Top 10 与 Practice Library、经 Tab 跳转到 `/personal` 和 `/practice`、设置状态与私密备注、刷新后仍停在 `/practice`、通过锁按钮分别公开列表并验证标题下方 Public 标签、后退回 `/personal` 且选中态正确、登出后落在 `/` 且不弹登录框、匿名深链接 `/personal` 被重定向并弹出登录框，以及匿名读取公开页时无 Tab 栏且看不到备注。
+
+第 2 条是响应式回归 `e2e/responsive.spec.ts`：注册用户后把种子里最宽的一行（`纤夫的爱 / 尹相杰、于文华 · 1993`）放进两个个人列表并写入一条长备注，然后在 320 / 375 / 414 / 600 / 900 五个视口下依次访问 `/`、`/personal`、`/practice`，逐项断言页面无横向溢出、且行内没有任何文字压在控件下面。
+
+这条用例有两个容易写错的地方，实现时都踩过：
+
+- **必须量文字的字形盒，不能量容器。** 用 `document.createRange()` 逐个 text node 取 `getClientRects()`。文字容器会铺满整行，即使里面的字已经钻到按钮底下，容器矩形看上去仍然是干净的，量容器会得到假阴性。
+- **必须等列表行渲染出来再量。** `page.goto` 返回时 SPA 还没渲染任何 `li`，此时量到的是用户看不到的中间态：行数为 0 会让碰撞断言空过，横向溢出也会给出与最终布局无关的数值。用例因此先等首行可见，再做全部测量，并额外断言"量到的行数和文字盒数量大于 0"，让"什么都没量到"无法伪装成通过。
 
 playwright.config.ts 使用端口 3101、production 形态 Express 服务和 reuseExistingServer: false。启动前执行 build、Migration 和公共 Seed，并把 APP_ORIGIN 指向 3101。测试注册带时间戳的唯一用户，结束后级联删除该账户；不影响 demo 用户。
 
@@ -1053,7 +1074,9 @@ E2E 不复用已有服务器；3101 被占用时应先定位占用者。
 
 | 日期 | 代码基线 | 内容 |
 | --- | --- | --- |
-| 2026-09-14 | 75424ee | 同步 PR #1/#2 合并后的真实基线：跨平台 production 启动、DESIGN-002 路由、28 项 Web 测试、测试超时策略、端口冲突说明、审计与 bundle 基线 |
+| 2026-09-15 | PR #3 branch after `aa479f9` | 使用隔离临时数据库重新验证 DESIGN-006：typecheck、API 11/11、Web 28/28、production build 和 Playwright 2/2 均通过。 |
+| 2026-09-14 | 6b215be + 9717ff3 | 将 main 的跨平台启动、DESIGN-002、测试超时、端口、审计与 bundle 文档基线同步到 DESIGN-006 开发分支 |
+| 2026-09-13 | 6b215be | 实现 DESIGN-006：三个列表面板的响应式布局；榜单行操作从 `secondaryAction` 改为正常流并在 xs 下沉到文字下方，两个个人面板补上断点，新增 `e2e/responsive.spec.ts` 响应式回归 |
 | 2026-09-11 | 91bca4b / 75424ee | 实现 DESIGN-002：TanStack Router 客户端路由、三 Tab 响应式导航、受守卫的 `/personal` 与 `/practice`、榜单筛选进 URL Search 参数、Singing List 更名为 Practice Library；随后稳定并行 Web 测试 |
 | 2026-09-10 | 40b8ff1 之后的工作树 | 将可见性选择框改为开/闭锁按钮与标题下状态标签，增加原生分享/复制降级，并隔离 signed-out 与 personal Query Key |
 | 2026-09-10 | 40b8ff1 | 实现用户名/密码认证、数据库 Session、多用户隔离、Public/Private 个人榜单、公开资料页和未来 SSO 边界 |

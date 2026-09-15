@@ -2,7 +2,7 @@
 
 ## 1. Current Status
 
-The authentication and list-sharing iteration, the compact visibility-control refinement, and DESIGN-002 tab navigation/client routing are implemented, verified, merged, and pushed to `main`. The production-shaped start command is now cross-platform. The post-merge Web test timing fix is also committed and pushed. There is no remaining implementation work in the approved feature scope.
+The authentication and list-sharing iteration, the compact visibility-control refinement, and DESIGN-002 tab navigation/client routing are implemented, verified, merged, and pushed to `main`. The production-shaped start command is cross-platform, and the post-merge Web test timing fix is committed and pushed. PR #3 delivers the implemented and freshly verified DESIGN-006 responsive list-panel layouts; use the live GitHub state to determine whether the PR has been merged.
 
 The approved behavior is:
 
@@ -18,6 +18,7 @@ The approved behavior is:
 - Authenticated users see The Ranking, Personal Ranking, and Practice Library tabs; anonymous users see only The Ranking.
 - Ranking filters are validated URL search parameters, so they survive refresh and browser history navigation.
 - User-facing copy now says Practice Library; database, API, error-code, and component identifiers retain the existing `singing` terminology.
+- DESIGN-006 keeps RankingPanel, TopListPanel, SingingListPanel, and the account header usable without horizontal overflow from 320px upward. Narrow rows move actions below text; desktop layouts remain side by side.
 - Future SSO is supported by the separation between users, credentials, and sessions, but no SSO provider tables or routes are part of this iteration.
 
 The full decisions and security model are recorded in [AUTHENTICATION_DESIGN.md](AUTHENTICATION_DESIGN.md).
@@ -26,12 +27,13 @@ The full decisions and security model are recorded in [AUTHENTICATION_DESIGN.md]
 
 At the time of this update:
 
-- Branch: `main`.
-- Current committed HEAD: `75424ee` — `test: stabilize web suite under parallel load`.
-- `main` and `origin/main` were synchronized and the working tree was clean before this documentation update.
+- Branch: `feature/design-006-responsive-panels`, tracking `origin/feature/design-006-responsive-panels`.
+- The development branch's pre-sync tip is `6b215be`; its original base was the pushed `main` commit `75424ee`.
+- Local and remote `main` are synchronized at documentation refresh `9717ff3`.
+- Merge commit `aa479f9` combines PR #3 tip `6b215be` with `main` at `9717ff3`; the latest documentation commit sits on top of that verified merge. Inspect `git status --short --branch` and `git log` for the exact current HEAD and live ahead/behind counts.
 - PR #2 was merged as `364cd26`; PR #1 was merged as `91bca4b`; the test-stability follow-up is `75424ee`.
 - The pre-merge runnable snapshot remains available locally and remotely as `codex/pre-pr-demo-backup-2026-09-11` at `4dcabdf`.
-- This handoff and the engineering-guide refresh are intentionally uncommitted until the user authorizes a commit or push.
+- On 2026-09-15 the user authorized pushing the synchronized branch and handling PR #3. This does not authorize merging PR #4, PR #5, or the separate ranking-catalog branch.
 
 Preserve all working-tree changes. Do not reset or discard them. Use `git status --short --branch` for the live file list rather than relying on a copied snapshot here.
 
@@ -68,6 +70,7 @@ Preserve all working-tree changes. Do not reset or discard them. Use `git status
 - Ranking text, artist, and year filters are validated as URL search parameters and update with history replacement.
 - `/u/:username` is the shareable public profile route.
 - On logout or an authentication failure, in-flight personal queries are cancelled, cached private data is erased, and personal query entries are removed after observers detach.
+- DESIGN-006 moves narrow-screen list actions into normal document flow, adds responsive panel padding/header layouts, and truncates only the painted account-button username while preserving its full accessible name.
 
 ### Local runtime
 
@@ -90,11 +93,21 @@ The final post-merge verification results on September 11, 2026 were:
 
 - API integration tests: 11 passing.
 - Web tests: 10 files and 28 tests passing; the complete Web suite passed three consecutive parallel runs after the timing fix.
-- Playwright E2E: 1 passing.
+- Playwright E2E on `main`: 1 passing. The DESIGN-006 branch adds `e2e/responsive.spec.ts`, bringing the development branch to 2 E2E cases.
 - TypeScript typecheck and production build: passing.
 - Production-shaped startup, `/api/health`, database health, and history fallback for `/personal`: passing.
 - PR #2 and PR #1 merge simulation and actual merge: no conflicts.
 - No CRLF, Windows-only path, or executable-mode pollution was found in either PR.
+
+Fresh PR #3 verification on September 15, 2026 used an isolated temporary database because the normal local database and ignored build artifacts belong to the newer ranking-catalog branch:
+
+- `npm run typecheck`: passed.
+- API integration tests: 11/11 passed.
+- Web tests: 10 files and 28/28 passed.
+- Database workspace: no source tests in this branch; ignored `dist/**` artifacts were excluded.
+- Production build: passed; the main asset was 818.17 KB (255.26 KB gzip).
+- Playwright E2E: 2/2 passed, including the 320–900px responsive regression.
+- The first normal-database run was invalidated by the newer local schema/data and ignored artifacts; it was not treated as a product failure.
 
 The Web test configuration now uses a 10-second per-test timeout, and the ranking-loading assertion uses a targeted 5-second async wait. This keeps normal file parallelism while avoiding load-sensitive failures observed with the default limits.
 
@@ -104,9 +117,9 @@ The production build retains a bundle-size warning: the main JavaScript asset is
 
 ### Current iteration
 
-- No approved feature implementation is pending.
-- The current documentation refresh is the only expected working-tree change.
-- Do not commit or push these documentation changes unless the user explicitly requests it.
+- DESIGN-006 is synchronized with `main` through `aa479f9` and has passed its fresh acceptance gate.
+- PR #4 and PR #5 remain stacked on the DESIGN-006 branch. Preserve this branch after handling PR #3 so their bases can be retargeted safely.
+- Handle PR #4 next. Before PR #5, resolve its documented anonymous desktop-versus-mobile navigation inconsistency.
 
 ### Near-term engineering maintenance
 
@@ -148,9 +161,9 @@ Start by reading this document, [AUTHENTICATION_DESIGN.md](AUTHENTICATION_DESIGN
 Report these facts to the user before taking further action:
 
 - Authentication, direct-link list sharing, compact visibility controls, and DESIGN-002 routing are implemented and merged to `main`.
-- The current committed baseline is `75424ee`; the pre-merge demo fallback is `codex/pre-pr-demo-backup-2026-09-11` at `4dcabdf`.
-- The post-merge baseline has 11 API tests, 28 Web tests, and 1 Playwright flow passing.
-- The current iteration has no pending approved feature task; only the documentation refresh and maintenance backlog remain.
+- Local and remote `main` were synchronized at `9717ff3` before PR #3 delivery. The pre-merge demo fallback is `codex/pre-pr-demo-backup-2026-09-11` at `4dcabdf`.
+- The development branch `feature/design-006-responsive-panels` adds responsive panels and a second Playwright regression test on top of main; `aa479f9` records its main synchronization.
+- PR #3 passed fresh typecheck, API 11/11, Web 28/28, build, and Playwright 2/2 verification on 2026-09-15. Use live Git/GitHub state for its current merge status.
 - Friends and SSO are future candidates only and are not authorized implementation work.
 
 Ask the user which next action they want: investigate acceptance feedback, prepare a commit/push, discuss the next version, or another explicitly scoped task. If a requirement, target, or authorization is unclear, ask the user instead of guessing. Do not create friendship schema, endpoints, or UI until the unresolved decisions in Section 5 have been answered and implementation has been explicitly approved.
