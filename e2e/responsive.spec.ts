@@ -98,6 +98,16 @@ async function horizontalOverflow(page: Page): Promise<{ over: number; offenders
   });
 }
 
+// Which navigation surface is live is a pure media-query outcome, so it can only
+// be verified in a real browser. Both directions are asserted at every viewport:
+// checking only "the bottom bar is visible below 600px" would pass a breakpoint
+// edit that rendered both surfaces at once.
+async function navigationSurfaces(page: Page) {
+  const bottom = page.getByRole('navigation', { name: 'Primary bottom' });
+  const tabs = page.getByRole('navigation', { name: 'Primary', exact: true });
+  return { bottomVisible: await bottom.isVisible(), tabsVisible: await tabs.isVisible() };
+}
+
 let username = '';
 
 test.afterEach(async () => {
@@ -143,6 +153,13 @@ test('keeps every list readable and inside the viewport from 320px up', async ({
     await test.step(viewport.label, async () => {
       await page.setViewportSize({ width: viewport.width, height: viewport.height });
 
+      await page.goto('/');
+      await expect(page.getByRole('list', { name: 'Ranked songs' }).getByRole('listitem').first()).toBeVisible();
+      const surfaces = await navigationSurfaces(page);
+      const phone = viewport.width < 600;
+      expect(surfaces.bottomVisible, `bottom bar visibility is wrong at ${viewport.label}`).toBe(phone);
+      expect(surfaces.tabsVisible, `tab bar visibility is wrong at ${viewport.label}`).toBe(!phone);
+
       for (const { path, list } of lists) {
         await page.goto(path);
 
@@ -156,7 +173,63 @@ test('keeps every list readable and inside the viewport from 320px up', async ({
         const overflow = await horizontalOverflow(page);
         const offenders = overflow.offenders.map((entry) => `  ${entry}`).join('\n');
         expect(overflow.over, `${path} overflows horizontally at ${viewport.label} by ${overflow.over}px\n${offenders}`).toBeLessThanOrEqual(0);
+
+        if (phone) {
+          const bar = page.getByRole('navigation', { name: 'Primary bottom' });
+          const barBox = (await bar.boundingBox())!;
+
+          // Scrolling to the end is the property the top tab bar lacks: it leaves
+          // the viewport, the fixed bar does not.
+          await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+          const afterScroll = (await bar.boundingBox())!;
+          expect(Math.round(afterScroll.y), `bottom bar left the viewport after scrolling on ${path} at ${viewport.label}`).toBe(Math.round(barBox.y));
+
+          // The last row must clear the bar. Element boxes are not enough here
+          // for the reason stated at the top of this file — measure the glyphs.
+          const lastRowIntrusion = await page.getByRole('list', { name: list }).evaluate((root, barTop) => {
+            const rows = root.querySelectorAll('li');
+            const last = rows[rows.length - 1];
+            if (!last) return -1;
+            let lowest = -Infinity;
+            const walker = document.createTreeWalker(last, NodeFilter.SHOW_TEXT);
+            for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+              if (!node.nodeValue?.trim()) continue;
+              const range = document.createRange();
+              range.selectNodeContents(node);
+              for (const rect of Array.from(range.getClientRects())) {
+                if (rect.height > 0) lowest = Math.max(lowest, rect.bottom);
+              }
+            }
+            return lowest === -Infinity ? -1 : lowest - barTop;
+          }, barBox.y);
+          expect(lastRowIntrusion, `the last row on ${path} runs under the bottom bar at ${viewport.label}`).toBeLessThanOrEqual(1);
+          await page.evaluate(() => window.scrollTo(0, 0));
+        }
       }
     });
   }
+
+  // DESIGN-004 §6.2 item 4. The snackbar anchors to the same viewport edge the
+  // bar is pinned to, so without the offset in AppShellContext every
+  // notification would render underneath it. Runs last: it mutates the Top 10,
+  // which the viewport loop above reads.
+  await test.step('a notification clears the bottom bar at 320px', async () => {
+    await page.setViewportSize({ width: 320, height: 720 });
+    await page.goto('/');
+
+    // `disabled: false` is load-bearing. An already-added row reads "In Top 10",
+    // but a row that cannot be added because the Top 10 is full still reads
+    // "Add Top 10" and is merely disabled (RankingPanel.tsx:109), so matching on
+    // the label alone can select a button that will never accept a click.
+    const addable = page.getByRole('list', { name: 'Ranked songs' })
+      .getByRole('button', { name: 'Add Top 10', disabled: false }).first();
+    await expect(addable, 'no row left that can be added to the Top 10').toBeVisible();
+    await addable.click();
+
+    const alert = page.getByRole('alert');
+    await expect(alert).toBeVisible();
+    const alertBox = (await alert.boundingBox())!;
+    const barBox = (await page.getByRole('navigation', { name: 'Primary bottom' }).boundingBox())!;
+    expect(alertBox.y + alertBox.height, 'the notification renders under the bottom bar at 320px').toBeLessThanOrEqual(barBox.y);
+  });
 });

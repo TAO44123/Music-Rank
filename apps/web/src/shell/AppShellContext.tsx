@@ -1,9 +1,11 @@
-import { Alert, Button, CircularProgress, Snackbar, Stack } from '@mui/material';
+import { Alert, Box, Button, CircularProgress, Snackbar, Stack } from '@mui/material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
 import { ApiError, request, type AuthSession, type AuthUser, type ListSettings, type ListVisibility } from '../api';
 import { AccountActions } from '../components/AccountActions';
 import { AuthDialog, type AuthMode } from '../components/AuthDialog';
+import { BottomNav } from '../components/BottomNav';
+import { bottomNavHeight } from '../navigation';
 import { Brand } from '../components/Brand';
 import { TabNav } from '../components/TabNav';
 import { useRouter } from '@tanstack/react-router';
@@ -139,8 +141,13 @@ export function AppShellProvider({ children, chrome = true }: { children: ReactN
   return <AppShellContext.Provider value={value}>
     {chrome && <Brand action={accountAction} />}
     {chrome && <TabNav />}
-    {children}
+    {/* The bar is fixed, so it occupies no layout space. Without this the last
+        row of every list renders underneath it — the same failure DESIGN-006
+        §2.1 fixed for row actions. env() clears the home indicator on devices
+        that have one and resolves to 0px on those that do not. */}
+    <Box sx={{ pb: chrome ? { xs: `calc(${bottomNavHeight}px + env(safe-area-inset-bottom))`, sm: 0 } : 0 }}>{children}</Box>
+    {chrome && <BottomNav />}
     <AuthDialog open={authDialog.open} initialMode={authDialog.mode} isPending={authMutation.isPending} error={authMutation.error instanceof ApiError ? authMutation.error.message : authMutation.isError ? 'Something went wrong. Please try again.' : null} onClose={() => setAuthDialog((current) => ({ ...current, open: false }))} onSubmit={(input) => authMutation.mutate(input)} />
-    <Snackbar open={Boolean(notice)} autoHideDuration={3500} onClose={() => setNotice(null)} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}><Alert severity={notice?.severity} onClose={() => setNotice(null)} variant="filled">{notice?.message}</Alert></Snackbar>
+    <Snackbar open={Boolean(notice)} autoHideDuration={3500} onClose={() => setNotice(null)} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }} sx={{ bottom: chrome ? { xs: `calc(${bottomNavHeight}px + env(safe-area-inset-bottom) + 8px)`, sm: 24 } : undefined }}><Alert severity={notice?.severity} onClose={() => setNotice(null)} variant="filled">{notice?.message}</Alert></Snackbar>
   </AppShellContext.Provider>;
 }

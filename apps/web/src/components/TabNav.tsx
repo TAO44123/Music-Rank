@@ -1,12 +1,7 @@
 import { Box, Container, Tab, Tabs } from '@mui/material';
 import { Link, useRouterState } from '@tanstack/react-router';
+import { destinations } from '../navigation';
 import { useAppShell } from '../shell/AppShellContext';
-
-const tabs = [
-  { to: '/', short: 'Ranking', full: 'The Ranking', personal: false },
-  { to: '/personal', short: 'Personal', full: 'Personal Ranking', personal: true },
-  { to: '/practice', short: 'Practice', full: 'Practice Library', personal: true }
-] as const;
 
 function Label({ short, full }: { short: string; full: string }) {
   return <>
@@ -18,10 +13,10 @@ function Label({ short, full }: { short: string; full: string }) {
 export function TabNav() {
   const { user } = useAppShell();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
-  const visible = tabs.filter((tab) => !tab.personal || user);
-  const current = visible.some((tab) => tab.to === pathname) ? pathname : '/';
+  const visible = destinations.filter((destination) => !destination.personal || user);
+  const current = visible.some((destination) => destination.to === pathname) ? pathname : '/';
 
-  return <Box component="nav" aria-label="Primary" sx={{ borderBottom: 1, borderColor: 'divider', bgcolor: 'background.default' }}>
+  return <Box component="nav" aria-label="Primary" sx={{ display: { xs: 'none', sm: 'block' }, borderBottom: 1, borderColor: 'divider', bgcolor: 'background.default' }}>
     <Container maxWidth="xl">
       <Tabs
         value={current}
@@ -34,7 +29,7 @@ export function TabNav() {
           '& .MuiTab-root': { minHeight: 52, textTransform: 'none', fontWeight: 700, flex: { sm: '0 0 auto' }, px: { sm: 2.5 } }
         }}
       >
-        {visible.map((tab) => <Tab key={tab.to} value={tab.to} component={Link} to={tab.to} label={<Label short={tab.short} full={tab.full} />} />)}
+        {visible.map((destination) => <Tab key={destination.to} value={destination.to} component={Link} to={destination.to} label={<Label short={destination.short} full={destination.full} />} />)}
       </Tabs>
     </Container>
   </Box>;

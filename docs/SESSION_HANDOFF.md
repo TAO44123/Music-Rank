@@ -2,7 +2,7 @@
 
 ## 1. Current Status
 
-The authentication and list-sharing iteration, the compact visibility-control refinement, and DESIGN-002 tab navigation/client routing are implemented, verified, merged, and pushed to `main`. The production-shaped start command is cross-platform, and the post-merge Web test timing fix is committed and pushed. PR #3 delivers the implemented and freshly verified DESIGN-006 responsive list-panel layouts; use the live GitHub state to determine whether the PR has been merged.
+The authentication and list-sharing iteration, the compact visibility-control refinement, DESIGN-002 routing, DESIGN-006 responsive panels, and the PR #4 account-label regression guard are implemented, verified, merged, and pushed to `main`. PR #5 implements DESIGN-004 mobile bottom navigation, is synchronized with the PR #4 baseline, and has passed fresh verification before delivery.
 
 The approved behavior is:
 
@@ -15,7 +15,9 @@ The approved behavior is:
 - Public Singing List responses omit private notes.
 - Existing demo data remains attached to the credential-free demo user and is private.
 - TanStack Router owns the code-based route tree: `/`, guarded `/personal`, guarded `/practice`, and public `/u/:username`.
-- Authenticated users see The Ranking, Personal Ranking, and Practice Library tabs; anonymous users see only The Ranking.
+- At 600px and above, authenticated users see The Ranking, Personal Ranking, and Practice Library in the top tab bar; anonymous users see only The Ranking.
+- Below 600px, all visitors see the same three fixed bottom-navigation destinations. For an anonymous visitor, Personal and Practice are buttons that open sign-in without changing the URL.
+- The anonymous destination-count difference between phone and desktop is intentional for this release: on 2026-09-15 the user accepted it as non-blocking and asked that it remain unchanged.
 - Ranking filters are validated URL search parameters, so they survive refresh and browser history navigation.
 - User-facing copy now says Practice Library; database, API, error-code, and component identifiers retain the existing `singing` terminology.
 - DESIGN-006 keeps RankingPanel, TopListPanel, SingingListPanel, and the account header usable without horizontal overflow from 320px upward. Narrow rows move actions below text; desktop layouts remain side by side.
@@ -27,13 +29,13 @@ The full decisions and security model are recorded in [AUTHENTICATION_DESIGN.md]
 
 At the time of this update:
 
-- Branch: `feature/design-006-responsive-panels`, tracking `origin/feature/design-006-responsive-panels`.
-- The development branch's pre-sync tip is `6b215be`; its original base was the pushed `main` commit `75424ee`.
-- Local and remote `main` are synchronized at documentation refresh `9717ff3`.
-- Merge commit `aa479f9` combines PR #3 tip `6b215be` with `main` at `9717ff3`; the latest documentation commit sits on top of that verified merge. Inspect `git status --short --branch` and `git log` for the exact current HEAD and live ahead/behind counts.
+- Branch: `feature/design-004-mobile-bottom-nav`, tracking `origin/feature/design-004-mobile-bottom-nav`; the local branch is ready for its delivery push.
+- Local and remote `main` are synchronized at `47efffa`, which merges PR #4's account-label regression into `main`.
+- PR #3 was merged as `142a7d4`. PR #4 was merged into its stacked base as `89bc6bd` and then into `main` as `47efffa`.
+- Merge commit `7f3df89` synchronizes PR #5 with the latest `feature/design-006-responsive-panels` base, including PR #4. Inspect `git status --short --branch` and `git log` for the exact live state after delivery.
 - PR #2 was merged as `364cd26`; PR #1 was merged as `91bca4b`; the test-stability follow-up is `75424ee`.
 - The pre-merge runnable snapshot remains available locally and remotely as `codex/pre-pr-demo-backup-2026-09-11` at `4dcabdf`.
-- On 2026-09-15 the user authorized pushing the synchronized branch and handling PR #3. This does not authorize merging PR #4, PR #5, or the separate ranking-catalog branch.
+- On 2026-09-15 the user authorized handling and pushing PR #3, PR #4, and PR #5. The separate `feature/90s-ranking-pilot` branch is pushed at `d2ef428` but is not authorized for merge as part of this PR-delivery task.
 
 Preserve all working-tree changes. Do not reset or discard them. Use `git status --short --branch` for the live file list rather than relying on a copied snapshot here.
 
@@ -71,6 +73,7 @@ Preserve all working-tree changes. Do not reset or discard them. Use `git status
 - `/u/:username` is the shareable public profile route.
 - On logout or an authentication failure, in-flight personal queries are cancelled, cached private data is erased, and personal query entries are removed after observers detach.
 - DESIGN-006 moves narrow-screen list actions into normal document flow, adds responsive panel padding/header layouts, and truncates only the painted account-button username while preserving its full accessible name.
+- DESIGN-004 moves primary navigation to a fixed bottom bar below 600px, reserves content and Snackbar clearance, and keeps the existing top tab bar at 600px and above.
 
 ### Local runtime
 
@@ -109,6 +112,13 @@ Fresh PR #3 verification on September 15, 2026 used an isolated temporary databa
 - Playwright E2E: 2/2 passed, including the 320–900px responsive regression.
 - The first normal-database run was invalidated by the newer local schema/data and ignored artifacts; it was not treated as a product failure.
 
+Fresh PR #4 and PR #5 verification on September 15, 2026 used the same isolated-database approach:
+
+- PR #4: typecheck passed and Playwright passed 3/3, covering the account-label pixel guard, the primary flow, and responsive behavior.
+- PR #5: typecheck passed; API integration tests passed 11/11; Web tests passed 33/33 across 11 files; the database workspace had no source tests; and the production build passed.
+- PR #5 Playwright passed 3/3, including the DESIGN-004 bottom-bar breakpoint, fixed positioning, content clearance, and notification-clearance assertions.
+- The PR #5 main asset was 822.18 KB (256.41 KB gzip). The existing bundle-size warning remains non-blocking.
+
 The Web test configuration now uses a 10-second per-test timeout, and the ranking-loading assertion uses a targeted 5-second async wait. This keeps normal file parallelism while avoiding load-sensitive failures observed with the default limits.
 
 The production build retains a bundle-size warning: the main JavaScript asset is approximately 816.64 KB (254.80 KB gzip). It does not fail the build. The npm audit baseline remains 6 findings (4 moderate, 2 high); the merged PRs did not add findings.
@@ -117,9 +127,9 @@ The production build retains a bundle-size warning: the main JavaScript asset is
 
 ### Current iteration
 
-- DESIGN-006 is synchronized with `main` through `aa479f9` and has passed its fresh acceptance gate.
-- PR #4 and PR #5 remain stacked on the DESIGN-006 branch. Preserve this branch after handling PR #3 so their bases can be retargeted safely.
-- Handle PR #4 next. Before PR #5, resolve its documented anonymous desktop-versus-mobile navigation inconsistency.
+- PR #3 and PR #4 are merged and pushed. PR #5 is synchronized with the PR #4 baseline through `7f3df89` and has passed its fresh acceptance gate.
+- Deliver PR #5 without changing the accepted anonymous navigation difference: phones show three items; desktop shows Ranking only.
+- After PR #5 is delivered, the next separate integration candidate is `feature/90s-ranking-pilot`. Rebase or merge it against the new `main` and rerun checks before merging, but do not treat this handoff as authorization to merge it.
 
 ### Near-term engineering maintenance
 
@@ -160,10 +170,11 @@ Start by reading this document, [AUTHENTICATION_DESIGN.md](AUTHENTICATION_DESIGN
 
 Report these facts to the user before taking further action:
 
-- Authentication, direct-link list sharing, compact visibility controls, and DESIGN-002 routing are implemented and merged to `main`.
-- Local and remote `main` were synchronized at `9717ff3` before PR #3 delivery. The pre-merge demo fallback is `codex/pre-pr-demo-backup-2026-09-11` at `4dcabdf`.
-- The development branch `feature/design-006-responsive-panels` adds responsive panels and a second Playwright regression test on top of main; `aa479f9` records its main synchronization.
-- PR #3 passed fresh typecheck, API 11/11, Web 28/28, build, and Playwright 2/2 verification on 2026-09-15. Use live Git/GitHub state for its current merge status.
+- Authentication, direct-link list sharing, compact visibility controls, DESIGN-002 routing, DESIGN-006 responsive panels, and the PR #4 account-label regression are merged to `main`.
+- `main` was synchronized at `47efffa` before PR #5 delivery. The pre-merge demo fallback is `codex/pre-pr-demo-backup-2026-09-11` at `4dcabdf`.
+- PR #5 passed fresh typecheck, API 11/11, Web 33/33, build, and Playwright 3/3 verification on 2026-09-15. Use live Git/GitHub state for its final merge commit after delivery.
+- The phone-versus-desktop anonymous navigation difference is an accepted release behavior, not an unresolved blocker.
+- `feature/90s-ranking-pilot` is pushed at `d2ef428` but remains unmerged.
 - Friends and SSO are future candidates only and are not authorized implementation work.
 
 Ask the user which next action they want: investigate acceptance feedback, prepare a commit/push, discuss the next version, or another explicitly scoped task. If a requirement, target, or authorization is unclear, ask the user instead of guessing. Do not create friendship schema, endpoints, or UI until the unresolved decisions in Section 5 have been answered and implementation has been explicitly approved.
