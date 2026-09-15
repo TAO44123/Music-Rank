@@ -14,7 +14,8 @@ export function TabNav() {
   const { user } = useAppShell();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const visible = destinations.filter((destination) => !destination.personal || user);
-  const current = visible.some((destination) => destination.to === pathname) ? pathname : '/';
+  const rankingPath = '/';
+  const current = pathname.startsWith('/rankings/') ? rankingPath : visible.some((destination) => destination.to === pathname) ? pathname : rankingPath;
 
   return <Box component="nav" aria-label="Primary" sx={{ display: { xs: 'none', sm: 'block' }, borderBottom: 1, borderColor: 'divider', bgcolor: 'background.default' }}>
     <Container maxWidth="xl">

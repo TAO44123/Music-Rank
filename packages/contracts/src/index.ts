@@ -35,6 +35,11 @@ export const updateListVisibilitySchema = z.object({
 
 export const songIdSchema = z.uuid();
 export const rankingIdSchema = z.uuid();
+export const rankingSlugSchema = z.string().trim().min(1).max(120).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'Invalid ranking slug');
+export const rankingDecades = ['80s', '90s'] as const;
+export const rankingDecadeSchema = z.enum(rankingDecades);
+export const rankingRegions = ['hk-tw', 'mainland'] as const;
+export const rankingRegionPathSchema = z.enum(rankingRegions);
 export const searchQuerySchema = z.string().trim().max(120).optional();
 export const artistFilterSchema = z.string().trim().max(120).optional();
 export const releaseYearFilterSchema = z.coerce.number().int().min(1800).max(2100).optional();
@@ -57,6 +62,8 @@ export const upsertSingingListItemSchema = z.object({
 });
 
 export type SingingStatus = z.infer<typeof singingStatusSchema>;
+export type RankingDecade = z.infer<typeof rankingDecadeSchema>;
+export type RankingRegionPath = z.infer<typeof rankingRegionPathSchema>;
 export type ListType = z.infer<typeof listTypeSchema>;
 export type ListVisibility = z.infer<typeof listVisibilitySchema>;
 export type RegisterInput = z.infer<typeof registerSchema>;

@@ -5,7 +5,7 @@ export const queryKeys = {
   session: ['auth-session'] as const,
   rankings: ['rankings'] as const,
   songs: ['songs'] as const,
-  ranking: (id: string, q: string, artist: string, releaseYear: number | 'ALL') => ['ranking', id, q, artist, releaseYear] as const,
+  ranking: (slug: string, q: string, artist: string, releaseYear: number | 'ALL') => ['ranking', slug, q, artist, releaseYear] as const,
   personal: ['personal'] as const,
   signedOut: (resource: string, detail?: string) => ['signed-out', resource, detail ?? 'all'] as const,
   topList: (userId: string) => ['personal', userId, 'top-list'] as const,
@@ -16,13 +16,13 @@ export const queryKeys = {
   publicSingingList: (username: string) => ['public-profile', username, 'singing-list'] as const
 };
 
-export function getRankingPath(rankingId: string, query: string, artist: string, releaseYear: number | 'ALL') {
+export function getRankingPath(slug: string, query: string, artist: string, releaseYear: number | 'ALL') {
   const parameters = new URLSearchParams();
   if (query) parameters.set('q', query);
   if (artist !== 'ALL') parameters.set('artist', artist);
   if (releaseYear !== 'ALL') parameters.set('releaseYear', String(releaseYear));
   const queryString = parameters.toString();
-  return `/api/rankings/${rankingId}${queryString ? `?${queryString}` : ''}`;
+  return `/api/rankings/${encodeURIComponent(slug)}${queryString ? `?${queryString}` : ''}`;
 }
 
 export const sessionQueryOptions = () => queryOptions({
@@ -41,10 +41,9 @@ export const songsQueryOptions = () => queryOptions({
   queryFn: () => request<Song[]>('/api/songs')
 });
 
-export const rankingQueryOptions = (rankingId: string | undefined, query: string, artist: string, releaseYear: number | 'ALL') => queryOptions({
-  queryKey: queryKeys.ranking(rankingId ?? 'pending', query, artist, releaseYear),
-  queryFn: () => request<RankingDetail>(getRankingPath(rankingId!, query, artist, releaseYear)),
-  enabled: Boolean(rankingId)
+export const rankingQueryOptions = (slug: string, query: string, artist: string, releaseYear: number | 'ALL') => queryOptions({
+  queryKey: queryKeys.ranking(slug, query, artist, releaseYear),
+  queryFn: () => request<RankingDetail>(getRankingPath(slug, query, artist, releaseYear))
 });
 
 export const topListQueryOptions = (user: AuthUser | null) => queryOptions({

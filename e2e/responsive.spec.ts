@@ -211,19 +211,19 @@ test('keeps every list readable and inside the viewport from 320px up', async ({
 
   // DESIGN-004 §6.2 item 4. The snackbar anchors to the same viewport edge the
   // bar is pinned to, so without the offset in AppShellContext every
-  // notification would render underneath it. Runs last: it mutates the Top 10,
-  // which the viewport loop above reads.
+  // notification would render underneath it. Runs last: it mutates a personal
+  // list that the viewport loop above reads.
   await test.step('a notification clears the bottom bar at 320px', async () => {
     await page.setViewportSize({ width: 320, height: 720 });
     await page.goto('/');
+    await expect(page.getByRole('button', { name: `@${username}` })).toBeVisible();
 
-    // `disabled: false` is load-bearing. An already-added row reads "In Top 10",
-    // but a row that cannot be added because the Top 10 is full still reads
-    // "Add Top 10" and is merely disabled (RankingPanel.tsx:109), so matching on
-    // the label alone can select a button that will never accept a click.
+    // Practice has no capacity state, so any button that still carries this
+    // label is actionable. Using it avoids coupling this Snackbar layout check
+    // to the Top 10 capacity rule.
     const addable = page.getByRole('list', { name: 'Ranked songs' })
-      .getByRole('button', { name: 'Add Top 10', disabled: false }).first();
-    await expect(addable, 'no row left that can be added to the Top 10').toBeVisible();
+      .getByRole('button', { name: 'Practice', exact: true, disabled: false }).first();
+    await expect(addable, 'no row left that can be added to the Practice Library').toBeVisible();
     await addable.click();
 
     const alert = page.getByRole('alert');

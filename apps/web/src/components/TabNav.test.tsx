@@ -22,10 +22,10 @@ function renderAt(path: string, session: { user: typeof user | null }) {
     path,
     fetch: (requestPath) => {
       if (requestPath === '/api/auth/session') return jsonResponse(session);
-      if (requestPath === '/api/rankings') return jsonResponse([{ id: 'ranking-1', title: '90s', era: null, sourceType: 'DEMO', description: null }]);
-      if (requestPath === '/api/songs' || requestPath === '/api/me/top-list' || requestPath === '/api/me/singing-list') return jsonResponse([]);
+      if (requestPath === '/api/rankings') return jsonResponse([{ id: 'ranking-1', title: '90s Demo Ranking', slug: '90s-demo-ranking', era: '1990s', decadeStart: 1990, decade: '90s', region: 'mainland', displayOrder: 4, sourceType: 'DEMO', description: null, hasSource: false }]);
+      if (requestPath === '/api/me/top-list' || requestPath === '/api/me/singing-list') return jsonResponse([]);
       if (requestPath === '/api/me/list-settings') return jsonResponse({ topList: 'PRIVATE', singingList: 'PRIVATE' });
-      if (requestPath.startsWith('/api/rankings/')) return jsonResponse({ id: 'ranking-1', title: '90s', era: null, sourceType: 'DEMO', description: null, sourceUrl: null, entries: [] });
+      if (requestPath.startsWith('/api/rankings/')) return jsonResponse({ id: 'ranking-1', title: '90s Demo Ranking', slug: '90s-demo-ranking', era: '1990s', decadeStart: 1990, decade: '90s', region: 'mainland', displayOrder: 4, sourceType: 'DEMO', description: null, hasSource: false, sourceUrl: null, songCount: 0, facets: { artists: [], releaseYears: [] }, entries: [] });
       throw new Error(`Unexpected request: ${requestPath}`);
     }
   });
@@ -35,14 +35,14 @@ function renderAt(path: string, session: { user: typeof user | null }) {
 
 describe('TabNav', () => {
   it('shows only the ranking tab to anonymous visitors', async () => {
-    renderAt('/', { user: null });
+    renderAt('/rankings/90s-demo-ranking', { user: null });
     expect(await screen.findByRole('tab', { name: /The Ranking/ })).toBeVisible();
     expect(screen.queryByRole('tab', { name: /Personal Ranking/ })).not.toBeInTheDocument();
     expect(screen.queryByRole('tab', { name: /Practice Library/ })).not.toBeInTheDocument();
   });
 
   it('shows all three tabs to an authenticated visitor', async () => {
-    renderAt('/', { user });
+    renderAt('/rankings/90s-demo-ranking', { user });
     expect(await screen.findByRole('tab', { name: /Personal Ranking/ })).toBeVisible();
     expect(screen.getByRole('tab', { name: /Practice Library/ })).toBeVisible();
   });
@@ -54,15 +54,16 @@ describe('TabNav', () => {
   });
 
   it('renders both the short and the full label for every tab', async () => {
-    renderAt('/', { user });
+    renderAt('/rankings/90s-demo-ranking', { user });
     const rankingTab = await screen.findByRole('tab', { name: /The Ranking/ });
     expect(rankingTab).toHaveTextContent('Ranking');
     expect(rankingTab).toHaveTextContent('The Ranking');
   });
 
   it('renders every tab as a real anchor so it can be opened in a new tab', async () => {
-    renderAt('/', { user });
+    renderAt('/rankings/90s-demo-ranking', { user });
     expect(await screen.findByRole('tab', { name: /Personal Ranking/ })).toHaveAttribute('href', '/personal');
+    expect(screen.getByRole('tab', { name: /The Ranking/ })).toHaveAttribute('href', '/');
   });
 
   it('is not rendered on the public profile route', async () => {

@@ -22,10 +22,10 @@ function renderAt(path: string, session: { user: typeof user | null }) {
     path,
     fetch: (requestPath) => {
       if (requestPath === '/api/auth/session') return jsonResponse(session);
-      if (requestPath === '/api/rankings') return jsonResponse([{ id: 'ranking-1', title: '90s', era: null, sourceType: 'DEMO', description: null }]);
-      if (requestPath === '/api/songs' || requestPath === '/api/me/top-list' || requestPath === '/api/me/singing-list') return jsonResponse([]);
+      if (requestPath === '/api/rankings') return jsonResponse([{ id: 'ranking-1', title: '90s Demo Ranking', slug: '90s-demo-ranking', era: '1990s', decadeStart: 1990, decade: '90s', region: 'mainland', displayOrder: 4, sourceType: 'DEMO', description: null, hasSource: false }]);
+      if (requestPath === '/api/me/top-list' || requestPath === '/api/me/singing-list') return jsonResponse([]);
       if (requestPath === '/api/me/list-settings') return jsonResponse({ topList: 'PRIVATE', singingList: 'PRIVATE' });
-      if (requestPath.startsWith('/api/rankings/')) return jsonResponse({ id: 'ranking-1', title: '90s', era: null, sourceType: 'DEMO', description: null, sourceUrl: null, entries: [] });
+      if (requestPath.startsWith('/api/rankings/')) return jsonResponse({ id: 'ranking-1', title: '90s Demo Ranking', slug: '90s-demo-ranking', era: '1990s', decadeStart: 1990, decade: '90s', region: 'mainland', displayOrder: 4, sourceType: 'DEMO', description: null, hasSource: false, sourceUrl: null, songCount: 0, facets: { artists: [], releaseYears: [] }, entries: [] });
       throw new Error(`Unexpected request: ${requestPath}`);
     }
   });
@@ -53,10 +53,10 @@ describe('BottomNav', () => {
     fireEvent.click(within(bar).getByRole('button', { name: 'Personal Ranking' }));
 
     expect(await screen.findByRole('heading', { name: 'Sign in to Music Rank' })).toBeVisible();
-    // The point of rendering a button rather than a link: the route guard in
-    // routes/personal.tsx would have redirected back to '/', flashing a page the
-    // visitor never asked for.
-    expect(router.state.location.pathname).toBe('/');
+    // The root has already selected the first published ranking. The guarded
+    // button must leave that catalog route unchanged instead of entering the
+    // personal route and relying on its redirect guard.
+    expect(router.state.location.pathname).toBe('/rankings/90s-demo-ranking');
   });
 
   it('gives an authenticated visitor real links', async () => {

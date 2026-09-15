@@ -1,0 +1,621 @@
+{
+  "version": 1,
+  "ranking": {
+    "title": "90s Mainland China Top 100",
+    "slug": "90s-mainland-top-100",
+    "era": "1990s",
+    "decadeStart": 1990,
+    "region": "MAINLAND",
+    "displayOrder": 4,
+    "sourceType": "COMMUNITY",
+    "sourceUrl": "https://www.bilibili.com/video/BV1hF9mYoEPh/?spm_id_from=333.337.search-card.all.click&vd_source=1544c032ccb715323d499a09f8bbca66",
+    "description": "User-provided 1990–1999 Mainland China Top 100 with a Bilibili source link."
+  },
+  "extraction": {
+    "sourcePlatform": "Bilibili",
+    "sourceTitle": "1990-1999内地流行歌曲TOP100",
+    "notes": "Ranks, titles, artists, and release years are taken verbatim from the user-provided JSON. The linked Bilibili source was not accessed or used to validate the data, per user instruction."
+  },
+  "entries": [
+  {
+    "rank": 1,
+    "title": "纤夫的爱",
+    "artist": "尹相杰、于文华",
+    "releaseYear": 1994
+  },
+  {
+    "rank": 2,
+    "title": "祝你平安",
+    "artist": "孙悦",
+    "releaseYear": 1994
+  },
+  {
+    "rank": 3,
+    "title": "小芳",
+    "artist": "李春波",
+    "releaseYear": 1993
+  },
+  {
+    "rank": 4,
+    "title": "同桌的你",
+    "artist": "老狼",
+    "releaseYear": 1994
+  },
+  {
+    "rank": 5,
+    "title": "常回家看看",
+    "artist": "陈红",
+    "releaseYear": 1999
+  },
+  {
+    "rank": 6,
+    "title": "好汉歌",
+    "artist": "刘欢",
+    "releaseYear": 1998
+  },
+  {
+    "rank": 7,
+    "title": "心雨",
+    "artist": "杨钰莹、毛宁",
+    "releaseYear": 1993
+  },
+  {
+    "rank": 8,
+    "title": "涛声依旧",
+    "artist": "毛宁",
+    "releaseYear": 1993
+  },
+  {
+    "rank": 9,
+    "title": "好日子",
+    "artist": "宋祖英",
+    "releaseYear": 1998
+  },
+  {
+    "rank": 10,
+    "title": "青藏高原",
+    "artist": "李娜",
+    "releaseYear": 1994
+  },
+  {
+    "rank": 11,
+    "title": "亚洲雄风",
+    "artist": "刘欢、韦唯",
+    "releaseYear": 1990
+  },
+  {
+    "rank": 12,
+    "title": "大中国",
+    "artist": "高枫",
+    "releaseYear": 1995
+  },
+  {
+    "rank": 13,
+    "title": "懂你",
+    "artist": "满文军",
+    "releaseYear": 1994
+  },
+  {
+    "rank": 14,
+    "title": "相约九八",
+    "artist": "王菲、那英",
+    "releaseYear": 1998
+  },
+  {
+    "rank": 15,
+    "title": "渴望",
+    "artist": "毛阿敏",
+    "releaseYear": 1990
+  },
+  {
+    "rank": 16,
+    "title": "九月九的酒",
+    "artist": "陈少华",
+    "releaseYear": 1994
+  },
+  {
+    "rank": 17,
+    "title": "知心爱人",
+    "artist": "付笛声、任静",
+    "releaseYear": 1997
+  },
+  {
+    "rank": 18,
+    "title": "精忠报国",
+    "artist": "屠洪刚",
+    "releaseYear": 1999
+  },
+  {
+    "rank": 19,
+    "title": "从头再来",
+    "artist": "刘欢",
+    "releaseYear": 1998
+  },
+  {
+    "rank": 20,
+    "title": "大花轿",
+    "artist": "火风",
+    "releaseYear": 1995
+  },
+  {
+    "rank": 21,
+    "title": "同一首歌",
+    "artist": "毛阿敏",
+    "releaseYear": 1995
+  },
+  {
+    "rank": 22,
+    "title": "爱情鸟",
+    "artist": "林依轮",
+    "releaseYear": 1993
+  },
+  {
+    "rank": 23,
+    "title": "轻轻地告诉你",
+    "artist": "杨钰莹",
+    "releaseYear": 1992
+  },
+  {
+    "rank": 24,
+    "title": "雾里看花",
+    "artist": "那英",
+    "releaseYear": 1993
+  },
+  {
+    "rank": 25,
+    "title": "晚秋",
+    "artist": "毛宁",
+    "releaseYear": 1993
+  },
+  {
+    "rank": 26,
+    "title": "快乐老家",
+    "artist": "陈明",
+    "releaseYear": 1998
+  },
+  {
+    "rank": 27,
+    "title": "牵挂你的人是我",
+    "artist": "高林生",
+    "releaseYear": 1994
+  },
+  {
+    "rank": 28,
+    "title": "中华民谣",
+    "artist": "孙浩",
+    "releaseYear": 1994
+  },
+  {
+    "rank": 29,
+    "title": "我不想说",
+    "artist": "杨钰莹",
+    "releaseYear": 1992
+  },
+  {
+    "rank": 30,
+    "title": "三百六十五个祝福",
+    "artist": "蔡国庆",
+    "releaseYear": 1991
+  },
+  {
+    "rank": 31,
+    "title": "今儿个真高兴",
+    "artist": "解晓东",
+    "releaseYear": 1995
+  },
+  {
+    "rank": 32,
+    "title": "天不下雨天不刮风天上有太阳",
+    "artist": "尹相杰、于文华",
+    "releaseYear": 1995
+  },
+  {
+    "rank": 33,
+    "title": "走四方",
+    "artist": "韩磊",
+    "releaseYear": 1993
+  },
+  {
+    "rank": 34,
+    "title": "好人一生平安",
+    "artist": "李娜",
+    "releaseYear": 1990
+  },
+  {
+    "rank": 35,
+    "title": "九妹",
+    "artist": "黄鹤翔",
+    "releaseYear": 1996
+  },
+  {
+    "rank": 36,
+    "title": "好大一棵树",
+    "artist": "田震",
+    "releaseYear": 1990
+  },
+  {
+    "rank": 37,
+    "title": "千万次的问",
+    "artist": "刘欢",
+    "releaseYear": 1993
+  },
+  {
+    "rank": 38,
+    "title": "霸王别姬",
+    "artist": "屠洪刚",
+    "releaseYear": 1996
+  },
+  {
+    "rank": 39,
+    "title": "欢乐中国年",
+    "artist": "孙悦",
+    "releaseYear": 1998
+  },
+  {
+    "rank": 40,
+    "title": "爱不爱我",
+    "artist": "零点乐队",
+    "releaseYear": 1996
+  },
+  {
+    "rank": 41,
+    "title": "一封家书",
+    "artist": "李春波",
+    "releaseYear": 1994
+  },
+  {
+    "rank": 42,
+    "title": "执着",
+    "artist": "田震",
+    "releaseYear": 1996
+  },
+  {
+    "rank": 43,
+    "title": "滚滚长江东逝水",
+    "artist": "杨洪基",
+    "releaseYear": 1995
+  },
+  {
+    "rank": 44,
+    "title": "好人好梦",
+    "artist": "孙悦、邰正宵",
+    "releaseYear": 1998
+  },
+  {
+    "rank": 45,
+    "title": "你快回来",
+    "artist": "孙楠",
+    "releaseYear": 1999
+  },
+  {
+    "rank": 46,
+    "title": "山路十八弯",
+    "artist": "李琼",
+    "releaseYear": 1999
+  },
+  {
+    "rank": 47,
+    "title": "笑脸",
+    "artist": "谢东",
+    "releaseYear": 1993
+  },
+  {
+    "rank": 48,
+    "title": "你的柔情我永远不懂",
+    "artist": "陈琳",
+    "releaseYear": 1993
+  },
+  {
+    "rank": 49,
+    "title": "等你爱我",
+    "artist": "陈明",
+    "releaseYear": 1999
+  },
+  {
+    "rank": 50,
+    "title": "真的好想你",
+    "artist": "周冰倩",
+    "releaseYear": 1994
+  },
+  {
+    "rank": 51,
+    "title": "你在他乡还好吗",
+    "artist": "光头李进",
+    "releaseYear": 1993
+  },
+  {
+    "rank": 52,
+    "title": "流浪歌",
+    "artist": "陈星",
+    "releaseYear": 1997
+  },
+  {
+    "rank": 53,
+    "title": "中国功夫",
+    "artist": "屠洪刚",
+    "releaseYear": 1997
+  },
+  {
+    "rank": 54,
+    "title": "梦里水乡",
+    "artist": "江珊",
+    "releaseYear": 1994
+  },
+  {
+    "rank": 55,
+    "title": "阿莲",
+    "artist": "戴军",
+    "releaseYear": 1995
+  },
+  {
+    "rank": 56,
+    "title": "潮湿的心",
+    "artist": "甘萍",
+    "releaseYear": 1993
+  },
+  {
+    "rank": 57,
+    "title": "我的眼里只有你",
+    "artist": "景冈山",
+    "releaseYear": 1995
+  },
+  {
+    "rank": 58,
+    "title": "众人划桨开大船",
+    "artist": "付笛声",
+    "releaseYear": 1993
+  },
+  {
+    "rank": 59,
+    "title": "中国娃",
+    "artist": "解晓东",
+    "releaseYear": 1997
+  },
+  {
+    "rank": 60,
+    "title": "不见不散",
+    "artist": "孙楠",
+    "releaseYear": 1998
+  },
+  {
+    "rank": 61,
+    "title": "最美",
+    "artist": "羽泉",
+    "releaseYear": 1999
+  },
+  {
+    "rank": 62,
+    "title": "山不转水转",
+    "artist": "那英",
+    "releaseYear": 1990
+  },
+  {
+    "rank": 63,
+    "title": "摇太阳",
+    "artist": "方芳",
+    "releaseYear": 1995
+  },
+  {
+    "rank": 64,
+    "title": "糊涂的爱",
+    "artist": "王志文、江珊",
+    "releaseYear": 1994
+  },
+  {
+    "rank": 65,
+    "title": "九九女儿红",
+    "artist": "陈少华",
+    "releaseYear": 1994
+  },
+  {
+    "rank": 66,
+    "title": "窗外",
+    "artist": "李琛",
+    "releaseYear": 1999
+  },
+  {
+    "rank": 67,
+    "title": "天堂",
+    "artist": "腾格尔",
+    "releaseYear": 1997
+  },
+  {
+    "rank": 68,
+    "title": "干杯朋友",
+    "artist": "田震",
+    "releaseYear": 1997
+  },
+  {
+    "rank": 69,
+    "title": "历史的天空",
+    "artist": "毛阿敏",
+    "releaseYear": 1994
+  },
+  {
+    "rank": 70,
+    "title": "那些花儿",
+    "artist": "朴树",
+    "releaseYear": 1999
+  },
+  {
+    "rank": 71,
+    "title": "把耳朵叫醒",
+    "artist": "金海心",
+    "releaseYear": 1999
+  },
+  {
+    "rank": 72,
+    "title": "睡在我上铺的兄弟",
+    "artist": "老狼",
+    "releaseYear": 1994
+  },
+  {
+    "rank": 73,
+    "title": "野花",
+    "artist": "田震",
+    "releaseYear": 1996
+  },
+  {
+    "rank": 74,
+    "title": "白桦林",
+    "artist": "朴树",
+    "releaseYear": 1999
+  },
+  {
+    "rank": 75,
+    "title": "风往北吹",
+    "artist": "孙楠",
+    "releaseYear": 1999
+  },
+  {
+    "rank": 76,
+    "title": "神的传说",
+    "artist": "毛阿敏",
+    "releaseYear": 1990
+  },
+  {
+    "rank": 77,
+    "title": "甘心情愿",
+    "artist": "郭峰",
+    "releaseYear": 1995
+  },
+  {
+    "rank": 78,
+    "title": "望乡",
+    "artist": "满文军",
+    "releaseYear": 1999
+  },
+  {
+    "rank": 79,
+    "title": "心会跟爱一起走",
+    "artist": "陈洁仪、郭峰",
+    "releaseYear": 1993
+  },
+  {
+    "rank": 80,
+    "title": "灰姑娘",
+    "artist": "郑钧",
+    "releaseYear": 1994
+  },
+  {
+    "rank": 81,
+    "title": "江山无限",
+    "artist": "屠洪刚",
+    "releaseYear": 1996
+  },
+  {
+    "rank": 82,
+    "title": "归去来",
+    "artist": "胡兵、希莉娜依",
+    "releaseYear": 1997
+  },
+  {
+    "rank": 83,
+    "title": "大头皮鞋",
+    "artist": "韩晓",
+    "releaseYear": 1996
+  },
+  {
+    "rank": 84,
+    "title": "超越梦想",
+    "artist": "汪正正",
+    "releaseYear": 1998
+  },
+  {
+    "rank": 85,
+    "title": "愚公移山",
+    "artist": "江涛",
+    "releaseYear": 1996
+  },
+  {
+    "rank": 86,
+    "title": "万事如意",
+    "artist": "张也",
+    "releaseYear": 1995
+  },
+  {
+    "rank": 87,
+    "title": "说唱脸谱",
+    "artist": "谢津",
+    "releaseYear": 1996
+  },
+  {
+    "rank": 88,
+    "title": "花好月圆",
+    "artist": "刁寒",
+    "releaseYear": 1995
+  },
+  {
+    "rank": 89,
+    "title": "冰糖葫芦",
+    "artist": "冯晓泉",
+    "releaseYear": 1995
+  },
+  {
+    "rank": 90,
+    "title": "步步高",
+    "artist": "李绍继",
+    "releaseYear": 1997
+  },
+  {
+    "rank": 91,
+    "title": "茶山情歌",
+    "artist": "杨钰莹",
+    "releaseYear": 1992
+  },
+  {
+    "rank": 92,
+    "title": "想说爱你不容易",
+    "artist": "王志文、戴娆",
+    "releaseYear": 1994
+  },
+  {
+    "rank": 93,
+    "title": "女孩的心思你别猜",
+    "artist": "周亮",
+    "releaseYear": 1995
+  },
+  {
+    "rank": 94,
+    "title": "故事就是故事",
+    "artist": "戴娆",
+    "releaseYear": 1996
+  },
+  {
+    "rank": 95,
+    "title": "夕阳红",
+    "artist": "佟铁鑫",
+    "releaseYear": 1995
+  },
+  {
+    "rank": 96,
+    "title": "我听过你的歌",
+    "artist": "王焱、何影",
+    "releaseYear": 1994
+  },
+  {
+    "rank": 97,
+    "title": "千古绝唱",
+    "artist": "白雪",
+    "releaseYear": 1995
+  },
+  {
+    "rank": 98,
+    "title": "飞天",
+    "artist": "含笑",
+    "releaseYear": 1997
+  },
+  {
+    "rank": 99,
+    "title": "桃花运",
+    "artist": "杨钰莹",
+    "releaseYear": 1993
+  },
+  {
+    "rank": 100,
+    "title": "父亲",
+    "artist": "崔京浩",
+    "releaseYear": 1995
+  }
+  ]
+}

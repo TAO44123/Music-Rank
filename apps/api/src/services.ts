@@ -1,7 +1,7 @@
 import { and, asc, desc, eq, ilike, or, sql } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import { db, rankingEntries, rankings, singingListEntries, songs, userListSettings, users, userTopListEntries } from '@music-rank/database';
-import type { ListType, ListVisibility, SingingStatus } from '@music-rank/contracts';
+import type { ListType, ListVisibility, RankingDecade, RankingRegionPath, SingingStatus } from '@music-rank/contracts';
 import { AppError } from './errors.js';
 
 const songProjection = {
@@ -11,14 +11,47 @@ const songProjection = {
   releaseYear: songs.releaseYear
 };
 
-export async function listRankings() {
-  return db.select({
+const decadePaths = new Map<number, RankingDecade>([[1980, '80s'], [1990, '90s']]);
+const regionPaths: Record<'HK_TW' | 'MAINLAND', RankingRegionPath> = { HK_TW: 'hk-tw', MAINLAND: 'mainland' };
+
+function rankingCatalogProjection() {
+  return {
     id: rankings.id,
     title: rankings.title,
+    slug: rankings.slug,
     era: rankings.era,
+    decadeStart: rankings.decadeStart,
+    region: rankings.region,
+    displayOrder: rankings.displayOrder,
     sourceType: rankings.sourceType,
+    sourceUrl: rankings.sourceUrl,
     description: rankings.description
-  }).from(rankings).where(eq(rankings.isPublished, true));
+  };
+}
+
+function toRankingCatalogItem(ranking: Awaited<ReturnType<typeof selectPublishedRankings>>[number]) {
+  const decade = ranking.decadeStart === null ? null : decadePaths.get(ranking.decadeStart);
+  if (ranking.decadeStart !== null && !decade) throw new Error(`Unsupported published ranking decade: ${ranking.decadeStart}`);
+  return {
+    ...ranking,
+    decade: decade ?? null,
+    region: ranking.region === null ? null : regionPaths[ranking.region],
+    hasSource: ranking.sourceUrl !== null
+  };
+}
+
+function selectPublishedRankings() {
+  return db.select(rankingCatalogProjection())
+    .from(rankings)
+    .where(eq(rankings.isPublished, true))
+    .orderBy(asc(rankings.displayOrder), asc(rankings.title));
+}
+
+export async function listRankings() {
+  return (await selectPublishedRankings()).map((ranking) => {
+    const { sourceUrl: _sourceUrl, ...catalogItem } = toRankingCatalogItem(ranking);
+    return catalogItem;
+  });
 }
 
 export type RankingFilters = {
@@ -27,15 +60,14 @@ export type RankingFilters = {
   releaseYear?: number;
 };
 
-export async function getRanking(rankingId: string, filters: RankingFilters = {}) {
-  const [ranking] = await db.select({
-    id: rankings.id,
-    title: rankings.title,
-    era: rankings.era,
-    sourceType: rankings.sourceType,
-    sourceUrl: rankings.sourceUrl,
-    description: rankings.description
-  }).from(rankings).where(and(eq(rankings.id, rankingId), eq(rankings.isPublished, true))).limit(1);
+export async function getRanking(slug: string, filters: RankingFilters = {}) {
+  const [ranking] = await db.select(rankingCatalogProjection())
+    .from(rankings)
+    .where(and(
+      eq(rankings.slug, slug),
+      eq(rankings.isPublished, true)
+    ))
+    .limit(1);
 
   if (!ranking) {
     throw new AppError(404, 'RANKING_NOT_FOUND', 'Ranking not found');
@@ -44,13 +76,24 @@ export async function getRanking(rankingId: string, filters: RankingFilters = {}
   const searchFilter = filters.query ? or(ilike(songs.title, `%${filters.query}%`), ilike(songs.artist, `%${filters.query}%`)) : undefined;
   const artistFilter = filters.artist ? eq(songs.artist, filters.artist) : undefined;
   const releaseYearFilter = filters.releaseYear ? eq(songs.releaseYear, filters.releaseYear) : undefined;
-  const entries = await db.select({ rank: rankingEntries.rank, ...songProjection })
-    .from(rankingEntries)
-    .innerJoin(songs, eq(rankingEntries.songId, songs.id))
-    .where(and(eq(rankingEntries.rankingId, rankingId), searchFilter, artistFilter, releaseYearFilter))
-    .orderBy(asc(rankingEntries.rank));
+  const [entries, catalogSongs] = await Promise.all([
+    db.select({ rank: rankingEntries.rank, ...songProjection })
+      .from(rankingEntries)
+      .innerJoin(songs, eq(rankingEntries.songId, songs.id))
+      .where(and(eq(rankingEntries.rankingId, ranking.id), searchFilter, artistFilter, releaseYearFilter))
+      .orderBy(asc(rankingEntries.rank)),
+    db.select(songProjection)
+      .from(rankingEntries)
+      .innerJoin(songs, eq(rankingEntries.songId, songs.id))
+      .where(eq(rankingEntries.rankingId, ranking.id))
+  ]);
 
-  return { ...ranking, entries };
+  const facets = {
+    artists: Array.from(new Set(catalogSongs.map((song) => song.artist))).sort((left, right) => left.localeCompare(right)),
+    releaseYears: Array.from(new Set(catalogSongs.flatMap((song) => song.releaseYear === null ? [] : [song.releaseYear]))).sort((left, right) => right - left)
+  };
+
+  return { ...toRankingCatalogItem(ranking), songCount: catalogSongs.length, facets, entries };
 }
 
 export async function listSongs(query?: string) {

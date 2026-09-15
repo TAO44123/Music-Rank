@@ -7,7 +7,7 @@ import {
   artistFilterSchema,
   listTypePathSchema,
   loginSchema,
-  rankingIdSchema,
+  rankingSlugSchema,
   registerSchema,
   releaseYearFilterSchema,
   reorderTopListSchema,
@@ -77,9 +77,9 @@ export function createApp({ currentUserId, allowedOrigin = process.env.APP_ORIGI
   }));
 
   app.get('/api/rankings', asyncRoute(async (_request, response) => response.json(await listRankings())));
-  app.get('/api/rankings/:rankingId', asyncRoute(async (request, response) => {
-    const rankingId = rankingIdSchema.parse(request.params.rankingId);
-    response.json(await getRanking(rankingId, {
+  app.get('/api/rankings/:slug', asyncRoute(async (request, response) => {
+    const slug = rankingSlugSchema.parse(request.params.slug);
+    response.json(await getRanking(slug, {
       query: parseQuery(request.query.q),
       artist: artistFilterSchema.parse(request.query.artist),
       releaseYear: releaseYearFilterSchema.parse(request.query.releaseYear)
