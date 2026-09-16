@@ -13,7 +13,6 @@ The ranking is explicitly **Demo Data**. It is a set of product fixtures, not an
 ## Local setup
 
 ```bash
-cp .env.example .env
 npm ci
 npm run db:up
 npm run db:migrate
@@ -41,14 +40,22 @@ The seed is idempotent. You can run `npm run db:seed` again without duplicating 
 | `npm run test` | Run unit, component, and integration tests. |
 | `npm run test:e2e` | Run the Playwright critical workflow. |
 | `npm run build` | Build all workspaces. |
-| `npm run start` | Run the built API using the values in your `.env`. |
+| `npm run start` | Run the built API using the development configuration. |
 | `npm run build && npm run start:prod` | Run the production-shaped Express server, which serves the built web app and API from one origin. |
+| `npm run build:staging && npm run start:staging` | The same, using the staging configuration. |
 
 ## Environment
 
-Use `.env.example` as the template. `APP_ORIGIN` must exactly match the browser origin used for state-changing requests; its default development value is `http://localhost:5173`. `DEMO_USER_ID` is used only to preserve the credential-free seeded demo fixture.
+Configuration lives in `config/`, one file per environment, layered as
+**real environment variables > `config/.env.<env>.local` > `config/.env.<env>`**.
+The tracked files carry no secrets: `DATABASE_URL` is absent from them and comes
+from an untracked `.env.<env>.local` or from the real environment. A missing
+`DATABASE_URL` or `APP_ORIGIN` aborts startup rather than falling back to a
+development default.
 
-`npm run start:prod` reads the production-shaped values from the tracked `config/production.env` through Node's `--env-file`, so the command carries no shell-specific syntax and behaves identically in bash, zsh, PowerShell, and cmd.exe. That file holds only `NODE_ENV`, `PORT`, and `APP_ORIGIN`; secrets such as `DATABASE_URL` still come from your untracked `.env`. Variables already present in the environment take precedence over the file, so `PORT=3002 npm run start:prod` (bash or zsh) and `$env:PORT=3002; npm run start:prod` (PowerShell) both override the port.
+See [docs/CONFIGURATION.md](docs/CONFIGURATION.md) for the full key list, the
+per-environment build and start commands, how the frontend picks up its
+configuration, and which keys must be changed together.
 
 ## Architecture
 

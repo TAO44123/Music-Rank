@@ -1,13 +1,13 @@
-import 'dotenv/config';
+import { config } from '@music-rank/config';
 import express from 'express';
 import { fileURLToPath } from 'node:url';
 import { closeDatabase } from '@music-rank/database';
 import { createApp } from './app.js';
 
-const port = Number(process.env.PORT ?? 3001);
+const port = config.server.port;
 const app = createApp();
 
-if (process.env.NODE_ENV === 'production') {
+if (config.nodeEnv === 'production') {
   const webDist = fileURLToPath(new URL('../../web/dist/', import.meta.url));
   app.use(express.static(webDist));
   app.get('/{*path}', (_request, response) => response.sendFile('index.html', { root: webDist }));

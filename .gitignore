@@ -5,6 +5,7 @@ playwright-report/
 test-results/
 .env
 .env.local
+config/*.local
 !.env.example
 *.log
 .DS_Store
