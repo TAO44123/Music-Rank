@@ -181,7 +181,7 @@ git commit -m "feat: add per-environment config files"
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "vitest run"
+    "test": "vitest run --exclude 'dist/**'"
   },
   "dependencies": {
     "dotenv": "^17.2.3",
