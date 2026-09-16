@@ -2,6 +2,7 @@ import crypto from 'node:crypto';
 import express from 'express';
 import { sql } from 'drizzle-orm';
 import { db } from '@music-rank/database';
+import { config } from '@music-rank/config';
 import {
   addTopListItemSchema,
   artistFilterSchema,
@@ -57,7 +58,7 @@ function getCookieConfiguration(allowedOrigin: string) {
   };
 }
 
-export function createApp({ currentUserId, allowedOrigin = process.env.APP_ORIGIN ?? 'http://localhost:5173', authRateLimit, enforceOrigin = true }: AppOptions = {}) {
+export function createApp({ currentUserId, allowedOrigin = config.server.appOrigin, authRateLimit, enforceOrigin = true }: AppOptions = {}) {
   const app = express();
   const normalizedOrigin = new URL(allowedOrigin).origin;
   const sessionCookie = getCookieConfiguration(normalizedOrigin);
