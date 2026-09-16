@@ -203,40 +203,50 @@ curl --fail --silent --show-error --output /dev/null --write-out "%{http_code}\n
 
 ## 9. 第五步：配置环境变量
 
-先检查，不要读取或打印已有 .env：
+配置位于 `config/`，每个环境一份已跟踪的文件，开发环境的默认值开箱可用。
+优先级为 **真实环境变量 > `config/.env.<env>.local` > `config/.env.<env>`**。
+完整说明见 [CONFIGURATION.md](CONFIGURATION.md)。
+
+先检查，不要读取或打印已有的 .local 文件：
 
 ~~~bash
-test -f .env && echo ".env exists" || echo ".env is missing"
-test -f .env.example && echo ".env.example exists"
+test -f config/.env.development && echo "base config exists"
+test -f config/.env.development.local && echo "local override exists" || echo "no local override (fine)"
 ~~~
 
-如果 .env 不存在：
-
-~~~bash
-cp .env.example .env
-~~~
-
-默认配置：
+`config/.env.development` 已在仓库中，**不需要复制任何模板**。开发环境的默认值：
 
 | 变量 | 默认值 |
 | --- | --- |
+| APP_ENV | development |
 | NODE_ENV | development |
 | PORT | 3001 |
 | APP_ORIGIN | http://localhost:5173 |
 | DATABASE_URL | postgresql://music_rank:music_rank@localhost:5432/music_rank |
 | DEMO_USER_ID | 7c5b5636-48f8-4e9b-89b0-06381d28496b |
-| LOG_LEVEL | info；当前实现尚未读取 |
+| LOG_LEVEL | debug |
+| WEB_DEV_PORT | 5173 |
+| WEB_DEV_PROXY_TARGET | http://localhost:3001 |
 
-APP_ORIGIN 必须与浏览器地址的 Origin 完全一致；默认开发地址应使用 localhost 而不是 127.0.0.1。上述数据库凭据只用于本地 Docker demo。不要将相同凭据用于共享或公网数据库。
+只有当本机取值与默认值冲突时（最常见的是 Postgres 端口已被其他项目占用），才创建
+`config/.env.development.local` 覆盖需要改的那几行，例如：
 
-确认 .env 被忽略：
+~~~
+DATABASE_URL=postgresql://music_rank:music_rank@localhost:5434/music_rank
+~~~
+
+APP_ORIGIN 必须与浏览器地址的 Origin 完全一致；默认开发地址应使用 localhost 而不是 127.0.0.1。
+改 WEB_DEV_PORT 时必须同时改 APP_ORIGIN，改 PORT 时必须同时改 WEB_DEV_PROXY_TARGET，
+否则会分别得到 403 和 404。上述数据库凭据只用于本地 Docker demo，不要用于共享或公网数据库。
+
+确认 .local 被忽略：
 
 ~~~bash
-git check-ignore -v .env
+git check-ignore -v config/.env.development.local
 git status --short
 ~~~
 
-预期 git check-ignore 指向 .gitignore，git status 不显示 .env。
+预期 git check-ignore 指向 .gitignore 的 `config/*.local` 规则，git status 不显示该文件。
 
 ## 10. 第六步：安装 Node 依赖
 

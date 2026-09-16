@@ -143,23 +143,24 @@ Vite 7.2.1 和 @vitejs/plugin-react 5.1.1 是有意锁定的组合。此前更�
 - Docker 和 Docker Compose
 - 本机端口 5173、3001 和 5432 可用
 
-### 5.2 环境变量
+### 5.2 配置
 
-| 变量 | 默认值或示例值 | 使用位置 | 说明 |
-| --- | --- | --- | --- |
-| NODE_ENV | development | API 入口 | production 时由 Express 提供前端静态文件 |
-| PORT | 3001 | API 入口 | Express 监听端口 |
-| APP_ORIGIN | http://localhost:5173 | API Origin 防护和 Cookie 配置 | 必须与浏览器 Origin 完全一致；HTTPS 时启用 Secure Cookie |
-| DATABASE_URL | postgresql://music_rank:music_rank@localhost:5432/music_rank | 数据库客户端和 Drizzle Kit | PostgreSQL 连接字符串 |
-| DEMO_USER_ID | 7c5b5636-48f8-4e9b-89b0-06381d28496b | Seed | 凭据为空的 demo fixture ID；变更后应重新运行 Seed |
-| LOG_LEVEL | info | .env.example | 当前代码尚未读取该变量 |
+配置位于仓库根的 `config/`,每个环境一份文件,优先级为
+**真实环境变量 > `config/.env.<env>.local` > `config/.env.<env>`**。
+已跟踪的 base 文件不含机密:`DATABASE_URL` 在其中根本不出现,由未跟踪的
+`.env.<env>.local` 或真实环境变量提供。`DATABASE_URL` 与 `APP_ORIGIN`
+缺失时进程启动即抛错退出,不再退回开发默认值。
 
-本地 .env 不应提交；.env.example 是可提交模板。
+`APP_ENV` 决定读哪套文件,与 `NODE_ENV` 是两个独立变量:后者在 Node 生态中
+只认 `development` / `production`(以及 vitest 强制的 `test`),因此 staging
+环境的文件里写的是 `NODE_ENV=production`。
+
+完整键清单、分环境打包与启动命令、前端如何取配置、以及哪些键必须成对修改,
+见 [CONFIGURATION.md](CONFIGURATION.md)。
 
 ### 5.3 首次启动
 
 ~~~bash
-cp .env.example .env
 npm ci
 npm run db:up
 npm run db:migrate
@@ -188,18 +189,28 @@ npm run dev
 | npm run dev | 并行启动 API watch 和 Vite |
 | npm run typecheck | 构建共享包并检查所有 workspace 类型 |
 | npm run test | 运行所有 Vitest 测试 |
-| npm run build | 构建 contracts、database、API 和 Web |
+| npm run build | 构建 config、contracts、database、API 和 Web(Web 用 --mode production) |
+| npm run build:staging | 同上,Web 改用 --mode staging |
 | npm run test:e2e | 构建并运行 Playwright 关键流程 |
-| npm run start | 启动已构建的 API，使用 .env 中的值 |
-| npm run start:prod | 以生产形态启动已构建的 API，读取 config/production.env |
+| npm run start | 启动已构建的 API，使用 development 配置 |
+| npm run start:prod | 以 production 配置启动已构建的 API |
+| npm run start:staging | 以 staging 配置启动已构建的 API |
 
 ### 5.5 生产形态的本地运行
 
-先执行 npm run build，再执行 npm run start:prod。生产模式下 Express 从 apps/web/dist 提供静态资源，并将非 API 路径回退到 index.html。APP_ORIGIN 应设置为最终浏览器访问 Origin，例如本地同源形态为 http://localhost:3001。
+先执行 `npm run build`,再执行 `npm run start:prod`。生产模式下 Express 从
+`apps/web/dist` 提供静态资源,并将非 API 路径回退到 `index.html`。是否提供静态
+资源由 `NODE_ENV === 'production'` 判断,而非 `APP_ENV`——e2e 正是靠真实环境
+变量把 `NODE_ENV` 顶成 `production`、同时让 `APP_ENV` 保持 `development`,才能
+在全新 clone 上无需任何未跟踪文件即可运行。
 
-NODE_ENV、PORT 和 APP_ORIGIN 来自随仓库提交的 config/production.env，由 Node 的 --env-file 加载。这里刻意不使用 `VAR=value command` 这种 POSIX 前缀写法：它只有 POSIX shell 认识，在 Windows 的 cmd.exe 下会报 `'NODE_ENV' is not recognized`，PowerShell 下同样是解析错误。npm script 里不含任何 shell 特有语法，bash、zsh、PowerShell 和 cmd.exe 行为一致。
+启动命令通过 Node 的 `--env-file` 注入 `APP_ENV`,再用 `--env-file-if-exists`
+叠加可选的 `.local`,后者必须排在后面才能覆盖前者。这里刻意不使用
+`VAR=value command` 这种 POSIX 前缀写法:它只有 POSIX shell 认识,在 Windows 的
+cmd.exe 下会报 `'NODE_ENV' is not recognized`,PowerShell 下同样是解析错误。
+npm script 里不含任何 shell 特有语法,bash、zsh、PowerShell 和 cmd.exe 行为一致。
 
-config/production.env 只放 NODE_ENV、PORT 和 APP_ORIGIN，不含机密；DATABASE_URL 等仍来自未跟踪的 .env，由 dotenv 在进程内加载。已存在的环境变量优先级高于 --env-file，因此临时改端口仍然可行。
+已存在的环境变量优先级高于 `--env-file`,因此临时改端口仍然可行。
 
 当前项目没有正式部署配置、反向代理配置、TLS、进程守护或运行时监控。
 
