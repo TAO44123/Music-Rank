@@ -57,6 +57,10 @@ See [docs/CONFIGURATION.md](docs/CONFIGURATION.md) for the full key list, the
 per-environment build and start commands, how the frontend picks up its
 configuration, and which keys must be changed together.
 
+Coming from a checkout that predates 2026-09-16, or merging a branch that does?
+See [docs/CONFIG_MIGRATION.md](docs/CONFIG_MIGRATION.md). Rules for AI agents
+working in this repository live in [AGENTS.md](AGENTS.md).
+
 ## Architecture
 
 - `apps/web`: React, Vite, Material UI, TanStack Query, and dnd-kit UI.

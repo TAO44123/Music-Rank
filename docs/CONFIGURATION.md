@@ -2,6 +2,9 @@
 
 本文件是配置的唯一权威。README 与 ENGINEERING_GUIDE 中关于环境变量的内容都指向这里。
 
+从 2026-09-16 之前的旧配置结构迁移,见 [CONFIG_MIGRATION.md](CONFIG_MIGRATION.md)。
+给 AI agent 的硬规则与"新增一个配置键"清单,见仓库根的 [AGENTS.md](../AGENTS.md)。
+
 ## 1. 优先级与文件布局
 
 ```
