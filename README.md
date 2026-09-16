@@ -73,6 +73,7 @@ All `/api/me` requests resolve an opaque database-backed session cookie in one m
 ## Documentation
 
 - [First Local Run Guide](docs/LOCAL_FIRST_RUN_GUIDE.md): environment checks, configuration, startup, health checks, full verification, troubleshooting, and Agent handoff rules.
+- [Database Migration and Ranking Sync Guide](docs/DATABASE_MIGRATION.md): apply schema migrations, import and publish both production ranking manifests, verify counts, and handle controlled replacements.
 - [Current Session Handoff](docs/SESSION_HANDOFF.md): repository state and the approved focus, open decisions, implementation sequence, and acceptance checklist for the next development session.
 - [Engineering Guide](docs/ENGINEERING_GUIDE.md): current architecture, API reference, data model, testing strategy, operational notes, and maintenance rules.
 - [Authentication Design](docs/AUTHENTICATION_DESIGN.md): approved login, session, public-list, security, and future SSO boundaries.
