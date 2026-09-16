@@ -116,6 +116,16 @@ dev             不变(APP_ENV 缺省 development)
 
 新建 `docs/CONFIGURATION.md` 作为配置的唯一权威:前端按环境打包、后端按环境打包、Docker 起 Postgres(描述现有 compose 流程,不改动)、耦合表、新人 onboarding 路径。`README.md:47-51` 与 `docs/ENGINEERING_GUIDE.md:150-202` 的现有描述删除并指向它。
 
+## 实现约束
+
+三条在实现时容易两头错、必须钉死的:
+
+1. **静态文件服务按 `config.nodeEnv === 'production'` 判断,不是 `appEnv`。** `apps/api/src/index.ts:10` 现有的判断迁移后须落在 `nodeEnv` 上。原因见下一条。
+2. **`playwright.config.ts` 不设 `APP_ENV`**,保持只传 `NODE_ENV: 'production'` 与 `APP_ORIGIN` / `PORT` 覆盖。此时 `APP_ENV` 缺省为 `development`,加载已跟踪的 `config/.env.development` 拿到 `DATABASE_URL`,而真实环境变量让 `nodeEnv` 为 `production`——即"以生产形态跑在开发配置上",与今天的 e2e 语义一致,且全新 clone 即可跑。若改设 `APP_ENV=production`,则会去找未跟踪的 `.env.production.local`,e2e 在干净环境上必挂。
+3. **`vite.config.ts` 的 `envDir` 用绝对路径解析**(`fileURLToPath(new URL('../../config/', import.meta.url))`),不用相对路径,避免受 cwd 影响。
+
+另:`apps/api/src/app.test.ts` 经 `@music-rank/database` 间接触发 loader,所以 `config/.env.development` 必须是已跟踪且含 `DATABASE_URL` 的——这使单元测试在全新 clone 上无需任何 `.local` 即可运行,相较今天需要手工铺三份 `.env` 是净改善。
+
 ## 迁移步骤
 
 1. 建 `packages/config`(先写测试)
