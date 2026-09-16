@@ -19,11 +19,13 @@
     "db:migrate": "npm run migrate --workspace @music-rank/database",
     "db:seed": "npm run seed --workspace @music-rank/database",
     "db:generate": "npm run generate --workspace @music-rank/database",
-    "typecheck": "npm run build --workspace @music-rank/contracts && npm run build --workspace @music-rank/database && npm run typecheck --workspaces --if-present",
+    "typecheck": "npm run build --workspace @music-rank/config && npm run build --workspace @music-rank/contracts && npm run build --workspace @music-rank/database && npm run typecheck --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
-    "build": "npm run build --workspace @music-rank/contracts && npm run build --workspace @music-rank/database && npm run build --workspace @music-rank/api && npm run build --workspace @music-rank/web",
+    "build": "npm run build --workspace @music-rank/config && npm run build --workspace @music-rank/contracts && npm run build --workspace @music-rank/database && npm run build --workspace @music-rank/api && npm run build --workspace @music-rank/web -- --mode production",
+    "build:staging": "npm run build --workspace @music-rank/config && npm run build --workspace @music-rank/contracts && npm run build --workspace @music-rank/database && npm run build --workspace @music-rank/api && npm run build --workspace @music-rank/web -- --mode staging",
     "start": "npm run start --workspace @music-rank/api",
-    "start:prod": "node --env-file=config/production.env apps/api/dist/index.js",
+    "start:prod": "node --env-file=config/.env.production --env-file-if-exists=config/.env.production.local apps/api/dist/index.js",
+    "start:staging": "node --env-file=config/.env.staging --env-file-if-exists=config/.env.staging.local apps/api/dist/index.js",
     "test:e2e": "playwright test"
   },
   "devDependencies": {
