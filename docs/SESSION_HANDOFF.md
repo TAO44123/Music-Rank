@@ -1,6 +1,6 @@
 # Music Rank — Session Handoff
 
-> Last updated: 2026-09-15 (America/New_York)
+> Last updated: 2026-09-17 (America/New_York)
 >
 > Feature authority: `docs/RANKING_CATALOG_EXPANSION_EXECUTION_PLAN.md`
 >
@@ -15,6 +15,11 @@ and pushed to `main`. The ranking-catalog work is also synchronized, freshly
 verified, and merged into `main` through `62292ba`. It adds the user-approved
 90s Mainland China Top 100 and 90s Cantonese Songs Top 70 while retaining the
 30-entry Demo as unpublished data.
+
+An additional 80s Chinese Songs Top 100 is now implemented and published in the
+normal local database from branch `feature/80s-ranking-import`. Its repository
+changes were committed and pushed after explicit user authorization on
+2026-09-17; no PR or merge was requested.
 
 The application now treats each published ranking as a first-class catalog item
 with a source-neutral `/rankings/:slug` route. The published pilot is available
@@ -63,10 +68,33 @@ existing 821.00 KB bundle warning; and Playwright E2E passed 1/1. Desktop and
 chip without a region chip on the Cantonese ranking, the 72-song count, source
 link, and no Console errors. The final dry run reused all 72 songs and entries.
 
+On 2026-09-17 the user supplied `1980年代华语歌曲排行榜TOP100.json` and its
+Bilibili source URL. The file is now the version-controlled manifest
+`packages/database/manifests/80s-chinese-top-100.json`, with the source-neutral
+slug `80s-chinese-top-100`, 1980s metadata, null region metadata, and display
+order 3. Its 100 rows are preserved verbatim, including rank 85's source-provided
+1979 release year. The source page was not accessed or used for validation.
+
+The importer now permits a verified manifest to upgrade an exact `DEMO` song
+match while still rejecting release-year conflicts against non-Demo songs. This
+upgraded the retained Demo rows for `昨夜星辰` and `弯弯的月亮` in place to the
+manifest years 1984 and 1989; no song was duplicated or deleted. Dry run now
+checks the same conflict rule as the write path. The import created 98 songs,
+reused 2 Demo songs, created 100 entries, and published the ranking while
+leaving the two 90s rankings published and the 30-entry Demo unpublished.
+
+Final 2026-09-17 verification passed: typecheck; API 22/22, Web 44/44 across
+13 files, config 8/8, database 10/10, contracts no tests; production build
+(831.42 KB, 259.43 KB gzip); and Playwright 3/3. Desktop and 390 × 844 browser
+acceptance confirmed all three direct ranking tabs, 100 songs, the exact source
+URL, the optional 80s chip without a region chip, responsive layout, search for
+rank 85, and no Console errors. The final dry run reused all 100 songs and
+entries, and rerunning Demo seed preserved publication and upgraded metadata.
+
 ## 2. Repository State
 
-- Branch: `main`, tracking `origin/main`; the local delivery merge is `62292ba`
-  and the final documentation refresh sits on top of it.
+- Branch: `feature/80s-ranking-import`, created from synchronized `main` at
+  `96c2783`, committed and pushed to `origin` on 2026-09-17.
 - The synchronized feature branch is pushed at `ecd1e45`; its pre-integration
   tip was `d2ef428`.
 - Task 2 started from synchronized `main` at `67a0ba6` on branch
@@ -87,9 +115,10 @@ link, and no Console errors. The final dry run reused all 72 songs and entries.
   nullable submitter attribution for shared songs.
 - PostgreSQL uses 5432; Playwright uses 3101 temporarily. Do not terminate
   unknown development services.
-- A 2026-09-15 read-only database check found the Mainland pilot published with
-  100 entries, the Cantonese ranking published with 72 entries, and the Demo
-  unpublished with all 30 entries retained.
+- A 2026-09-17 read-only database check found the 80s Chinese ranking published
+  with 100 entries, the Mainland ranking published with 100 entries, the
+  Cantonese ranking published with 72 entries, and the Demo unpublished with all
+  30 entries retained.
 
 ## 3. Task 1 Implementation
 
@@ -191,8 +220,8 @@ jsdom's unimplemented `window.scrollTo()` notices during Web tests.
   were removed. Titles, artist order, ranks, and years now match the supplied
   JSON exactly. Matching remains normalized exact matching; no fuzzy matching
   was added.
-- Import tooling: `ranking-importer.ts` validates a versioned manifest, exactly
-  100 contiguous unique ranks, unique normalized songs, metadata, source URL,
+- Import tooling: `ranking-importer.ts` validates a versioned manifest with one
+  or more contiguous unique ranks, unique normalized songs, metadata, source URL,
   and release-year shape. It exposes a dry run, transactional/idempotent import,
   atomic `--replace`, and a reusable publish operation that atomically
   unpublishes the retained Demo.
@@ -274,7 +303,7 @@ Fresh synchronized-branch verification on September 15, 2026 passed:
   critical path, account-label pixel guard, and 320–900px responsive/bottom-nav
   behavior.
 - Clean migration and Seed produced the expected published 30-entry Demo.
-- The normal database remained intact: Mainland 100 and Cantonese 72 are
+- The normal database now has 80s Chinese 100, Mainland 100, and Cantonese 72
   published, while the 30-entry Demo is retained and unpublished.
 - The first all-workspace test attempt was blocked only by sandbox database
   access (`EPERM`); the identical command passed with local PostgreSQL access.
@@ -288,8 +317,8 @@ Fresh synchronized-branch verification on September 15, 2026 passed:
   entries.
 - Keep the approved manifest values unchanged unless the user supplies a new
   authoritative replacement and explicitly requests it.
-- Ask the user to choose further Task 3 imports or another explicitly scoped
-  feature before creating a new branch.
+- The current 80s import is committed and pushed. Creating a PR or merging still
+  requires explicit user authorization.
 
 ### Task 2 — User-submitted songs
 
@@ -329,9 +358,9 @@ outside this feature scope.
    `docs/RANKING_CATALOG_EXPANSION_EXECUTION_PLAN.md` completely.
 2. Inspect `git status --short --branch`, recent commits, staged changes, and the
    full working-tree diff before editing.
-3. Preserve both imported rankings and their current publication state; verify
-   that `90s-mainland-top-100` and `90s-cantonese-top-70` are published and
-   `90s-demo-ranking` is not.
+3. Preserve all three imported rankings and their current publication state;
+   verify that `80s-chinese-top-100`, `90s-mainland-top-100`, and
+   `90s-cantonese-top-70` are published and `90s-demo-ranking` is not.
 4. Do not repeat completed desktop/mobile acceptance unless later UI changes
    require it; rerun the final diff check after edits.
 5. Do not start further Task 3 imports, Admin work, fuzzy matching, or
@@ -376,10 +405,11 @@ clean temporary database. Record exact test counts and any skipped check.
 ## 10. Copy-Paste Prompt for the Next Follow-up
 
 ```text
-Continue Music Rank from the integrated main branch. Read docs/SESSION_HANDOFF.md
-and docs/RANKING_CATALOG_EXPANSION_EXECUTION_PLAN.md completely, then inspect
-and preserve the working tree. The ranking catalog was merged through 62292ba;
-use the live Git log for the final documentation commit and remote state.
+Continue Music Rank from branch feature/80s-ranking-import. Read
+docs/SESSION_HANDOFF.md and docs/RANKING_CATALOG_EXPANSION_EXECUTION_PLAN.md
+completely, then inspect and preserve the working tree. The branch started from
+synchronized main at 96c2783 and its 80s import changes are committed and
+pushed. Use the live Git log for the final commit ID and remote state.
 
 The approved Bilibili 90s Mainland Top 100 pilot is already imported and
 published as 90s-mainland-top-100. Its 100-entry manifest and reusable
@@ -390,10 +420,12 @@ source link. Do not access the video to revalidate the data or alter publication
 state unless I explicitly request it.
 
 The approved 90s Cantonese Top 70 is also imported and published with 72 entries;
-its region metadata is intentionally null. Desktop and mobile acceptance have
-passed for both rankings, including the integrated bottom navigation and
-responsive panels. Do not start Task 2, further ranking imports, Admin work,
-fuzzy matching, or aggregation without explicit user direction.
+its region metadata is intentionally null. The newly approved 80s Chinese Songs
+Top 100 is imported and published locally with 100 entries at
+80s-chinese-top-100; its region metadata is null and the source-provided 1979
+year at rank 85 is intentional. Desktop and mobile acceptance has passed for all
+three rankings. Do not create a PR, merge, start another ranking import, or
+begin Admin/fuzzy-matching/aggregation work without explicit user direction.
 
 Communicate with me in Chinese; keep code, identifiers, commit messages, and
 English project documents in English. If any required product decision is

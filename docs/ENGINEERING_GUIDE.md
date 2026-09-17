@@ -48,7 +48,7 @@ flowchart LR
 
 当前包含：
 
-- 一个已发布的真实 `90s Mainland China Top 100` Bilibili 试点（100 首）和一个保留但未发布的 `90s Demo Ranking`（30 首种子歌曲）；Schema 与 UI 已支持 80s/90s × 港台/大陆的四个目录位置。
+- 三个已发布的真实榜单：`80s Chinese Songs Top 100`（100 首）、`90s Mainland China Top 100`（100 首）和 `90s Cantonese Songs Top 70`（72 首）；另保留一个未发布的 `90s Demo Ranking`（30 首种子歌曲）。
 - 按标题或歌手模糊搜索。
 - 歌手精确筛选和发行年份精确筛选。
 - 每页 25 首的前端分页。
@@ -191,8 +191,8 @@ npm run dev
 | npm run db:generate | 根据 Drizzle Schema 生成迁移 |
 | npm run db:migrate | 应用已跟踪迁移 |
 | npm run db:seed | 创建或更新 demo fixtures |
-| npm run import:ranking --workspace @music-rank/database -- [--dry-run \| --replace] manifests/<file>.json | 校验、导入或原子替换版本控制的 100 首榜单清单 |
-| npm run publish:ranking --workspace @music-rank/database -- <slug> | 原子发布已验证的 90s/Mainland 试点并撤下 Demo |
+| npm run import:ranking --workspace @music-rank/database -- [--dry-run \| --replace] manifests/<file>.json | 校验、导入或原子替换版本控制的榜单清单 |
+| npm run publish:ranking --workspace @music-rank/database -- <slug> | 原子发布已验证的目标榜单并保持 Demo 未发布 |
 | npm run dev | 并行启动 API watch 和 Vite |
 | npm run typecheck | 构建共享包并检查所有 workspace 类型 |
 | npm run test | 运行所有 Vitest 测试 |
@@ -400,9 +400,10 @@ Schema 源文件是 packages/database/src/schema.ts。修改后先生成迁移�
 
 DEMO_USER_ID 只控制 demo fixture，不再参与普通请求的当前用户解析。
 
-### 7.12 Pilot ranking import
+### 7.12 Ranking manifest import
 
-`packages/database/manifests/90s-mainland-top-100.json` and
+`packages/database/manifests/80s-chinese-top-100.json`,
+`packages/database/manifests/90s-mainland-top-100.json`, and
 `packages/database/manifests/90s-cantonese-top-70.json` are version-controlled,
 user-approved Bilibili source manifests. `packages/database/src/ranking-importer.ts`
 validates source metadata, one or more contiguous unique ranks beginning at 1,
@@ -412,6 +413,12 @@ a repeated manifest reuses its existing songs and entries. It imports
 unpublished first. The dedicated publication operation then preserves an
 unpublished `90s-demo-ranking` while publishing the verified target in the same
 transaction, without deleting Demo data.
+
+Exact matches against a Demo song may upgrade that shared row to the manifest's
+release year and `VERIFIED` status. Both dry-run and import reject a conflicting
+release year on an already non-Demo song. This lets authoritative rankings
+replace fixture metadata without weakening conflict protection for production
+data or creating duplicate songs.
 
 `--replace` is the controlled path for an authoritative manifest correction. It
 deletes and recreates the target ranking and entries inside one transaction,
@@ -1151,6 +1158,7 @@ E2E 不复用已有服务器；3101 被占用时应先定位占用者。
 
 | 日期 | 代码基线 | 内容 |
 | --- | --- | --- |
+| 2026-09-17 | `feature/80s-ranking-import` working tree on `96c2783` | 新增并本地发布 100 首 `80s Chinese Songs Top 100`；清单原样保留用户 JSON；导入器允许正式清单升级精确匹配的 Demo 歌曲并让 dry-run 同步检查年份冲突；E2E 不再假设默认榜单含 Demo 歌曲。typecheck、API 22/22、Web 44/44、config 8/8、database 10/10、build、Playwright 3/3 及桌面/手机验收通过。 |
 | 2026-09-15 | feature `ecd1e45` / main `62292ba` | 合并多榜单目录与 DESIGN-004/006：保留来源无关 slug 路由、两份已发布真实榜单、移动底栏和响应式列表；更新 BottomNav 测试夹具与 Session 等待；typecheck、API 15/15、Web 40/40、database 8/8、build、Playwright 3/3 均通过。 |
 | 2026-09-15 | `feature/90s-ranking-pilot` latest local commit after `6729972` | 新增 72 首 `90s Cantonese Songs Top 70`；导入器取消恰好 100 条的限制，改为支持任意正数的连续唯一名次；Cantonese 榜单不设置 region，来源 URL 仅用于 Watch source。 |
 | 2026-09-15 | `feature/90s-ranking-pilot` working tree on `2b0a0a3` | 将榜单公开身份改为来源无关 slug；API/路由使用 `/rankings/:slug`，decade/region 改为可空元数据，UI 改为直接榜单标签，并保留跨榜共享歌曲的独立名次。 |

@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { eq } from 'drizzle-orm';
 import { closeDatabase, db, songs, users } from '@music-rank/database';
+import { findPublishedRankingPathContaining } from './ranking-helpers.js';
 
 let username = '';
 let submittedSongTitles: string[] = [];
@@ -46,6 +47,8 @@ test('registers, authenticates, publishes, and anonymously reads personal lists'
   await expect(page.getByRole('tab', { name: /Personal Ranking/ })).toBeVisible();
   await expect(page.getByRole('tab', { name: /Practice Library/ })).toBeVisible();
 
+  const songRankingPath = await findPublishedRankingPathContaining(page, '涛声依旧');
+  await page.goto(songRankingPath);
   await page.getByLabel('Search songs or artists').fill('涛声依旧');
   await expect(page).toHaveURL(/\?q=/);
   await expect(page.getByText('涛声依旧')).toBeVisible();
