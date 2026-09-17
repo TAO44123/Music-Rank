@@ -19,7 +19,8 @@ verified, and merged into `main` through `62292ba`. It adds the user-approved
 An additional 80s Chinese Songs Top 100 is now implemented and published in the
 normal local database from branch `feature/80s-ranking-import`. Its repository
 changes were committed and pushed after explicit user authorization on
-2026-09-17; no PR or merge was requested.
+2026-09-17, then directly merged into `main` at `81a3e33` and pushed without a
+PR after a second explicit authorization.
 
 The application now treats each published ranking as a first-class catalog item
 with a source-neutral `/rankings/:slug` route. The published pilot is available
@@ -93,8 +94,9 @@ entries, and rerunning Demo seed preserved publication and upgraded metadata.
 
 ## 2. Repository State
 
-- Branch: `feature/80s-ranking-import`, created from synchronized `main` at
-  `96c2783`, committed and pushed to `origin` on 2026-09-17.
+- Branch: `main`, with the 80s feature merge at `81a3e33` and this handoff
+  refresh on top. The feature branch remains available at
+  `origin/feature/80s-ranking-import` (`b5507cc`).
 - The synchronized feature branch is pushed at `ecd1e45`; its pre-integration
   tip was `d2ef428`.
 - Task 2 started from synchronized `main` at `67a0ba6` on branch
@@ -317,8 +319,8 @@ Fresh synchronized-branch verification on September 15, 2026 passed:
   entries.
 - Keep the approved manifest values unchanged unless the user supplies a new
   authoritative replacement and explicitly requests it.
-- The current 80s import is committed and pushed. Creating a PR or merging still
-  requires explicit user authorization.
+- The 80s import is committed, pushed, and directly merged into `main` at
+  `81a3e33` after explicit user authorization. No PR was created.
 
 ### Task 2 — User-submitted songs
 
@@ -405,11 +407,11 @@ clean temporary database. Record exact test counts and any skipped check.
 ## 10. Copy-Paste Prompt for the Next Follow-up
 
 ```text
-Continue Music Rank from branch feature/80s-ranking-import. Read
+Continue Music Rank from the integrated main branch. Read
 docs/SESSION_HANDOFF.md and docs/RANKING_CATALOG_EXPANSION_EXECUTION_PLAN.md
-completely, then inspect and preserve the working tree. The branch started from
-synchronized main at 96c2783 and its 80s import changes are committed and
-pushed. Use the live Git log for the final commit ID and remote state.
+completely, then inspect and preserve the working tree. The 80s import feature
+commit is b5507cc and its direct main merge is 81a3e33; use the live Git log for
+the handoff-refresh commit and final remote state.
 
 The approved Bilibili 90s Mainland Top 100 pilot is already imported and
 published as 90s-mainland-top-100. Its 100-entry manifest and reusable

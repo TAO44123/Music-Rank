@@ -1158,7 +1158,7 @@ E2E 不复用已有服务器；3101 被占用时应先定位占用者。
 
 | 日期 | 代码基线 | 内容 |
 | --- | --- | --- |
-| 2026-09-17 | `feature/80s-ranking-import` working tree on `96c2783` | 新增并本地发布 100 首 `80s Chinese Songs Top 100`；清单原样保留用户 JSON；导入器允许正式清单升级精确匹配的 Demo 歌曲并让 dry-run 同步检查年份冲突；E2E 不再假设默认榜单含 Demo 歌曲。typecheck、API 22/22、Web 44/44、config 8/8、database 10/10、build、Playwright 3/3 及桌面/手机验收通过。 |
+| 2026-09-17 | feature `b5507cc` / main merge `81a3e33` | 新增并发布 100 首 `80s Chinese Songs Top 100`；清单原样保留用户 JSON；导入器允许正式清单升级精确匹配的 Demo 歌曲并让 dry-run 同步检查年份冲突；E2E 不再假设默认榜单含 Demo 歌曲。typecheck、API 22/22、Web 44/44、config 8/8、database 10/10、build、Playwright 3/3 及桌面/手机验收通过；按用户授权直接合并并推送至 main。 |
 | 2026-09-15 | feature `ecd1e45` / main `62292ba` | 合并多榜单目录与 DESIGN-004/006：保留来源无关 slug 路由、两份已发布真实榜单、移动底栏和响应式列表；更新 BottomNav 测试夹具与 Session 等待；typecheck、API 15/15、Web 40/40、database 8/8、build、Playwright 3/3 均通过。 |
 | 2026-09-15 | `feature/90s-ranking-pilot` latest local commit after `6729972` | 新增 72 首 `90s Cantonese Songs Top 70`；导入器取消恰好 100 条的限制，改为支持任意正数的连续唯一名次；Cantonese 榜单不设置 region，来源 URL 仅用于 Watch source。 |
 | 2026-09-15 | `feature/90s-ranking-pilot` working tree on `2b0a0a3` | 将榜单公开身份改为来源无关 slug；API/路由使用 `/rankings/:slug`，decade/region 改为可空元数据，UI 改为直接榜单标签，并保留跨榜共享歌曲的独立名次。 |

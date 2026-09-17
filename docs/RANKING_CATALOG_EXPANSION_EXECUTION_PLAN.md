@@ -1,6 +1,6 @@
 # Ranking Catalog Expansion — Cross-Session Execution Plan
 
-> Status: Task 1, Task 3A, the approved Cantonese import, and Task 2 are merged into `main`; the 80s Chinese Top 100 is verified, committed, and pushed on `feature/80s-ranking-import`, awaiting any separate PR/merge authorization
+> Status: Task 1, Task 2, and all three approved ranking imports are verified and merged into `main`; the 80s Chinese Top 100 was directly merged at `81a3e33` after explicit authorization
 >
 > Last updated: 2026-09-17 (America/New_York)
 >
@@ -1084,5 +1084,6 @@ Before ending a session:
   passed with all three tabs, the exact source link, rank-85 search, responsive
   layout, and no Console errors.
 - Commit/push/merge status: the user authorized committing and pushing
-  `feature/80s-ranking-import` on 2026-09-17. The branch was pushed to `origin`;
-  no PR or merge was performed.
+  `feature/80s-ranking-import`, then separately authorized a direct merge into
+  `main` on 2026-09-17. Feature commit `b5507cc` was merged at `81a3e33`; both
+  branches were pushed to `origin`. No PR was created.
