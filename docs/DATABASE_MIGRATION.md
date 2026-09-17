@@ -135,6 +135,8 @@ npm run dev
 
 非 development 环境必须显式设置 `APP_ENV`；否则数据库命令会读取 development 配置。
 
+下面的示例写于只有两个 90s 榜单时,此后仓库又加入了 `80s-chinese-top-100.json`。**以 `packages/database/manifests/` 下的实际文件为准**,不要照抄清单;遍历整个目录的写法见 [`DEPLOYMENT.md`](../DEPLOYMENT.md) 第 3.1 节。
+
 macOS / Linux 的 production 示例：
 
 ```bash

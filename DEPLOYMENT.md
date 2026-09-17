@@ -209,7 +209,64 @@ systemctl start music-rank
 - **`npm ci` / `npm run build` 用 root 跑,完事统一 `chown`。** 服务用户的 shell 是 `nologin`,让它跑 npm 要额外绕 shell 和设 HOME,不如事后交属主省事。
 - **迁移带 `APP_ENV=production`。** 没有新迁移时它是空操作,跑一遍无副作用;漏了则可能打到错误的库。
 
-榜单数据有更新时,在 `npm run build` 之后按 [docs/DATABASE_MIGRATION.md](docs/DATABASE_MIGRATION.md) 第 5 节导入与发布。
+### 3.1 榜单数据导入与发布
+
+榜单是数据,不随代码自动生效。新增或更新 manifest 后要显式导入,**导入与发布是分开的两步**:导入后榜单处于未发布状态,确认无误再发布。
+
+下面的命令遍历 `packages/database/manifests/` 下的全部文件,新增 manifest 时无需改动:
+
+**先只读预检,不写库:**
+
+```bash
+cd /opt/music-rank/app
+for m in packages/database/manifests/*.json; do
+  APP_ENV=production npm run import:ranking --workspace @music-rank/database -- --dry-run "manifests/$(basename "$m")"
+done
+```
+
+每份打印一行 JSON 摘要。全部无报错再继续。
+
+**导入**(事务性;同一份 manifest 重复导入是幂等的):
+
+```bash
+cd /opt/music-rank/app
+for m in packages/database/manifests/*.json; do
+  APP_ENV=production npm run import:ranking --workspace @music-rank/database -- "manifests/$(basename "$m")"
+done
+```
+
+manifest 路径相对 `packages/database/` 解析,因为 `--workspace` 会把工作目录切到那里;所以写 `manifests/xxx.json`,不是完整路径。
+
+**发布**——一次一个 slug,**发哪些是产品决定,不要盲目全发**:
+
+```bash
+cd /opt/music-rank/app
+APP_ENV=production npm run publish:ranking --workspace @music-rank/database -- <slug>
+```
+
+当前 manifest 与 slug:
+
+| manifest | slug | 条目 | displayOrder |
+| --- | --- | ---: | ---: |
+| `80s-chinese-top-100.json` | `80s-chinese-top-100` | 100 | 3 |
+| `90s-mainland-top-100.json` | `90s-mainland-top-100` | 100 | 4 |
+| `90s-cantonese-top-70.json` | `90s-cantonese-top-70` | 72 | 5 |
+
+`publish:ranking` **只动两个榜单**:把目标置为已发布,把 Demo(`90s-demo-ranking`)置为未发布。其他已发布的正式榜单不受影响,所以依次发布多个是安全的,后发的不会撤下先发的。
+
+发布前有四道断言,任一不满足则整个事务回滚:目标 slug 必须已导入;至少一条条目;名次必须是连续的 1..n;`90s-demo-ranking` 必须存在且 `sourceType` 为 `DEMO`——**这意味着 `db:seed` 必须先跑过**。
+
+**验证已发布的结果:**
+
+```bash
+curl -s localhost/api/rankings | node -e "let d='';process.stdin.on('data',c=>d+=c).on('end',()=>console.log(JSON.parse(d).map(r=>r.slug).join('
+')))"
+```
+
+返回的是已发布列表,应看到你发布的 slug,且不再有 Demo。
+
+完整的 manifest 格式、名次校验规则、内容变更时的受控替换(`--replace`)和 SQL 层面的验收,见 [docs/DATABASE_MIGRATION.md](docs/DATABASE_MIGRATION.md)。
+
 
 ## 4. 按环境打包与启动
 
