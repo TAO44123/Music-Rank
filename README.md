@@ -73,6 +73,7 @@ All `/api/me` requests resolve an opaque database-backed session cookie in one m
 ## Documentation
 
 - [First Local Run Guide](docs/LOCAL_FIRST_RUN_GUIDE.md): environment checks, configuration, startup, health checks, full verification, troubleshooting, and Agent handoff rules.
+- [Deployment Guide](DEPLOYMENT.md): first-time server setup, routine redeploys, per-environment builds, restarts, verification, rollback, and troubleshooting.
 - [Database Migration and Ranking Sync Guide](docs/DATABASE_MIGRATION.md): apply schema migrations, import and publish both production ranking manifests, verify counts, and handle controlled replacements.
 - [Current Session Handoff](docs/SESSION_HANDOFF.md): repository state and the approved focus, open decisions, implementation sequence, and acceptance checklist for the next development session.
 - [Engineering Guide](docs/ENGINEERING_GUIDE.md): current architecture, API reference, data model, testing strategy, operational notes, and maintenance rules.
@@ -82,4 +83,4 @@ All `/api/me` requests resolve an opaque database-backed session cookie in one m
 
 ## Scope
 
-Authentication and public/private personal lists are an approved extension to the original Version 1 specification. The current scope still excludes implemented SSO providers, password recovery, email verification, account deletion, user discovery/follows, remote deployment, audio or lyrics, video ingestion, OCR, AI extraction, and admin tooling. See [AUTHENTICATION_DESIGN.md](docs/AUTHENTICATION_DESIGN.md) for the approved extension and [PROJECT_SPEC_EN.md](docs/PROJECT_SPEC_EN.md) for the original baseline.
+Authentication and public/private personal lists are an approved extension to the original Version 1 specification. The current scope still excludes implemented SSO providers, password recovery, email verification, account deletion, user discovery/follows, audio or lyrics, video ingestion, OCR, AI extraction, and admin tooling. See [AUTHENTICATION_DESIGN.md](docs/AUTHENTICATION_DESIGN.md) for the approved extension and [PROJECT_SPEC_EN.md](docs/PROJECT_SPEC_EN.md) for the original baseline.
