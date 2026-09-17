@@ -1,6 +1,7 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { eq } from 'drizzle-orm';
 import { closeDatabase, db, users } from '@music-rank/database';
+import { findPublishedRankingPathContaining } from './ranking-helpers.js';
 
 // The bug this suite exists to prevent: MUI's `secondaryAction` slot positions row
 // actions absolutely, so they never occupy layout space. A row whose text column
@@ -133,8 +134,9 @@ test('keeps every list readable and inside the viewport from 320px up', async ({
   await page.getByRole('button', { name: 'Create account' }).click();
   await expect(page.getByRole('button', { name: `@${username}` })).toBeVisible();
 
-  // 纤夫的爱 carries the longest artist string in the seed (尹相杰、于文华) and is the
-  // row that first exposed the overlap, so both personal lists must contain it.
+  // 纤夫的爱 carries the longest artist string in the catalog fixtures (尹相杰、于文华)
+  // and is the row that first exposed the overlap, so both personal lists must contain it.
+  await page.goto(await findPublishedRankingPathContaining(page, '纤夫的爱'));
   for (const title of ['纤夫的爱', '涛声依旧']) {
     await page.getByLabel('Search songs or artists').fill(title);
     const row = page.getByRole('list', { name: 'Ranked songs' }).getByRole('listitem').filter({ hasText: title });

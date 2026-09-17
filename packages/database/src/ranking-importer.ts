@@ -228,8 +228,12 @@ async function getDryRunSummary(manifest: RankingManifest): Promise<RankingImpor
       eq(songs.normalizedTitle, normalizeSongValue(entry.title)),
       eq(songs.normalizedArtist, normalizeSongValue(entry.artist))
     )).limit(1);
-    if (song) songsReused += 1;
-    else songsCreated += 1;
+    if (song) {
+      assert(song.verificationStatus === 'DEMO' || entry.releaseYear === null || song.releaseYear === null || song.releaseYear === entry.releaseYear, `release year conflict for ${entry.title} — ${entry.artist}`);
+      songsReused += 1;
+    } else {
+      songsCreated += 1;
+    }
     const existingEntry = entriesByRank.get(entry.rank);
     if (!existingEntry) {
       entriesCreated += 1;
@@ -308,11 +312,16 @@ async function writeRankingManifest(manifest: RankingManifest, replaceExisting: 
         }).returning();
         songsCreated += 1;
       } else {
-        assert(replaceExisting || entry.releaseYear === null || song.releaseYear === null || song.releaseYear === entry.releaseYear, `release year conflict for ${entry.title} — ${entry.artist}`);
+        const canUpgradeDemoMetadata = song.verificationStatus === 'DEMO';
+        assert(replaceExisting || canUpgradeDemoMetadata || entry.releaseYear === null || song.releaseYear === null || song.releaseYear === entry.releaseYear, `release year conflict for ${entry.title} — ${entry.artist}`);
         await transaction.update(songs).set({
           title: replaceExisting ? entry.title : song.title,
           artist: replaceExisting ? entry.artist : song.artist,
-          releaseYear: replaceExisting ? entry.releaseYear : song.releaseYear ?? entry.releaseYear,
+          releaseYear: replaceExisting
+            ? entry.releaseYear
+            : canUpgradeDemoMetadata
+              ? entry.releaseYear ?? song.releaseYear
+              : song.releaseYear ?? entry.releaseYear,
           verificationStatus: 'VERIFIED',
           updatedAt: new Date()
         }).where(eq(songs.id, song.id));

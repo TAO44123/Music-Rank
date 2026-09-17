@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import request from 'supertest';
-import { eq, inArray } from 'drizzle-orm';
+import { and, eq, inArray } from 'drizzle-orm';
 import { authSessions, closeDatabase, db, demoUserId, rankingEntries, rankings, singingListEntries, songs, users, userTopListEntries } from '@music-rank/database';
 import { createApp } from './app.js';
 import { hashSessionToken } from './auth.js';
@@ -287,7 +287,10 @@ describe('Music Rank API', () => {
     expect(duplicate).toMatchObject({ code: 'SONG_ALREADY_EXISTS', existingSong: { id: expect.any(String) } });
     expect(duplicate.existingSong.title.toLowerCase()).toBe('api submitted duplicate song');
     expect(duplicate.existingSong.artist.toLowerCase()).toBe('api artist');
-    expect(await db.select({ id: songs.id }).from(songs).where(eq(songs.title, 'API submitted duplicate song'))).toHaveLength(1);
+    expect(await db.select({ id: songs.id }).from(songs).where(and(
+      eq(songs.normalizedTitle, 'api submitted duplicate song'),
+      eq(songs.normalizedArtist, 'api artist')
+    ))).toHaveLength(1);
   });
 
   it('lets another user discover and reuse a submitted shared song', async () => {

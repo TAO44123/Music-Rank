@@ -1,0 +1,621 @@
+{
+  "version": 1,
+  "ranking": {
+    "title": "80s Chinese Songs Top 100",
+    "slug": "80s-chinese-top-100",
+    "era": "1980s",
+    "decadeStart": 1980,
+    "region": null,
+    "displayOrder": 3,
+    "sourceType": "COMMUNITY",
+    "sourceUrl": "https://www.bilibili.com/video/BV1Jr4y127wH?spm_id_from=333.788.videopod.sections&vd_source=1544c032ccb715323d499a09f8bbca66",
+    "description": "User-provided 1980s Chinese-language songs Top 100 with a Bilibili source link."
+  },
+  "extraction": {
+    "sourcePlatform": "Bilibili",
+    "sourceTitle": "1980年代华语歌曲排行榜TOP100",
+    "notes": "Ranks, titles, artists, and release years are taken verbatim from the user-provided JSON. The linked Bilibili source was not accessed or used to validate the data."
+  },
+  "entries": [
+  {
+    "rank": 1,
+    "title": "我只在乎你",
+    "artist": "邓丽君",
+    "releaseYear": 1987
+  },
+  {
+    "rank": 2,
+    "title": "千千阕歌",
+    "artist": "陈慧娴",
+    "releaseYear": 1989
+  },
+  {
+    "rank": 3,
+    "title": "童年",
+    "artist": "罗大佑",
+    "releaseYear": 1982
+  },
+  {
+    "rank": 4,
+    "title": "上海滩",
+    "artist": "叶丽仪",
+    "releaseYear": 1980
+  },
+  {
+    "rank": 5,
+    "title": "我的中国心",
+    "artist": "张明敏",
+    "releaseYear": 1982
+  },
+  {
+    "rank": 6,
+    "title": "明天会更好",
+    "artist": "群星",
+    "releaseYear": 1985
+  },
+  {
+    "rank": 7,
+    "title": "酒干倘卖无",
+    "artist": "苏芮",
+    "releaseYear": 1983
+  },
+  {
+    "rank": 8,
+    "title": "大约在冬季",
+    "artist": "齐秦",
+    "releaseYear": 1987
+  },
+  {
+    "rank": 9,
+    "title": "敢问路在何方",
+    "artist": "蒋大为",
+    "releaseYear": 1986
+  },
+  {
+    "rank": 10,
+    "title": "冬天里的一把火",
+    "artist": "费翔",
+    "releaseYear": 1987
+  },
+  {
+    "rank": 11,
+    "title": "让世界充满爱",
+    "artist": "群星",
+    "releaseYear": 1986
+  },
+  {
+    "rank": 12,
+    "title": "梦醒时分",
+    "artist": "陈淑桦",
+    "releaseYear": 1989
+  },
+  {
+    "rank": 13,
+    "title": "龙的传人",
+    "artist": "李建复",
+    "releaseYear": 1980
+  },
+  {
+    "rank": 14,
+    "title": "一场游戏一场梦",
+    "artist": "王杰",
+    "releaseYear": 1987
+  },
+  {
+    "rank": 15,
+    "title": "粉红色的回忆",
+    "artist": "韩宝仪",
+    "releaseYear": 1987
+  },
+  {
+    "rank": 16,
+    "title": "万里长城永不倒",
+    "artist": "叶振棠",
+    "releaseYear": 1981
+  },
+  {
+    "rank": 17,
+    "title": "爱拼才会赢",
+    "artist": "叶启田",
+    "releaseYear": 1988
+  },
+  {
+    "rank": 18,
+    "title": "倩女幽魂",
+    "artist": "张国荣",
+    "releaseYear": 1987
+  },
+  {
+    "rank": 19,
+    "title": "铁血丹心",
+    "artist": "罗文、甄妮",
+    "releaseYear": 1983
+  },
+  {
+    "rank": 20,
+    "title": "一剪梅",
+    "artist": "费玉清",
+    "releaseYear": 1983
+  },
+  {
+    "rank": 21,
+    "title": "但愿人长久",
+    "artist": "邓丽君",
+    "releaseYear": 1983
+  },
+  {
+    "rank": 22,
+    "title": "我的未来不是梦",
+    "artist": "张雨生",
+    "releaseYear": 1988
+  },
+  {
+    "rank": 23,
+    "title": "星星知我心",
+    "artist": "蔡幸娟",
+    "releaseYear": 1983
+  },
+  {
+    "rank": 24,
+    "title": "偏偏喜欢你",
+    "artist": "陈百强",
+    "releaseYear": 1983
+  },
+  {
+    "rank": 25,
+    "title": "万水千山总是情",
+    "artist": "汪明荃",
+    "releaseYear": 1982
+  },
+  {
+    "rank": 26,
+    "title": "光阴的故事",
+    "artist": "罗大佑",
+    "releaseYear": 1982
+  },
+  {
+    "rank": 27,
+    "title": "漫步人生路",
+    "artist": "邓丽君",
+    "releaseYear": 1983
+  },
+  {
+    "rank": 28,
+    "title": "昨夜星辰",
+    "artist": "林淑容",
+    "releaseYear": 1984
+  },
+  {
+    "rank": 29,
+    "title": "在水一方",
+    "artist": "邓丽君",
+    "releaseYear": 1980
+  },
+  {
+    "rank": 30,
+    "title": "无言的结局",
+    "artist": "李茂山、林淑容",
+    "releaseYear": 1986
+  },
+  {
+    "rank": 31,
+    "title": "恋曲1990",
+    "artist": "罗大佑",
+    "releaseYear": 1988
+  },
+  {
+    "rank": 32,
+    "title": "世间始终你好",
+    "artist": "罗文、甄妮",
+    "releaseYear": 1983
+  },
+  {
+    "rank": 33,
+    "title": "舞女泪",
+    "artist": "韩宝仪",
+    "releaseYear": 1988
+  },
+  {
+    "rank": 34,
+    "title": "难忘今宵",
+    "artist": "李谷一",
+    "releaseYear": 1984
+  },
+  {
+    "rank": 35,
+    "title": "牧羊曲",
+    "artist": "郑绪岚",
+    "releaseYear": 1982
+  },
+  {
+    "rank": 36,
+    "title": "爱情骗子我问你",
+    "artist": "陈小云",
+    "releaseYear": 1988
+  },
+  {
+    "rank": 37,
+    "title": "舞女",
+    "artist": "陈小云",
+    "releaseYear": 1985
+  },
+  {
+    "rank": 38,
+    "title": "萍聚",
+    "artist": "李富兴、李翊君",
+    "releaseYear": 1987
+  },
+  {
+    "rank": 39,
+    "title": "我和我的祖国",
+    "artist": "李谷一",
+    "releaseYear": 1985
+  },
+  {
+    "rank": 40,
+    "title": "其实你不懂我的心",
+    "artist": "童安格",
+    "releaseYear": 1989
+  },
+  {
+    "rank": 41,
+    "title": "沉默是金",
+    "artist": "许冠杰、张国荣",
+    "releaseYear": 1988
+  },
+  {
+    "rank": 42,
+    "title": "真的爱你",
+    "artist": "Beyond",
+    "releaseYear": 1989
+  },
+  {
+    "rank": 43,
+    "title": "回娘家",
+    "artist": "朱明瑛",
+    "releaseYear": 1984
+  },
+  {
+    "rank": 44,
+    "title": "鲁冰花",
+    "artist": "甄妮",
+    "releaseYear": 1989
+  },
+  {
+    "rank": 45,
+    "title": "喜欢你",
+    "artist": "Beyond",
+    "releaseYear": 1988
+  },
+  {
+    "rank": 46,
+    "title": "故乡的云",
+    "artist": "费翔",
+    "releaseYear": 1987
+  },
+  {
+    "rank": 47,
+    "title": "再回首",
+    "artist": "姜育恒",
+    "releaseYear": 1989
+  },
+  {
+    "rank": 48,
+    "title": "走过咖啡屋",
+    "artist": "千百惠",
+    "releaseYear": 1986
+  },
+  {
+    "rank": 49,
+    "title": "一生何求",
+    "artist": "陈百强",
+    "releaseYear": 1989
+  },
+  {
+    "rank": 50,
+    "title": "朋友",
+    "artist": "谭咏麟",
+    "releaseYear": 1985
+  },
+  {
+    "rank": 51,
+    "title": "祝福",
+    "artist": "叶倩文",
+    "releaseYear": 1988
+  },
+  {
+    "rank": 52,
+    "title": "青苹果乐园",
+    "artist": "小虎队",
+    "releaseYear": 1989
+  },
+  {
+    "rank": 53,
+    "title": "外面的世界",
+    "artist": "齐秦",
+    "releaseYear": 1987
+  },
+  {
+    "rank": 54,
+    "title": "我很丑可是我很温柔",
+    "artist": "赵传",
+    "releaseYear": 1988
+  },
+  {
+    "rank": 55,
+    "title": "歌声与微笑",
+    "artist": "上海小荧星艺术团",
+    "releaseYear": 1986
+  },
+  {
+    "rank": 56,
+    "title": "Monica",
+    "artist": "张国荣",
+    "releaseYear": 1984
+  },
+  {
+    "rank": 57,
+    "title": "我想有个家",
+    "artist": "潘美辰",
+    "releaseYear": 1989
+  },
+  {
+    "rank": 58,
+    "title": "是否我真的一无所有",
+    "artist": "王杰",
+    "releaseYear": 1989
+  },
+  {
+    "rank": 59,
+    "title": "让我一次爱个够",
+    "artist": "庾澄庆",
+    "releaseYear": 1989
+  },
+  {
+    "rank": 60,
+    "title": "明天你是否依然爱我",
+    "artist": "童安格",
+    "releaseYear": 1989
+  },
+  {
+    "rank": 61,
+    "title": "弯弯的月亮",
+    "artist": "刘欢",
+    "releaseYear": 1989
+  },
+  {
+    "rank": 62,
+    "title": "风的季节",
+    "artist": "徐小凤",
+    "releaseYear": 1981
+  },
+  {
+    "rank": 63,
+    "title": "你知道我在等你吗",
+    "artist": "张洪量",
+    "releaseYear": 1989
+  },
+  {
+    "rank": 64,
+    "title": "亲爱的小孩",
+    "artist": "苏芮",
+    "releaseYear": 1985
+  },
+  {
+    "rank": 65,
+    "title": "大号是中华",
+    "artist": "徐小明",
+    "releaseYear": 1982
+  },
+  {
+    "rank": 66,
+    "title": "跟着感觉走",
+    "artist": "苏芮",
+    "releaseYear": 1988
+  },
+  {
+    "rank": 67,
+    "title": "三月里的小雨",
+    "artist": "刘文正",
+    "releaseYear": 1981
+  },
+  {
+    "rank": 68,
+    "title": "三百六十五里路",
+    "artist": "文章（黄文章）",
+    "releaseYear": 1984
+  },
+  {
+    "rank": 69,
+    "title": "狼",
+    "artist": "齐秦",
+    "releaseYear": 1985
+  },
+  {
+    "rank": 70,
+    "title": "我终于失去了你",
+    "artist": "赵传",
+    "releaseYear": 1989
+  },
+  {
+    "rank": 71,
+    "title": "爱的奉献",
+    "artist": "韦唯",
+    "releaseYear": 1989
+  },
+  {
+    "rank": 72,
+    "title": "新长征路上的摇滚",
+    "artist": "崔健",
+    "releaseYear": 1989
+  },
+  {
+    "rank": 73,
+    "title": "掌声响起",
+    "artist": "凤飞飞",
+    "releaseYear": 1986
+  },
+  {
+    "rank": 74,
+    "title": "你的样子",
+    "artist": "罗大佑",
+    "releaseYear": 1988
+  },
+  {
+    "rank": 75,
+    "title": "黄土高坡",
+    "artist": "杭天琪",
+    "releaseYear": 1988
+  },
+  {
+    "rank": 76,
+    "title": "鹿港小镇",
+    "artist": "罗大佑",
+    "releaseYear": 1982
+  },
+  {
+    "rank": 77,
+    "title": "水中花",
+    "artist": "谭咏麟",
+    "releaseYear": 1988
+  },
+  {
+    "rank": 78,
+    "title": "只要你过得比我好",
+    "artist": "钟镇涛",
+    "releaseYear": 1987
+  },
+  {
+    "rank": 79,
+    "title": "假行僧",
+    "artist": "崔健",
+    "releaseYear": 1989
+  },
+  {
+    "rank": 80,
+    "title": "耶利亚女郎",
+    "artist": "童安格",
+    "releaseYear": 1988
+  },
+  {
+    "rank": 81,
+    "title": "人生何处不相逢",
+    "artist": "陈慧娴",
+    "releaseYear": 1988
+  },
+  {
+    "rank": 82,
+    "title": "年轻的朋友来相会",
+    "artist": "朱逢博、游国屏",
+    "releaseYear": 1980
+  },
+  {
+    "rank": 83,
+    "title": "爱在深秋",
+    "artist": "谭咏麟",
+    "releaseYear": 1984
+  },
+  {
+    "rank": 84,
+    "title": "你的眼神",
+    "artist": "蔡琴",
+    "releaseYear": 1981
+  },
+  {
+    "rank": 85,
+    "title": "被遗忘的时光",
+    "artist": "蔡琴",
+    "releaseYear": 1979
+  },
+  {
+    "rank": 86,
+    "title": "迟来的爱",
+    "artist": "李茂山",
+    "releaseYear": 1987
+  },
+  {
+    "rank": 87,
+    "title": "大海啊故乡",
+    "artist": "朱明瑛",
+    "releaseYear": 1984
+  },
+  {
+    "rank": 88,
+    "title": "我是不是你最疼爱的人",
+    "artist": "潘越云",
+    "releaseYear": 1989
+  },
+  {
+    "rank": 89,
+    "title": "少年壮志不言愁",
+    "artist": "刘欢",
+    "releaseYear": 1987
+  },
+  {
+    "rank": 90,
+    "title": "遥远的她",
+    "artist": "张学友",
+    "releaseYear": 1985
+  },
+  {
+    "rank": 91,
+    "title": "顺流逆流",
+    "artist": "徐小凤",
+    "releaseYear": 1985
+  },
+  {
+    "rank": 92,
+    "title": "军港之夜",
+    "artist": "苏小明",
+    "releaseYear": 1980
+  },
+  {
+    "rank": 93,
+    "title": "烛光里的妈妈",
+    "artist": "毛阿敏",
+    "releaseYear": 1989
+  },
+  {
+    "rank": 94,
+    "title": "真的汉子",
+    "artist": "林子祥",
+    "releaseYear": 1988
+  },
+  {
+    "rank": 95,
+    "title": "在那桃花盛开的地方",
+    "artist": "蒋大为",
+    "releaseYear": 1984
+  },
+  {
+    "rank": 96,
+    "title": "谁明浪子心",
+    "artist": "王杰",
+    "releaseYear": 1989
+  },
+  {
+    "rank": 97,
+    "title": "妈妈的吻",
+    "artist": "朱晓琳",
+    "releaseYear": 1984
+  },
+  {
+    "rank": 98,
+    "title": "路灯下的小姑娘",
+    "artist": "邓洁仪",
+    "releaseYear": 1987
+  },
+  {
+    "rank": 99,
+    "title": "梦伴",
+    "artist": "梅艳芳",
+    "releaseYear": 1985
+  },
+  {
+    "rank": 100,
+    "title": "一生不变",
+    "artist": "李克勤",
+    "releaseYear": 1989
+  }
+  ]
+}

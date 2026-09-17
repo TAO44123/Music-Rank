@@ -1,8 +1,8 @@
 # Ranking Catalog Expansion — Cross-Session Execution Plan
 
-> Status: Task 1, Task 3A, the approved Cantonese import, and Task 2 are verified, pushed, and merged into `main`; Task 2 was delivered through PR #6 from `feature/user-submitted-songs`
+> Status: Task 1, Task 3A, the approved Cantonese import, and Task 2 are merged into `main`; the 80s Chinese Top 100 is verified, committed, and pushed on `feature/80s-ranking-import`, awaiting any separate PR/merge authorization
 >
-> Last updated: 2026-09-15 (America/New_York)
+> Last updated: 2026-09-17 (America/New_York)
 >
 > Original planning base: `9717ff3` (`docs: refresh handoff and engineering guide`)
 >
@@ -1049,3 +1049,40 @@ Before ending a session:
 - Commit/push status: the core Task 2 implementation is `20a257c`; the UI
   refinement is `711e870`. Both were pushed on
   `feature/user-submitted-songs` and delivered through PR #6.
+
+### 2026-09-17 — 80s Chinese Top 100 import
+
+- Created `feature/80s-ranking-import` from synchronized `main` at `96c2783`.
+- Moved the user-provided `1980年代华语歌曲排行榜TOP100.json` into the
+  version-controlled `packages/database/manifests/80s-chinese-top-100.json`
+  manifest. It has the title `80s Chinese Songs Top 100`, slug
+  `80s-chinese-top-100`, 1980s metadata, null region metadata, display order 3,
+  and the exact supplied Bilibili source URL. The source page was not accessed.
+- Preserved all 100 source rows verbatim, including rank 85's 1979 release year.
+  Validation found ranks 1–100 continuous and unique, 100 unique normalized
+  songs, and no missing release years.
+- The initial dry run reported 98 creates and 2 exact Demo-song reuses. The
+  first write correctly rolled back on their release-year conflicts, exposing
+  that dry run did not mirror the write check. The importer now lets a verified
+  manifest upgrade exact `DEMO` matches while continuing to reject conflicts on
+  non-Demo songs; dry run enforces the same rule. Regression coverage increased
+  from 8 to 10 database tests.
+- Imported unpublished first, then published transactionally. Database checks
+  found 100 entries, ranks 1–100, 100 unique ranks, 100 unique songs, no missing
+  years, and the exact source URL. The import created 98 songs and upgraded the
+  retained Demo rows for `昨夜星辰` and `弯弯的月亮` to 1984/1989 and
+  `VERIFIED`. Both 90s rankings remain published; the 30-entry Demo remains
+  retained and unpublished. Rerunning seed preserved this state. Final dry run
+  reused all 100 songs and entries.
+- Removed E2E assumptions that the first published ranking contains Demo songs;
+  tests now locate a published ranking containing their target song. Also fixed
+  the API concurrency test to assert normalized identity rather than which
+  capitalization wins a valid race.
+- Verification passed: typecheck; API 22/22; Web 44/44 across 13 files; config
+  8/8; database 10/10; contracts no tests; production build (831.42 KB,
+  259.43 KB gzip); and Playwright 3/3. Desktop and 390 × 844 browser acceptance
+  passed with all three tabs, the exact source link, rank-85 search, responsive
+  layout, and no Console errors.
+- Commit/push/merge status: the user authorized committing and pushing
+  `feature/80s-ranking-import` on 2026-09-17. The branch was pushed to `origin`;
+  no PR or merge was performed.

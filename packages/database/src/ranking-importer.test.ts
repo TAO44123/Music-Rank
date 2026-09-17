@@ -84,6 +84,47 @@ describe('ranking importer', () => {
     expect(ranking).toMatchObject({ decadeStart: null, region: null, isPublished: false });
   });
 
+  it('upgrades exact Demo-song matches with manifest metadata', async () => {
+    const manifest = manifestFor(`${slugPrefix}demo-upgrade`, 1);
+    manifest.entries[0].releaseYear = 1984;
+    const demoSongId = randomUUID();
+    createdSongIds.add(demoSongId);
+    await db.insert(songs).values({
+      id: demoSongId,
+      title: manifest.entries[0].title,
+      artist: manifest.entries[0].artist,
+      releaseYear: 1990,
+      normalizedTitle: manifest.entries[0].title.toLocaleLowerCase(),
+      normalizedArtist: manifest.entries[0].artist.toLocaleLowerCase(),
+      verificationStatus: 'DEMO'
+    });
+
+    await expect(dryRunRankingImport(manifest)).resolves.toMatchObject({ songsCreated: 0, songsReused: 1 });
+    await importRankingManifest(manifest);
+
+    const [song] = await db.select().from(songs).where(eq(songs.id, demoSongId));
+    expect(song).toMatchObject({ releaseYear: 1984, verificationStatus: 'VERIFIED' });
+  });
+
+  it('rejects verified-song year conflicts during dry run', async () => {
+    const manifest = manifestFor(`${slugPrefix}verified-conflict`, 1);
+    manifest.entries[0].releaseYear = 1984;
+    const verifiedSongId = randomUUID();
+    createdSongIds.add(verifiedSongId);
+    await db.insert(songs).values({
+      id: verifiedSongId,
+      title: manifest.entries[0].title,
+      artist: manifest.entries[0].artist,
+      releaseYear: 1990,
+      normalizedTitle: manifest.entries[0].title.toLocaleLowerCase(),
+      normalizedArtist: manifest.entries[0].artist.toLocaleLowerCase(),
+      verificationStatus: 'VERIFIED'
+    });
+
+    await expect(dryRunRankingImport(manifest)).rejects.toThrow('release year conflict');
+    expect(await db.select().from(rankings).where(eq(rankings.slug, manifest.ranking.slug))).toHaveLength(0);
+  });
+
   it('rolls back earlier songs and entries when a later ranking entry conflicts', async () => {
     const manifest = manifestFor(`${slugPrefix}rollback`);
     const [ranking] = await db.insert(rankings).values({ id: randomUUID(), ...manifest.ranking, isPublished: false }).returning();
