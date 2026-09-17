@@ -92,10 +92,24 @@ URL, the optional 80s chip without a region chip, responsive layout, search for
 rank 85, and no Console errors. The final dry run reused all 100 songs and
 entries, and rerunning Demo seed preserved publication and upgraded metadata.
 
+`docs/DATABASE_MIGRATION.md` was refreshed on 2026-09-17 to cover all three
+formal ranking manifests and their exact dry-run, import, publish, SQL, API,
+replacement, and troubleshooting steps. It also records the current migration
+chain through `0004_abnormal_butterfly.sql` and clarifies that the 80s ranking
+is manifest data only and does not require a new Schema migration.
+Pre-commit validation for this documentation-only refresh passed:
+`npm run typecheck`, `npm run test` (API 22, Web 44, Config 8, Database 10;
+Contracts has no tests), and `git diff --check`. E2E and browser acceptance
+were not rerun because no application, configuration, or database code changed.
+
 ## 2. Repository State
 
-- Branch: `main`, with the 80s feature merge at `81a3e33` and this handoff
-  refresh on top. The feature branch remains available at
+- Branch: `main`, with the database migration-guide refresh based on
+  `a040a6c`. The user authorized a local documentation commit on 2026-09-17;
+  these documentation updates have not been pushed. At the pre-commit check,
+  `origin/main` was two deployment-documentation commits ahead (`d26f727`
+  and `e4a2034`); no pull or merge was performed for this local commit.
+  The 80s feature branch remains available at
   `origin/feature/80s-ranking-import` (`b5507cc`).
 - The synchronized feature branch is pushed at `ecd1e45`; its pre-integration
   tip was `d2ef428`.
