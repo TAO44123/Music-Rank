@@ -187,6 +187,8 @@ npm run dev
 
 非 development 环境必须显式设置 `APP_ENV`；否则数据库命令会读取 development 配置。
 
+以下示例覆盖当前三个正式榜单。新增 manifest 后,**以 `packages/database/manifests/` 下的实际文件为准**;遍历整个目录的写法见 [`DEPLOYMENT.md`](../DEPLOYMENT.md) 第 3.1 节。发布范围仍须按产品决定逐个确认。
+
 macOS / Linux 的 production 示例：
 
 ```bash
