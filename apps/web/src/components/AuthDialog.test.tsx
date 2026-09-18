@@ -7,21 +7,31 @@ import { AuthDialog } from './AuthDialog';
 afterEach(cleanup);
 
 describe('AuthDialog', () => {
-  it('submits login credentials without a display name', () => {
+  it.each(['login', 'register'] as const)('submits only username in %s mode', (mode) => {
     const onSubmit = vi.fn();
-    render(<ThemeProvider theme={theme}><AuthDialog open initialMode="login" isPending={false} error={null} onClose={vi.fn()} onSubmit={onSubmit} /></ThemeProvider>);
+    render(<ThemeProvider theme={theme}><AuthDialog open initialMode={mode} isPending={false} error={null} onClose={vi.fn()} onSubmit={onSubmit} /></ThemeProvider>);
     fireEvent.change(screen.getByRole('textbox', { name: /^Username/ }), { target: { value: 'listener_1' } });
-    fireEvent.change(screen.getByLabelText(/^Password/), { target: { value: 'correct horse battery staple' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Sign in' }));
-    expect(onSubmit).toHaveBeenCalledWith({ mode: 'login', username: 'listener_1', displayName: undefined, password: 'correct horse battery staple' });
+    expect(screen.queryByLabelText(/^Password/)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/^Display name/)).not.toBeInTheDocument();
+    expect(screen.getAllByRole('textbox')).toHaveLength(1);
+    fireEvent.click(screen.getByRole('button', { name: mode === 'login' ? 'Sign in' : 'Create account' }));
+    expect(onSubmit).toHaveBeenCalledWith({ mode, username: 'listener_1' });
   });
 
-  it('switches to registration and exposes validation guidance', () => {
-    render(<ThemeProvider theme={theme}><AuthDialog open initialMode="login" isPending={false} error="Invalid username or password" onClose={vi.fn()} onSubmit={vi.fn()} /></ThemeProvider>);
-    expect(screen.getByRole('alert')).toHaveTextContent('Invalid username or password');
+  it('retains username after a missing-user error and requires explicit registration', () => {
+    const onSubmit = vi.fn();
+    const onModeChange = vi.fn();
+    render(<ThemeProvider theme={theme}><AuthDialog open initialMode="login" isPending={false} error="This username is not registered. Register to create an account." onClose={vi.fn()} onSubmit={onSubmit} onModeChange={onModeChange} /></ThemeProvider>);
+    expect(screen.getByRole('alert')).toHaveTextContent('This username is not registered');
+    fireEvent.change(screen.getByLabelText(/^Username/), { target: { value: 'new_listener' } });
     fireEvent.click(screen.getByRole('button', { name: 'Need an account? Register' }));
     expect(screen.getByRole('heading', { name: 'Create your account' })).toBeVisible();
-    expect(screen.getByRole('textbox', { name: /^Display name/ })).toBeRequired();
-    expect(screen.getByText('Use at least 12 characters')).toBeVisible();
+    expect(screen.getByLabelText(/^Username/)).toHaveValue('new_listener');
+    expect(onModeChange).toHaveBeenCalledOnce();
+    expect(onSubmit).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Create account' }));
+    expect(onSubmit).toHaveBeenCalledWith({ mode: 'register', username: 'new_listener' });
+    fireEvent.click(screen.getByRole('button', { name: 'Already have an account? Sign in' }));
+    expect(screen.getByLabelText(/^Username/)).toHaveValue('new_listener');
   });
 });

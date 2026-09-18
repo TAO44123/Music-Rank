@@ -1,13 +1,20 @@
 # Music Rank Authentication and List Visibility Design
 
+> [DESIGN-008](DESIGN_008_USERNAME_ONLY_TRANSITION.md) defines the implemented
+> username-only intermediate release. Login and registration remain separate,
+> password storage is retained, and lack of account-ownership verification is
+> explicitly accepted for this transition. Google SSO is not implemented.
+
 ## 1. Approved Scope
 
-This iteration replaces the fixed demo-current-user behavior with local username/password authentication and database-backed sessions. It also lets each authenticated user independently publish or keep private their Top 10 and Singing List.
+This iteration replaces the fixed demo-current-user behavior with username-only transitional entry and database-backed sessions. It also lets each authenticated user independently publish or keep private their Top 10 and Singing List.
 
 Approved behavior:
 
 - Anonymous visitors can browse published rankings and songs.
-- Users can register with a username, display name, and password.
+- Users log in with username only. Missing usernames receive an explicit registration prompt, without account creation.
+- Registration requires only username and defaults display name to normalized username; existing display names remain unchanged.
+- Knowing a username grants access to that account, including private data and edits, as explicitly accepted for the intermediate release.
 - Sessions use an opaque token in an HTTP-only cookie and expire after seven days.
 - `/api/me/*` endpoints require an authenticated session.
 - Top 10 and Singing List visibility is configured independently and defaults to `PUBLIC` for new registrations (updated 2026-09-17). Existing stored visibility is preserved.
@@ -41,17 +48,17 @@ When SSO is implemented, add an `external_auth_identities` table rather than add
 
 The future table must uniquely constrain `(issuer, subject)`. Email must not be used as the stable external identity or as an automatic account-linking key. A user who wants to attach SSO to an existing account must first authenticate that account and explicitly link the provider.
 
-SSO should use OIDC Authorization Code Flow with PKCE and exchange a successful provider response for the same Music Rank session cookie used by password login. Provider access or refresh tokens should not be retained unless a later feature explicitly needs provider APIs.
+SSO should use OIDC Authorization Code Flow with PKCE and exchange a successful provider response for the same Music Rank session cookie used by current login. A transitional username-only session is not proof of ownership for future provider linking; that transition requires a separate ownership design. Provider access or refresh tokens should not be retained unless a later feature explicitly needs provider APIs.
 
 ## 3. Input Rules
 
 | Field | Rule |
 | --- | --- |
 | Username | Trimmed, lowercased, 3–32 ASCII lowercase letters, digits, or underscores |
-| Display name | Trimmed, 1–80 Unicode characters |
-| Password | 12–128 Unicode characters; no composition rule |
+| Display name | New account defaults to normalized username; existing values retained |
+| Password | Not required, submitted, or verified during the transition |
 
-Username uniqueness is enforced in PostgreSQL. Login failures do not distinguish a missing username from an incorrect password.
+Username uniqueness is enforced in PostgreSQL. Login for a missing username returns `404 USERNAME_NOT_REGISTERED` and prompts registration; login never creates an account.
 
 ## 4. Database Model
 
@@ -61,10 +68,10 @@ Add nullable `username`. It remains nullable so existing demo and test fixtures 
 
 ### 4.2 `password_credentials`
 
-One row per local-password account:
+Retain one row per registered account:
 
 - `user_id`, primary key and cascading foreign key to `users`.
-- `password_hash`, a versioned scrypt representation containing parameters, salt, and derived key.
+- `password_hash`: existing versioned scrypt hashes are preserved. New registrations store `DISABLED_USERNAME_ONLY_V1`, an unusable uniform marker, not a valid password hash. Password verification is inactive; future password login requires setup for placeholder accounts.
 - `created_at` and `updated_at`.
 
 ### 4.3 `auth_sessions`
@@ -89,8 +96,8 @@ Missing settings always resolve to `PRIVATE`. Registration creates both public s
 
 ## 5. Session and Request Security
 
-- Passwords are hashed with asynchronous Node.js scrypt, a unique random salt, versioned parameters, and timing-safe comparison.
-- A missing-user login performs a dummy scrypt verification to reduce account-enumeration timing differences.
+- Transitional login resolves the internal account by normalized username only, without reading or verifying password credentials. Missing usernames are intentionally disclosed so the UI can prompt registration.
+- Existing scrypt helpers remain reserved for future password work and reject the placeholder; no dummy password calculation runs during login or module initialization.
 - Session tokens contain at least 256 random bits and are encoded with base64url.
 - Cookies are `HttpOnly`, `SameSite=Lax`, `Path=/`, host-only, and `Secure` in production HTTPS.
 - Authentication, personalized, and public-profile/list responses use `Cache-Control: no-store` so a visibility change is not masked by an HTTP cache.
@@ -105,8 +112,8 @@ Missing settings always resolve to `PRIVATE`. Registration creates both public s
 
 | Method | Path | Behavior |
 | --- | --- | --- |
-| `POST` | `/api/auth/register` | Create account, initial public list settings, and session |
-| `POST` | `/api/auth/login` | Validate password and create session |
+| `POST` | `/api/auth/register` | With username only, create account, placeholder credential, membership, public settings, and session transactionally |
+| `POST` | `/api/auth/login` | With username only, resolve existing account and create session; unknown names prompt registration |
 | `POST` | `/api/auth/logout` | Revoke current session and clear cookie |
 | `GET` | `/api/auth/session` | Return `{ user }`, where `user` may be `null` |
 
@@ -135,7 +142,7 @@ Private and nonexistent public resources intentionally share a `404` response.
 | --- | --- | --- |
 | 400 | `INVALID_REQUEST` | Contract validation failed |
 | 401 | `AUTH_REQUIRED` | A protected route has no valid session |
-| 401 | `INVALID_CREDENTIALS` | Username/password validation failed |
+| 404 | `USERNAME_NOT_REGISTERED` | Username is not registered; prompt explicit registration |
 | 409 | `USERNAME_TAKEN` | Registration username conflicts |
 | 429 | `AUTH_RATE_LIMITED` | Too many authentication attempts |
 | 404 | `PUBLIC_PROFILE_NOT_FOUND` | No public profile is available |
@@ -147,7 +154,7 @@ Private and nonexistent public resources intentionally share a `404` response.
 - `/u/:username` displays both lists to their authenticated owner, with Public / Private labels; all other viewers see only public lists. The owner uses existing session-protected `/api/me/*` endpoints and user-scoped caches.
 - Owners can preview public display using `?view=public`; this never grants private access. Share URLs remain `/u/:username`, and sharing explains that recipients see only public lists.
 - Anonymous visitors see a sign-in invitation instead of personal panels.
-- Login and registration use an accessible dialog.
+- Login and registration use an accessible dialog with one username field. Mode switches retain username and clear the previous error; no account is created until explicit registration submission.
 - Each personal card has a visibility selector. Publishing requires confirmation.
 - Public cards provide a copy-link action.
 - Authentication-aware query keys contain the current user ID.
@@ -155,9 +162,12 @@ Private and nonexistent public resources intentionally share a `404` response.
 
 ## 9. Acceptance Criteria
 
-- Valid registration/login establishes a persistent session; invalid credentials return a generic error.
+- Username-only registration/login establishes a persistent session; unknown usernames receive a registration prompt without writes, and duplicates cannot replace an account.
+- Existing hashes are preserved, new placeholders are unusable for password verification, and failed registration rolls back all partial rows.
 - Logout, expiration, and revoked tokens cannot access `/api/me/*`.
-- User A cannot read or mutate User B's private resources.
+- A session for User A cannot read or mutate User B's private resources. During
+  this transition, signing in with B's username establishes a B session; this
+  is the explicitly accepted account-access limitation in DESIGN-008.
 - New registrations default both lists public; existing private settings and demo data remain private. Missing legacy settings stay private.
 - Owners see both lists with accurate visibility labels in direct and group-origin profiles; all other viewers and public preview remain public-only.
 - Owner profile data uses user-scoped protected caches and disappears on logout, session loss, or account switching.

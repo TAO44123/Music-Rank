@@ -2,7 +2,6 @@ import { expect, test, type Page } from '@playwright/test';
 import { eq, inArray } from 'drizzle-orm';
 import { closeDatabase, db, groupMemberships, users } from '@music-rank/database';
 
-const password = 'correct horse battery staple';
 let usernames: string[] = [];
 function account(label: string) {
   const username = `e2e_grp_${label}_${Date.now()}`.padEnd(32, 'x').slice(0, 32);
@@ -12,8 +11,6 @@ function account(label: string) {
 async function fillAuth(page: Page, username: string, register = false) {
   const dialog = page.getByRole('dialog');
   await dialog.getByLabel('Username').fill(username);
-  if (register) await dialog.getByLabel('Display name').fill(username);
-  await dialog.getByLabel('Password').fill(password);
   await dialog.getByRole('button', { name: register ? 'Create account' : 'Sign in', exact: true }).click();
 }
 test.afterEach(async () => {
@@ -21,6 +18,53 @@ test.afterEach(async () => {
   usernames = [];
 });
 test.afterAll(async () => { await closeDatabase(); });
+
+test('prompts unknown usernames to register explicitly and retains username when switching modes', async ({ page }) => {
+  const username = account('transition');
+  const submissions: Array<{ path: string; body: unknown }> = [];
+  page.on('request', (request) => {
+    if (/\/api\/auth\/(login|register)$/.test(request.url())) submissions.push({ path: new URL(request.url()).pathname, body: request.postDataJSON() });
+  });
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+  const dialog = page.getByRole('dialog');
+  await expect(dialog.getByRole('textbox')).toHaveCount(1);
+  await expect(dialog.getByLabel('Password')).toHaveCount(0);
+  await expect(dialog.getByLabel('Display name')).toHaveCount(0);
+  await dialog.getByLabel('Username').fill(username);
+  await dialog.getByRole('button', { name: 'Sign in', exact: true }).click();
+  await expect(dialog.getByRole('alert')).toHaveText('This username is not registered. Register to create an account.');
+  expect(await db.select().from(users).where(eq(users.username, username))).toHaveLength(0);
+  expect(await (await page.request.get('/api/auth/session')).json()).toEqual({ user: null });
+  for (const width of [320, 1280]) {
+    await page.setViewportSize({ width, height: 900 });
+    await expect(dialog).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
+    await page.screenshot({ path: `test-results/username-login-${width}.png` });
+  }
+  await dialog.getByRole('button', { name: 'Need an account? Register' }).click();
+  await expect(dialog.getByRole('alert')).toHaveCount(0);
+  await expect(dialog.getByLabel('Username')).toHaveValue(username);
+  await expect(dialog.getByRole('textbox')).toHaveCount(1);
+  expect(submissions).toEqual([{ path: '/api/auth/login', body: { username } }]);
+  expect(await db.select().from(users).where(eq(users.username, username))).toHaveLength(0);
+  await dialog.getByRole('button', { name: 'Create account', exact: true }).click();
+  await expect(page.getByRole('button', { name: `@${username}` })).toBeVisible();
+  const session = await (await page.request.get('/api/auth/session')).json();
+  expect(session.user).toMatchObject({ username, displayName: username });
+  await page.getByRole('button', { name: `@${username}` }).click();
+  await page.getByRole('menuitem', { name: 'Sign out' }).click();
+  await page.getByRole('button', { name: 'Register', exact: true }).click();
+  await dialog.getByLabel('Username').fill(username);
+  await dialog.getByRole('button', { name: 'Create account', exact: true }).click();
+  await expect(dialog.getByRole('alert')).toHaveText('This username is already registered. Sign in instead.');
+  await dialog.getByRole('button', { name: 'Already have an account? Sign in' }).click();
+  await expect(dialog.getByLabel('Username')).toHaveValue(username);
+  await expect(dialog.getByRole('alert')).toHaveCount(0);
+  await dialog.getByRole('button', { name: 'Sign in', exact: true }).click();
+  await expect(page.getByRole('button', { name: `@${username}` })).toBeVisible();
+  for (const submission of submissions) expect(submission.body).toEqual({ username });
+});
 
 test('ordinary registration joins, ordinary login does not backfill, and logged-in invitations join once', async ({ page }) => {
   const username = account('ordinary');
@@ -97,7 +141,7 @@ test('ordinary registration joins, ordinary login does not backfill, and logged-
 test('invitation registration preserves intent and displays only another memberâ€™s public lists', async ({ page, request }) => {
   const owner = account('owner');
   const viewer = account('viewer');
-  const registration = await request.post('/api/auth/register', { headers: { Origin: 'http://127.0.0.1:3101' }, data: { username: owner, displayName: owner, password } });
+  const registration = await request.post('/api/auth/register', { headers: { Origin: 'http://127.0.0.1:3101' }, data: { username: owner } });
   expect(registration.status()).toBe(201);
   const songs = await (await request.get('/api/songs')).json();
   // Use a stable seeded song rather than another parallel test's submission.
@@ -164,7 +208,7 @@ test('invitation registration preserves intent and displays only another memberâ
 
 test('an existing logged-out nonmember joins after invitation login', async ({ page, request }) => {
   const username = account('login');
-  const registration = await request.post('/api/auth/register', { headers: { Origin: 'http://127.0.0.1:3101' }, data: { username, displayName: username, password } });
+  const registration = await request.post('/api/auth/register', { headers: { Origin: 'http://127.0.0.1:3101' }, data: { username } });
   expect(registration.status()).toBe(201);
   const { user } = await registration.json();
   await db.delete(groupMemberships).where(eq(groupMemberships.userId, user.id));

@@ -18,7 +18,6 @@ test.afterAll(async () => {
 
 test('registers, authenticates, publishes, and anonymously reads personal lists', async ({ page }) => {
   username = `e2e_listener_${Date.now()}`;
-  const password = 'correct horse battery staple';
   const personalSubmissionTitle = `E2E Personal ${username}`;
   const practiceSubmissionTitle = `E2E Practice ${username}`;
   submittedSongTitles = [personalSubmissionTitle, practiceSubmissionTitle];
@@ -32,8 +31,6 @@ test('registers, authenticates, publishes, and anonymously reads personal lists'
 
   await page.getByRole('button', { name: 'Register' }).click();
   await page.getByLabel('Username').fill(username);
-  await page.getByLabel('Display name').fill('E2E Listener');
-  await page.getByLabel('Password').fill(password);
   await page.getByRole('button', { name: 'Create account' }).click();
   await expect(page.getByRole('button', { name: `@${username}` })).toBeVisible();
   expect(await (await page.request.get('/api/me/list-settings')).json()).toEqual({ topList: 'PUBLIC', singingList: 'PUBLIC' });
@@ -42,7 +39,6 @@ test('registers, authenticates, publishes, and anonymously reads personal lists'
   await page.getByRole('menuitem', { name: 'Sign out' }).click();
   await page.getByRole('button', { name: 'Sign in' }).first().click();
   await page.getByLabel('Username').fill(username);
-  await page.getByLabel('Password').fill(password);
   await page.getByRole('button', { name: 'Sign in' }).last().click();
   await expect(page.getByRole('button', { name: `@${username}` })).toBeVisible();
   await expect(page.getByRole('tab', { name: /Personal Ranking/ })).toBeVisible();
@@ -125,7 +121,7 @@ test('registers, authenticates, publishes, and anonymously reads personal lists'
   await page.getByRole('button', { name: 'Cancel' }).click();
 
   await page.goto(`/u/${username}`);
-  await expect(page.getByRole('heading', { name: 'E2E Listener' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: username })).toBeVisible();
   await expect(page.getByRole('navigation', { name: 'Primary' })).toHaveCount(0);
   await expect(page.getByRole('region', { name: 'Top 10' }).getByText('涛声依旧')).toBeVisible();
   await expect(page.getByRole('region', { name: 'Top 10' }).getByText(personalSubmissionTitle)).toBeVisible();

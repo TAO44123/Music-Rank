@@ -8,7 +8,7 @@
 | 目标读者 | 负责开发、测试、排障和后续维护的工程师 |
 | 当前产品版本 | Version 1 + 认证扩展 + 响应式导航 + 多榜单目录 + Default Group 与邀请，本地多用户应用 |
 | 最后更新日期 | 2026-09-18 (America/New_York) |
-| 最后核对的代码提交 | Owner-profile delivery on `main`, based on `a871406`; inspect Git log for the delivery commit |
+| 最后核对的代码提交 | DESIGN-008 delivery on `main`, based on `be0efd9`; inspect Git log for the delivery commit |
 | 事实来源 | 当前仓库代码、配置、迁移和自动化测试 |
 
 这份文档描述系统现在如何工作。首次在本机配置和运行项目时，先执行 [LOCAL_FIRST_RUN_GUIDE.md](LOCAL_FIRST_RUN_GUIDE.md)；PROJECT_SPEC_ZH.md、PROJECT_SPEC_EN.md 与 IMPLEMENTATION_HANDOFF.md 保留 Version 1 历史基线，当前已批准扩展以 [AUTHENTICATION_DESIGN.md](AUTHENTICATION_DESIGN.md)、[RANKING_CATALOG_DESIGN.md](RANKING_CATALOG_DESIGN.md) 和 [SESSION_HANDOFF.md](SESSION_HANDOFF.md) 为准。若文档与代码不一致，应先核对代码和测试，再更新本文档。
@@ -48,7 +48,7 @@ Management, multiple groups, and group-only visibility remain future work.
 
 Music Rank 是一个全栈多用户应用。公开目录按来源无关的 slug 展示三个已导入真实榜单，年代和地区为可选展示元数据；Demo 榜单保留但未发布。用户可以维护 Top 10 和带演唱状态与私密备注的 Practice Library，并通过 Default Group 发现成员的公开列表。
 
-应用支持本地用户名/密码注册登录、PostgreSQL Session、多用户隔离，以及分别公开或隐藏 Top 10 和 Practice Library。匿名用户仍可浏览公共歌曲榜单。
+应用的过渡版本支持仅 username 注册登录、PostgreSQL Session、多用户隔离，以及分别公开或隐藏 Top 10 和 Practice Library。匿名用户仍可浏览公共歌曲榜单。
 
 ~~~mermaid
 flowchart LR
@@ -83,7 +83,7 @@ flowchart LR
 
 - SSO、邮箱验证、密码重置和账户删除。
 - Anonymous user directory, following, and Unlisted sharing.
-- 本次功能交付不包含 GitHub 推送、合并或 EC2 部署；已有部署流程见 DEPLOYMENT.md。
+- 本次功能不包含 EC2 部署；已有部署流程见 DEPLOYMENT.md。
 - 音频播放、歌词、视频采集、OCR 或 AI 提取。
 - 自动从视频提取榜单内容；正式榜单通过已提供的 JSON manifest 和现有导入器同步。
 - Group management, chat, and admin tools.
@@ -138,7 +138,7 @@ Vite 7.2.1 和 @vitejs/plugin-react 5.1.1 是有意锁定的组合。此前更�
 | apps/web/src/theme.ts | Material UI 主题和状态颜色 |
 | apps/api | Express API |
 | apps/api/src/app.ts | Middleware、路由注册和请求校验入口 |
-| apps/api/src/auth.ts | 密码哈希、凭据校验、Session 创建/解析/撤销 |
+| apps/api/src/auth.ts | 仅 username 账号查找、占位凭据与原子注册、Session 创建/解析/撤销；保留 scrypt 工具 |
 | apps/api/src/security.ts | Origin 防护与认证速率限制 |
 | apps/api/src/services.ts | 数据访问和业务规则 |
 | apps/api/src/groups.ts | Default-group lookup, idempotent joining, membership-authorized directory/profile reads |
@@ -298,7 +298,7 @@ createApp 仍允许注入 currentUserId，但只供既有个人列表集成测�
 | 字段 | 类型 | 约束或用途 |
 | --- | --- | --- |
 | user_id | uuid | 主键和 users 外键，删除用户时级联 |
-| password_hash | text | 版本化 scrypt 哈希；不通过 API 或日志输出 |
+| password_hash | text | 已有 scrypt hash 保留；新账号存不可认证的 DISABLED_USERNAME_ONLY_V1；不通过 API 或日志输出 |
 | created_at / updated_at | timestamptz | 非空，默认 now() |
 
 ### 7.4 auth_sessions
@@ -471,7 +471,7 @@ No production database operation was performed.
 | GET | /api/rankings/:slug | 200 | 按稳定 slug 获取榜单、Facet、来源及过滤后的条目 |
 | GET | /api/songs | 200 | 搜索或列出歌曲 |
 | POST | /api/auth/register | 201 | 注册并创建 Session |
-| POST | /api/auth/login | 200 | 密码登录并创建 Session |
+| POST | /api/auth/login | 200 | 仅 username 登录已有账号并创建 Session |
 | POST | /api/auth/logout | 204 | 撤销当前 Session 并清除 Cookie |
 | GET | /api/auth/session | 200 | 获取当前用户或 null |
 | GET | /api/group-invitations/default | 200 | Anonymous-safe group summary; no membership writes |
@@ -746,7 +746,7 @@ Path 参数 songId：必填 UUID。
 
 ### 10.12 Authentication 与可见性
 
-注册 Body 为 username、displayName、password；成功返回 `{ user: AuthUser }` 并设置七天 Cookie。登录 Body 为 username、password，使用相同成功响应。用户名由 Contract trim 并转小写。退出始终清除 Cookie，有有效 token 时同时删除数据库 Session。
+注册和登录 Body 均仅需 username；注册显示名默认为规范化 username。成功返回 `{ user: AuthUser }` 并设置七天 Cookie。未知用户名登录返回 404 USERNAME_NOT_REGISTERED，提示主动注册且不创建账号；重复注册返回 409 USERNAME_TAKEN，提示登录。用户名由 Contract trim 并转小写。退出始终清除 Cookie，有有效 token 时同时删除数据库 Session。
 
 GET /api/auth/session 始终返回 200；未登录、过期或无效 Session 的 user 为 null。认证、个人数据与公开个人页/列表响应都禁用 HTTP 缓存，避免 Session 或可见性变更被旧缓存遮蔽。
 
@@ -803,7 +803,7 @@ Join failures are recoverable without destroying a valid authenticated session.
 | 400 | INVALID_REQUEST | Zod 校验失败 |
 | 400 | TOP_LIST_ORDER_MISMATCH | 重排集合与当前 Top 10 不一致 |
 | 401 | AUTH_REQUIRED | /api/me 请求没有有效 Session |
-| 401 | INVALID_CREDENTIALS | 用户名不存在或密码错误；二者使用相同响应 |
+| 404 | USERNAME_NOT_REGISTERED | 用户名不存在；提示主动注册且不创建账号 |
 | 403 | INVALID_ORIGIN | Unsafe 请求 Origin 不匹配 APP_ORIGIN |
 | 403 | GROUP_MEMBERSHIP_REQUIRED | Viewer is not a member of the requested group |
 | 404 | GROUP_NOT_FOUND | Group does not exist |
@@ -964,7 +964,7 @@ DESIGN-002 起，用户可见文案统一使用 Practice Library：Tab 名称、
 ### 12.6 认证与公开页
 
 - 顶栏在匿名状态显示 Sign in/Register，在登录状态显示账户菜单。
-- 登录注册共用 AuthDialog，关闭时清除密码 state。
+- 登录注册共用 AuthDialog，均只有 username 输入；切换模式保留输入并清除错误，注册需主动提交，不自动创建账号。
 - 每个个人榜单卡片使用独立 VisibilityStatus 和 VisibilityControl。标题下方的小标签明确显示 Public 或 Private；操作区的闭合锁表示 Private，打开锁表示 Public。
 - 点击闭合锁切换到 Public 前必须确认；点击打开锁可直接恢复 Private。
 - Public list share buttons open ShareLinkDialog for `/u/:username`, with contextual instructions and an explicit Copy button. Group invitations use the same dialog for `/invite/default`.
@@ -1012,7 +1012,7 @@ DESIGN-002 起，用户可见文案统一使用 Practice Library：Tab 名称、
 
 ### 13.2 auth.ts 与 current-user.ts
 
-auth.ts 负责 scrypt 密码格式、等时校验、原子注册、Session 创建/查询/撤销。current-user.ts 只解析 Cookie 并把已认证内部用户写入 response.locals。二者不向日志或 API 返回哈希/token。
+auth.ts 负责按 username 查找账号、含不可认证占位凭据的原子注册、Session 创建/查询/撤销；scrypt 工具保留，过渡版本登录不读取或验证密码。current-user.ts 只解析 Cookie 并把已认证内部用户写入 response.locals。二者不向日志或 API 返回哈希/token。
 
 ### 13.3 services.ts
 
@@ -1042,7 +1042,7 @@ npm run typecheck 会先构建 contracts 和 database，再执行所有 workspac
 
 ### 14.2 前端组件测试
 
-The current Web suite has 17 files and 72 tests. It covers the existing ranking,
+The current Web suite has 17 files and 73 tests. It covers the existing ranking,
 list/auth/privacy/navigation behavior plus groups, invitation refresh and mode
 switching, failed authentication/cancellation, join retry, private-profile empty
 states, protected-cache cleanup on logout/expiry/account switching, and sharing
@@ -1052,14 +1052,19 @@ coverage checks direct/group visits, Public / Private labels, both-private
 preview/return, ignored invalid view parameters, other/anonymous viewers,
 account switching, and expired-session cleanup.
 
-Vitest 保持文件级并行。`apps/web/vite.config.ts` 把单测试超时设为 10 秒；首页排名加载断言另用 5 秒 Testing Library 等待窗口。该设置来自合并后对负载敏感超时的复现：默认限制下完整套件可能失败，而测试文件单独或串行运行可以通过。调整并行度、测试运行器或查询初始化时，应连续运行完整 Web 套件至少三次确认稳定性，不要只验证单个测试文件。
+Vitest 保持文件级并行。`apps/web/vite.config.ts` 把单测试超时设为 10 秒；`apps/web/src/test/setup.ts` 将 Testing Library 异步等待默认设为 5 秒，与已有排名加载断言一致。该设置来自完整并行套件中不同页面加载/弹窗关闭超过默认 1 秒的复现；仅延长异步断言等待，不增加固定延迟或改变产品逻辑。调整并行度、测试运行器或查询初始化时，应连续运行完整 Web 套件至少三次确认稳定性，不要只验证单个测试文件。
 
 ### 14.3 API 集成测试
 
-There are 26 Supertest tests using real PostgreSQL, covering the existing
+四个 API 测试实例（两个注入用户、真实认证、限流）在整套测试期间各自监听独立的本机随机端口，并在 teardown 关闭。不要退回每请求创建/关闭服务的方式：快速注册移除 scrypt 等待后，临时端口复用与 HTTP 连接复用可能使请求收到另一实例的响应，表现为公开榜单偶发 401 或错误的成员权限状态。此改动只影响测试，不改变生产服务监听方式。
+
+There are 32 Supertest tests using real PostgreSQL, covering the existing
 ranking/list/auth/privacy rules and the group access matrix, read-only GETs,
 transactional registration membership, ordinary login without backfill,
-concurrent/idempotent joining, safe member/profile projections, and private
+concurrent/idempotent joining, safe member/profile projections,
+username-only validation, missing-user registration prompts without writes,
+unusable placeholders, preserved legacy hashes/display names/private data,
+duplicate/concurrent registration, final-session-insert rollback, and private
 lists/notes remaining inaccessible to other members and anonymous visitors.
 Coverage also verifies both new-account PUBLIC defaults, the database column
 default, missing legacy settings staying PRIVATE, and private choices surviving login.
@@ -1072,7 +1077,7 @@ dry-run 无写入、幂等导入、可空 decade/region、事务回滚、原子�
 
 ### 14.4 Playwright E2E
 
-当前 6 条用例。第 1 条是关键流程覆盖：`/` 进入 displayOrder 最前的 `/rankings/:slug`、匿名时桌面顶部导航只显示 Ranking、注册、退出、密码登录后个人目的地出现、搜索写入 URL Search 参数、添加 Top 10 与 Practice Library、经导航跳转到 `/personal` 和 `/practice`、设置状态与私密备注、刷新后仍停在 `/practice`、验证两个列表初始 Public、分别切换 Private 再确认公开、复制分享链接、登出后落在同一默认榜单、匿名深链接被重定向并弹出登录框，以及匿名读取公开页时看不到备注。
+当前 7 条用例。第 1 条是关键流程覆盖：`/` 进入 displayOrder 最前的 `/rankings/:slug`、匿名时桌面顶部导航只显示 Ranking、注册、退出、仅 username 登录后个人目的地出现、搜索写入 URL Search 参数、添加 Top 10 与 Practice Library、经导航跳转到 `/personal` 和 `/practice`、设置状态与私密备注、刷新后仍停在 `/practice`、验证两个列表初始 Public、分别切换 Private 再确认公开、复制分享链接、登出后落在同一默认榜单、匿名深链接被重定向并弹出登录框，以及匿名读取公开页时看不到备注。
 
 第 2 条是响应式回归 `e2e/responsive.spec.ts`：注册用户后把种子里最宽的一行（`纤夫的爱 / 尹相杰、于文华 · 1993`）放进两个个人列表并写入一条长备注，然后在 320 / 375 / 414 / 600 / 900 五个视口下依次访问 `/`、`/personal`、`/practice`，逐项断言页面无横向溢出、且行内没有任何文字压在控件下面。
 
@@ -1085,7 +1090,7 @@ dry-run 无写入、幂等导入、可空 decade/region、事务回滚、原子�
 - **必须量文字的字形盒，不能量容器。** 用 `document.createRange()` 逐个 text node 取 `getClientRects()`。文字容器会铺满整行，即使里面的字已经钻到按钮底下，容器矩形看上去仍然是干净的，量容器会得到假阴性。
 - **必须等列表行渲染出来再量。** `page.goto` 返回时 SPA 还没渲染任何 `li`，此时量到的是用户看不到的中间态：行数为 0 会让碰撞断言空过，横向溢出也会给出与最终布局无关的数值。用例因此先等首行可见，再做全部测量，并额外断言"量到的行数和文字盒数量大于 0"，让"什么都没量到"无法伪装成通过。
 
-`e2e/groups.spec.ts` 的其余 3 条用例覆盖普通注册/登录与邀请加入、邀请注册后浏览其他成员公开歌单、以及已有非成员通过邀请登录。本人 profile 回归在普通注册用例中添加真实歌曲，将两个列表设为 Private，再通过键盘从群组进入本人 profile，检查完整歌曲和 Private 标签、公开预览与返回、直接访问、退出后同 URL 不泄露私有歌单，以及 320px/1280px 布局。
+`e2e/groups.spec.ts` 的 4 条用例覆盖未知用户名提示主动注册、输入保留与模式错误清除、仅 username 请求体、重复注册后切回登录，以及普通注册/登录与邀请加入、邀请注册后浏览其他成员公开歌单、以及已有非成员通过邀请登录。本人 profile 回归在普通注册用例中添加真实歌曲，将两个列表设为 Private，再通过键盘从群组进入本人 profile，检查完整歌曲和 Private 标签、公开预览与返回、直接访问、退出后同 URL 不泄露私有歌单，以及 320px/1280px 布局。
 
 playwright.config.ts 使用端口 3101、production 形态 Express 服务和 reuseExistingServer: false。启动前执行 build、Migration 和公共 Seed，并把 APP_ORIGIN 指向 3101。测试注册带时间戳的唯一用户，结束后级联删除该账户；不影响 demo 用户。
 
@@ -1119,12 +1124,12 @@ automated test fixtures. See PLAN-007 for exact final commands and outcomes.
 
 当前已有：
 
-- 用户名/密码注册登录，密码使用带独立 salt 的版本化 scrypt 哈希。
+- 过渡版本仅 username 注册登录；保留旧密码 hash，新账号存不可认证的统一占位标记。知道 username 即可访问该账号，用户明确接受这是中间版本使用方案，详见 [DESIGN-008](DESIGN_008_USERNAME_ONLY_TRANSITION.md)。
 - 至少 256 位随机 Session token，数据库只保存 SHA-256 哈希，七天过期并支持退出撤销。
 - HttpOnly、SameSite=Lax、host-only Cookie；HTTPS APP_ORIGIN 下使用 Secure 与 __Host- 前缀。
 - /api/me 统一认证与 userId 授权边界，私有响应使用 Cache-Control: private, no-store。
 - Unsafe 请求 Origin/Fetch Metadata 防护和注册/登录单进程速率限制。
-- 非枚举登录错误、缺失用户 dummy scrypt 校验和不含敏感原始错误消息的日志。
+- 未知 username 明确提示注册，登录不创建账号；日志不输出敏感原始错误消息。
 - Public/Private 默认拒绝策略和公开 Singing List 无备注 Projection。
 - Path、Query 和 Body 的 Zod 校验。
 - 搜索词和筛选字符串最长 120 字符。
@@ -1244,7 +1249,7 @@ E2E 不复用已有服务器；3101 被占用时应先定位占用者。
 
 | 项目 | 当前状态 | 建议 |
 | --- | --- | --- |
-| SSO 与账户恢复 | 当前只有本地用户名/密码，未实现 SSO、邮箱验证或密码重置 | 按 AUTHENTICATION_DESIGN 的 issuer/sub 身份模型向前扩展 |
+| SSO 与账户恢复 | 当前为仅 username 过渡方案，无账号归属验证；未实现 SSO、邮箱验证或密码重置 | 按 AUTHENTICATION_DESIGN 的 issuer/sub 身份模型向前扩展 |
 | ~~活动榜单选择~~ | 已解决：按稳定 slug 显式路由并按 displayOrder/title 排序 | — |
 | ~~Singing 成员判断~~ | 已解决（DESIGN-002）：状态筛选随 Practice Library 移到 `/practice`，榜单页固定以 `ALL` 读取完整成员集合 | — |
 | API 分页 | songs 与榜单详情没有服务端分页 | 数据规模扩大前设计统一分页 |
@@ -1288,6 +1293,7 @@ E2E 不复用已有服务器；3101 被占用时应先定位占用者。
 
 | 日期 | 代码基线 | 内容 |
 | --- | --- | --- |
+| 2026-09-18 | DESIGN-008 delivery on `main`, based on `be0efd9` | 实现 DESIGN-008：已有 username 直接登录，未知 username 提示主动注册，登录/注册只提交 username；新账号显示名默认 username，旧 hash 保留，新凭据存不可认证占位标记。其余 Session、group、profile、歌单和分享行为保持。typecheck、123 workspace tests（API 32 / Web 73 / config 8 / database 10）、production build、Playwright 7/7 及 320px/1280px 登录视觉验收通过。统一 Testing Library 5 秒异步等待后完整 Web 连续四次通过；API 测试改为独立持续监听端口后完整 API 连续两次通过。更新设计/认证/handoff 和文档链接/fences/diff；用户随后授权提交并推送到 origin/main，fetch 确认远端与基线一致；未部署，无 schema/migration/config/dependency 变更。 |
 | 2026-09-18 | 当前工作树 on `main` at `a871406` | 本人 profile 通过受 Session 保护的 personal 查询展示全部歌单和 Public / Private 标签；增加公开预览/返回与分享接收者提示，分享 URL 不变。typecheck、116 workspace tests（API 26 / Web 72 / config 8 / database 10）、build、Playwright 6/6 与 320px/1280px 视觉验收通过。用户随后授权提交并推送到 origin/main；提交前再次通过 typecheck 和 116 项测试，fetch 确认远端与基线一致。本次后续文档整理检查链接、fences 和 diff；未重新部署。Default Group 原功能已通过 PR #11 合入。 |
 | 2026-09-17 | Documentation refresh against `83ab826` | Updates current branch/commit, delivered group scope, four-item navigation, sharing/defaults, migration chain and latest verification. Document links/fences and diff checked; no application changes or tests rerun. Refresh saved in a subsequent local documentation commit; no GitHub push. |
 | 2026-09-17 | Local commit `83ab826` | New registrations initialize both personal lists PUBLIC. Forward migration 0006 only changes the column default; existing visibility/membership and private notes are preserved. Full typecheck/build passed; API 26, Web 63, config 8, database 10, Playwright 6/6 passed. Local Git commit only; no GitHub push/deployment. |

@@ -65,7 +65,7 @@ export function AppShellProvider({ children, chrome = true }: { children: ReactN
   }, [client, router]);
 
   const authMutation = useMutation({
-    mutationFn: ({ mode, ...input }: { mode: AuthMode; username: string; displayName?: string; password: string }) => request<{ user: AuthUser }>(mode === 'register' ? '/api/auth/register' : '/api/auth/login', { method: 'POST', body: JSON.stringify(input) }),
+    mutationFn: ({ mode, ...input }: { mode: AuthMode; username: string }) => request<{ user: AuthUser }>(mode === 'register' ? '/api/auth/register' : '/api/auth/login', { method: 'POST', body: JSON.stringify(input) }),
     onSuccess: async ({ user: authenticatedUser }, { mode }) => {
       await clearPersonalData();
       client.setQueryData<AuthSession>(queryKeys.session, { user: authenticatedUser });
@@ -152,7 +152,7 @@ export function AppShellProvider({ children, chrome = true }: { children: ReactN
         that have one and resolves to 0px on those that do not. */}
     <Box sx={{ pb: chrome ? { xs: `calc(${bottomNavHeight}px + env(safe-area-inset-bottom))`, sm: 0 } : 0 }}>{children}</Box>
     {chrome && <BottomNav />}
-    <AuthDialog open={authDialog.open} initialMode={authDialog.mode} isPending={authMutation.isPending} error={authMutation.error instanceof ApiError ? authMutation.error.message : authMutation.isError ? 'Something went wrong. Please try again.' : null} onClose={() => setAuthDialog((current) => ({ ...current, open: false }))} onSubmit={(input) => authMutation.mutate(input)} />
+    <AuthDialog onModeChange={authMutationReset} open={authDialog.open} initialMode={authDialog.mode} isPending={authMutation.isPending} error={authMutation.error instanceof ApiError ? authMutation.error.message : authMutation.isError ? 'Something went wrong. Please try again.' : null} onClose={() => setAuthDialog((current) => ({ ...current, open: false }))} onSubmit={(input) => authMutation.mutate(input)} />
     <Snackbar open={Boolean(notice)} autoHideDuration={3500} onClose={() => setNotice(null)} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }} sx={{ bottom: chrome ? { xs: `calc(${bottomNavHeight}px + env(safe-area-inset-bottom) + 8px)`, sm: 24 } : undefined }}><Alert severity={notice?.severity} onClose={() => setNotice(null)} variant="filled">{notice?.message}</Alert></Snackbar>
   </AppShellContext.Provider>;
 }

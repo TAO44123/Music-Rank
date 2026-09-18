@@ -2,14 +2,60 @@
 
 > Last updated: 2026-09-18 (America/New_York)
 >
-> Active feature: `docs/DESIGN_007_DEFAULT_GROUP.md` and
-> `docs/PLAN_007_DEFAULT_GROUP.md` (merged via PR #11; owner-profile follow-up implemented and verified)
+> Active feature: `docs/DESIGN_008_USERNAME_ONLY_TRANSITION.md`
+> (implemented and verified; GitHub delivery authorized)
+>
+> Delivered group/profile authority: `docs/DESIGN_007_DEFAULT_GROUP.md` and
+> `docs/PLAN_007_DEFAULT_GROUP.md`
 >
 > Delivered ranking feature authority: `docs/RANKING_CATALOG_EXPANSION_EXECUTION_PLAN.md`
 >
 > Task 1 design: `docs/RANKING_CATALOG_DESIGN.md`
 
 ## 1. Current Status
+
+### Username-only intermediate release — local implementation
+
+The user confirmed a transitional username-only entry flow. Existing usernames
+log in directly. Unknown usernames show a registration prompt without creating
+an account; registration is a separate explicit action requiring only username.
+New display names default to username. Existing password hashes are preserved;
+new accounts retain a credential row with the unusable marker
+`DISABLED_USERNAME_ONLY_V1`.
+Sessions, account data, group rules, privacy projections, and navigation retain
+existing behavior. See [DESIGN-008](DESIGN_008_USERNAME_ONLY_TRANSITION.md).
+
+The user explicitly accepts that anyone who knows a username can access that
+account, including private lists/notes and edits. Document this solely as an
+intermediate-release usage model. It is not proof of ownership for future SSO.
+Google SSO remains discussion only. The user authorized DESIGN-008
+implementation with “开始实施吧” and subsequently requested GitHub delivery with
+“推送github吧”, authorizing commit and push to `origin/main`. No deployment.
+
+Planning baseline: clean `main` at `be0efd9`, matching cached `origin/main`.
+The owner-profile follow-up below was committed and pushed in `be0efd9`.
+Implementation changes shared auth contracts, API account entry, frontend
+AuthDialog/AppShell, tests/E2E, and necessary documents. No schema, migration,
+configuration, or dependency change. Verification is complete locally. Preserve all
+existing planning edits and user work. No TTT/AAA setup or ranking import.
+
+Final verification: `npm run typecheck` and all 123 workspace tests passed
+(API 32, Web 73 in 17 files, config 8, database 10; contracts has no tests).
+Production build and Playwright 7/7 passed; 320px/1280px login screenshots were
+inspected and overflow checked. E2E test-owned accounts were cleaned by hooks.
+Initial parallel Web runs exceeded default one-second async waits on different
+route/dialog transitions. Testing Library now defaults to five seconds; all
+four subsequent full Web runs passed with file-level parallelism retained.
+Faster API tests exposed wrong-app responses consistent with ephemeral-port
+and HTTP connection reuse; test instances now keep independent listening ports
+throughout the suite and close in teardown. Both subsequent full API runs
+passed. These are test-only changes. Local PostgreSQL access needed sandbox
+escalation. Document links/fences and the final diff were checked.
+After the user requested GitHub delivery, pre-commit typecheck and all 123
+workspace tests passed again. Application code was unchanged since the passing
+production build/7-case E2E acceptance, so those checks were not repeated.
+
+### Delivered group/profile baseline
 
 Default Group and its sharing/PUBLIC-default refinements were merged through
 PR #11 at `98ec06e`. Delivery baseline `main` is `a871406`, which also includes ranking
@@ -51,7 +97,7 @@ PUBLIC; existing stored settings are preserved and missing legacy settings
 remain PRIVATE. The owner-profile follow-up requires no new migration,
 configuration, dependency, or production operation.
 
-Latest application verification: full typecheck passed; 116 workspace tests
+Owner-profile delivery verification: full typecheck passed; 116 workspace tests
 passed (API 26, Web 72 in 17 files, config 8, database 10; contracts has no
 tests); production build and Playwright 6/6 passed. Browser acceptance checked
 populated private lists in direct/group owner views, accurate labels,
@@ -102,7 +148,7 @@ synchronizing, pushing, and merging this ranking branch.
 
 Established application behavior remains:
 
-- Local username/password registration and login.
+- Username-only transitional registration/login; knowing a username grants that account access, explicitly accepted for this intermediate release.
 - Opaque server-managed cookie sessions that expire after seven days.
 - Anonymous access to published rankings and PUBLIC personal lists.
 - Independent `private`/`public` settings for My Top 10 and My Singing List; both default to `public` for new registrations; existing settings are preserved.
@@ -168,7 +214,11 @@ were not rerun because no application, configuration, or database code changed.
 
 ## 2. Repository State
 
-- Delivery target: `main`; parent baseline `a871406`. `git fetch origin`
+- DESIGN-008 delivery on `main` is based on `be0efd9` and includes implementation,
+  tests, and documentation. Pre-delivery `git fetch origin` confirmed matching
+  `origin/main`. The user authorized commit/push; use live Git log/status for
+  the delivery commit and final remote state. No deployment was requested.
+- Historical owner-profile delivery target: `main`; parent baseline `a871406`. `git fetch origin`
   confirmed matching `origin/main` before delivery. Inspect live HEAD, remote
   refs, and status for the exact delivery commit and any subsequent changes.
 - Default Group commits `7053051` and `83ab826`, plus documentation commit
@@ -354,6 +404,16 @@ jsdom's unimplemented `window.scrollTo()` notices during Web tests.
 
 ## 6. Remaining Work
 
+### Username-only transition — verified local implementation
+
+- DESIGN-008 implementation and acceptance are complete; see section 1 for
+  123 passing workspace tests, typecheck/build, seven E2E cases, and visual QA.
+- The user requested commit and push to `origin/main`; no deployment or Google
+  SSO work was requested. Check live Git status/log for delivery completion.
+- Preserve existing credential hashes and account data. Future password setup
+  or Google linking must define verified account ownership independently of
+  the transitional username-only session.
+
 ### Default Group — merged baseline and owner-profile delivery
 
 - Baseline Default Group, sharing dialogs, and PUBLIC registration defaults
@@ -361,7 +421,7 @@ jsdom's unimplemented `window.scrollTo()` notices during Web tests.
 - Owner-profile follow-up is implemented and verified; the user authorized
   committing and pushing it to `origin/main`. No unresolved product decision
   remains. PR/deployment and further feature work were not requested.
-- Latest verification is 116 workspace tests plus typecheck/build and six E2E
+- Owner-profile delivery verification was 116 workspace tests plus typecheck/build and six E2E
   cases, all passing; see section 1 and PLAN-007 for coverage and limitations.
 - Earlier `7053051` clean/existing migration, repeat seed, and deliberate
   registration rollback acceptance remain historical evidence. No migration
@@ -501,8 +561,9 @@ clean temporary database. Record exact test counts and any skipped check.
 
 ## 9. Established Security and Runtime Invariants
 
-- Local password credentials use scrypt; opaque server sessions expire after
-  seven days and only token hashes are stored.
+- Existing scrypt credentials are preserved; new accounts store an unusable
+  placeholder. Transitional login verifies no password or account ownership.
+  Opaque server sessions expire after seven days; only token hashes are stored.
 - Unsafe requests require the expected Origin, and authentication attempts are
   rate-limited.
 - `/api/me/*` is authenticated and user-scoped. Logout/authentication failure
@@ -518,7 +579,20 @@ clean temporary database. Record exact test counts and any skipped check.
 ## 10. Copy-Paste Prompt for the Next Follow-up
 
 ```text
-Continue from main with the owner-profile delivery based on a871406. Inspect
+Current task: DESIGN_008_USERNAME_ONLY_TRANSITION.md is implemented locally;
+read its final validation record before continuing. The user
+confirmed username-only login for existing accounts, registration prompts for
+unknown usernames, and separate explicit username-only registration. Password
+storage remains; existing hashes are preserved and new accounts store an
+unusable uniform placeholder. Anyone knowing a username can access that account;
+this is explicitly accepted solely for the intermediate release. The user
+authorized implementation and then commit/push to origin/main. No deployment
+was requested. No migration is needed.
+
+DESIGN-008 delivery is based on main at be0efd9 and includes implementation,
+tests, and documents. Inspect live Git log/status for the delivery commit.
+Read DESIGN-008 and preserve any working-tree changes. The owner-profile fix
+was committed and pushed in be0efd9. Earlier delivery was based on a871406. Inspect
 live HEAD/log/status/diffs before editing to resolve the delivery commit and
 remote state; preserve all subsequent user changes. The delivery includes
 apps/web/src/routes/profile.test.tsx.
@@ -537,13 +611,14 @@ remains /u/:username. View public display adds ?view=public and can return to
 owner view even when both lists are private; the parameter never grants access.
 List-sharing copy explains that recipients see only public lists.
 
-Latest application checks passed: full typecheck, 116 workspace tests
-(API 26, Web 72, config 8, database 10), production build, six E2E cases,
-and visual acceptance at 320px/1280px. The subsequent documentation-only
-refresh did not rerun application tests; pre-commit typecheck and 116 tests
-passed again after delivery was requested. Migrations through 0006 were applied
-locally before this follow-up; it requires no new migration/configuration.
-The user authorized committing and pushing this follow-up to origin/main.
+Latest DESIGN-008 checks passed: full typecheck, 123 workspace tests
+(API 32, Web 73, config 8, database 10), production build, seven E2E cases,
+and login visual acceptance at 320px/1280px. The earlier owner-profile
+documentation refresh did not rerun application tests; its pre-commit typecheck and 116 tests
+passed again after that delivery was requested. Migrations through 0006 were
+applied locally before the owner-profile follow-up. DESIGN-008 requires no new
+migration/configuration. Both the earlier owner-profile follow-up and DESIGN-008
+were authorized for commit and push to origin/main.
 No PR or deployment was requested.
 Do not rerun local TTT/AAA setup or reset AAA after invitation acceptance.
 

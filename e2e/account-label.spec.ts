@@ -73,8 +73,6 @@ test('paints the underscores in a truncated account label', async ({ page }) => 
   await page.goto('/');
   await page.getByRole('button', { name: 'Register' }).click();
   await page.getByLabel('Username').fill(username);
-  await page.getByLabel('Display name').fill('E2E Underscore');
-  await page.getByLabel('Password').fill('correct horse battery staple');
   await page.getByRole('button', { name: 'Create account' }).click();
   await expect(page.getByRole('button', { name: `@${username}` })).toBeVisible();
 

@@ -10,7 +10,8 @@ const SCRYPT_P = 5;
 const SCRYPT_KEY_LENGTH = 64;
 const SCRYPT_MAX_MEMORY = 32 * 1024 * 1024;
 const SESSION_DURATION_MS = 7 * 24 * 60 * 60 * 1000;
-const DUMMY_PASSWORD = 'music-rank-dummy-password';
+// Storage placeholder only; verifyPassword must never accept this as a hash.
+export const transitionalPasswordPlaceholder = 'DISABLED_USERNAME_ONLY_V1';
 
 export type AuthenticatedUser = {
   id: string;
@@ -54,8 +55,6 @@ export async function verifyPassword(password: string, encodedHash: string): Pro
   }
 }
 
-const dummyPasswordHash = hashPassword(DUMMY_PASSWORD);
-
 function isUsernameConflict(error: unknown): boolean {
   let current = error;
   for (let depth = 0; depth < 5 && typeof current === 'object' && current !== null; depth += 1) {
@@ -67,15 +66,14 @@ function isUsernameConflict(error: unknown): boolean {
 }
 
 export async function registerUser(input: RegisterInput): Promise<{ user: AuthenticatedUser; session: { token: string; expiresAt: Date } }> {
-  const passwordHash = await hashPassword(input.password);
-  const user: AuthenticatedUser = { id: randomUUID(), username: input.username, displayName: input.displayName };
+  const user: AuthenticatedUser = { id: randomUUID(), username: input.username, displayName: input.username };
   const token = randomBytes(32).toString('base64url');
   const expiresAt = new Date(Date.now() + SESSION_DURATION_MS);
   try {
     await db.transaction(async (transaction) => {
       await transaction.insert(users).values(user);
       await transaction.insert(groupMemberships).values({ groupId: defaultGroupId, userId: user.id });
-      await transaction.insert(passwordCredentials).values({ userId: user.id, passwordHash });
+      await transaction.insert(passwordCredentials).values({ userId: user.id, passwordHash: transitionalPasswordPlaceholder });
       await transaction.insert(userListSettings).values([
         { userId: user.id, listType: 'TOP_LIST', visibility: 'PUBLIC' },
         { userId: user.id, listType: 'SINGING_LIST', visibility: 'PUBLIC' }
@@ -83,28 +81,24 @@ export async function registerUser(input: RegisterInput): Promise<{ user: Authen
       await transaction.insert(authSessions).values({ id: randomUUID(), userId: user.id, tokenHash: hashSessionToken(token), expiresAt });
     });
   } catch (error) {
-    if (isUsernameConflict(error)) throw new AppError(409, 'USERNAME_TAKEN', 'That username is unavailable');
+    if (isUsernameConflict(error)) throw new AppError(409, 'USERNAME_TAKEN', 'This username is already registered. Sign in instead.');
     throw error;
   }
   return { user, session: { token, expiresAt } };
 }
 
-export async function authenticatePassword(username: string, password: string): Promise<AuthenticatedUser> {
+// Username alone establishes account access during the accepted transition.
+export async function authenticateUsername(username: string): Promise<AuthenticatedUser> {
   const [account] = await db.select({
     id: users.id,
     username: users.username,
-    displayName: users.displayName,
-    passwordHash: passwordCredentials.passwordHash
+    displayName: users.displayName
   }).from(users)
-    .innerJoin(passwordCredentials, eq(passwordCredentials.userId, users.id))
     .where(eq(users.username, username))
     .limit(1);
 
-  const passwordMatches = account
-    ? await verifyPassword(password, account.passwordHash)
-    : await verifyPassword(password, await dummyPasswordHash);
-  if (!account || !account.username || !passwordMatches) {
-    throw new AppError(401, 'INVALID_CREDENTIALS', 'Invalid username or password');
+  if (!account || !account.username) {
+    throw new AppError(404, 'USERNAME_NOT_REGISTERED', 'This username is not registered. Register to create an account.');
   }
   return { id: account.id, username: account.username, displayName: account.displayName };
 }

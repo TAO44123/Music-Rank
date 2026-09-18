@@ -123,14 +123,11 @@ test('keeps every list readable and inside the viewport from 320px up', async ({
   // usernameSchema caps at 32 characters, so this exercises the widest account
   // label the contract can ever produce.
   username = `e2e_responsive_${Date.now()}`.padEnd(32, 'x').slice(0, 32);
-  const password = 'correct horse battery staple';
 
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto('/');
   await page.getByRole('button', { name: 'Register' }).click();
   await page.getByLabel('Username').fill(username);
-  await page.getByLabel('Display name').fill('E2E Responsive');
-  await page.getByLabel('Password').fill(password);
   await page.getByRole('button', { name: 'Create account' }).click();
   await expect(page.getByRole('button', { name: `@${username}` })).toBeVisible();
 

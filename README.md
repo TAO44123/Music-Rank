@@ -22,11 +22,13 @@ npm run dev
 
 Open [http://localhost:5173](http://localhost:5173). The Vite development server proxies `/api` requests to the Express server on port 3001.
 
-Create an account from the page header. Usernames contain 3–32 letters, numbers, or underscores; passwords contain 12–128 characters. Anonymous visitors can browse published rankings, while personal-list operations and the group directory require login. New accounts automatically join Default Group and initialize both personal lists as Public. Existing visibility is preserved, and Practice Library notes always remain private.
+Create an account from the page header. This intermediate release uses username-only login and registration. Usernames contain 3–32 letters, numbers, or underscores. Existing usernames sign in directly; unknown usernames are prompted to register explicitly. No password or display name is required; new display names default to username. Anonymous visitors can browse published rankings, while personal-list operations and the group directory require login. New accounts automatically join Default Group and initialize both personal lists as Public. Existing visibility is preserved, and Practice Library notes always remain private.
 
 Open Groups to see members and share `/invite/default`. Invitation registration/login joins the group and lands there; ordinary registration finishes home and ordinary login does not add membership. Public-list sharing and invitations open a centered link dialog with an explicit Copy button and manual-copy fallback.
 
 Your own `/u/:username` profile shows both lists, including Private lists, with Public / Private labels; this also applies when clicking yourself in Groups. Use `View public display` to preview what others can see. The shared profile URL stays the same, and recipients can only see Public lists. Profile views do not display Practice Library notes.
+
+Username-only access is an explicitly accepted transitional usage model: anyone knowing a username can sign in as that account and access or modify its private data. Existing password hashes are preserved; new accounts store an unusable placeholder for future authentication work.
 
 The seed is idempotent. You can run `npm run db:seed` again without duplicating the credential-free demo user, ranking, songs, or ranking entries. It does not overwrite personal lists or create a login account.
 
@@ -68,7 +70,7 @@ working in this repository live in [AGENTS.md](AGENTS.md).
 ## Architecture
 
 - `apps/web`: React, Vite, Material UI, TanStack Query, and dnd-kit UI.
-- `apps/api`: Express 5 REST API, password/session authentication, authorization, centralized request errors, structured JSON logs, and graceful shutdown.
+- `apps/api`: Express 5 REST API, username-only transitional entry and cookie sessions, authorization, centralized request errors, structured JSON logs, and graceful shutdown.
 - `packages/contracts`: shared Zod request schemas and types.
 - `packages/database`: Drizzle schema, PostgreSQL client, SQL migrations, and idempotent seed script.
 
@@ -83,6 +85,7 @@ All `/api/me` requests resolve an opaque database-backed session cookie in one m
 - [Engineering Guide](docs/ENGINEERING_GUIDE.md): current architecture, API reference, data model, testing strategy, operational notes, and maintenance rules.
 - [Default Group Design](docs/DESIGN_007_DEFAULT_GROUP.md): approved membership, invitations, public-list discovery, and deferred group management.
 - [Default Group Implementation Plan](docs/PLAN_007_DEFAULT_GROUP.md): implementation and validation records, including owner profiles, sharing, and PUBLIC-default refinements.
+- [Username-only Transitional Design](docs/DESIGN_008_USERNAME_ONLY_TRANSITION.md): implemented intermediate-release behavior, retained password storage, and accepted account-access limitations.
 - [Authentication Design](docs/AUTHENTICATION_DESIGN.md): approved login, session, public-list, security, and future SSO boundaries.
 - [Chinese Product Specification](docs/PROJECT_SPEC_ZH.md): approved Version 1 product specification in Chinese.
 - [English Product Specification](docs/PROJECT_SPEC_EN.md): approved Version 1 product specification in English.

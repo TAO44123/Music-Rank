@@ -1,16 +1,19 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { createServer } from 'node:http';
 import request from 'supertest';
 import { and, eq, inArray } from 'drizzle-orm';
-import { authSessions, closeDatabase, db, defaultGroupId, demoUserId, groupMemberships, rankingEntries, rankings, singingListEntries, songs, users, userListSettings, userTopListEntries } from '@music-rank/database';
+import { authSessions, closeDatabase, db, defaultGroupId, demoUserId, groupMemberships, passwordCredentials, rankingEntries, rankings, singingListEntries, songs, users, userListSettings, userTopListEntries } from '@music-rank/database';
 import { createApp } from './app.js';
-import { hashSessionToken } from './auth.js';
+import { hashPassword, hashSessionToken, transitionalPasswordPlaceholder, verifyPassword } from './auth.js';
 
 const testUserId = '0ec26a67-6b68-4c23-b164-53f02bb49961';
 const otherTestUserId = 'eea26a67-6b68-4c23-b164-53f02bb49961';
-const app = createApp({ currentUserId: testUserId, enforceOrigin: false });
-const otherApp = createApp({ currentUserId: otherTestUserId, enforceOrigin: false });
+const app = createServer(createApp({ currentUserId: testUserId, enforceOrigin: false }));
+const otherApp = createServer(createApp({ currentUserId: otherTestUserId, enforceOrigin: false }));
 const allowedOrigin = 'http://localhost:5173';
-const authApp = createApp({ allowedOrigin, authRateLimit: { maxAttempts: 100 } });
+const authApp = createServer(createApp({ allowedOrigin, authRateLimit: { maxAttempts: 100 } }));
+const limitedApp = createServer(createApp({ allowedOrigin, authRateLimit: { maxAttempts: 1, windowMs: 60_000 } }));
+const testServers = [app, otherApp, authApp, limitedApp];
 const authUsernames = ['auth_alice', 'auth_bob', 'auth_case_user'];
 const songIds = [
   '1c2a849c-0aef-4cac-a307-45674508f01c', '22cbfd77-7dda-4f3f-a8f3-d001a13c826c', '47d0ae76-7a88-4f7d-ab28-2652d9daebbe', '8e918b13-2c48-4caf-af88-2b92f9bece44',
@@ -33,6 +36,12 @@ const submittedSongTitles = [
 ];
 
 beforeAll(async () => {
+  // Keep each app on a distinct live port; per-request ephemeral ports can be
+  // reused while Node's HTTP agent still has a connection for another app.
+  await Promise.all(testServers.map((server) => new Promise<void>((resolve, reject) => {
+    server.once('error', reject);
+    server.listen(0, '127.0.0.1', () => { server.off('error', reject); resolve(); });
+  })));
   await db.insert(users).values({ id: testUserId, displayName: 'API Test Listener' })
     .onConflictDoUpdate({ target: users.id, set: { displayName: 'API Test Listener', updatedAt: new Date() } });
   await db.insert(users).values({ id: otherTestUserId, displayName: 'Another API Test Listener' })
@@ -64,6 +73,9 @@ beforeEach(async () => {
 });
 
 afterAll(async () => {
+  await Promise.all(testServers.filter((server) => server.listening).map((server) => new Promise<void>((resolve, reject) => {
+    server.close((error) => { if (error) reject(error); else resolve(); });
+  })));
   await db.delete(rankings).where(eq(rankings.id, conflictingRankingId));
   await db.delete(rankings).where(inArray(rankings.id, fixtureRankingIds));
   await db.delete(users).where(inArray(users.username, authUsernames));
@@ -74,13 +86,13 @@ afterAll(async () => {
 });
 
 describe('Authentication and public lists', () => {
-  const register = (agent: ReturnType<typeof request.agent>, username: string, displayName: string) =>
-    agent.post('/api/auth/register').set('Origin', allowedOrigin).send({ username, displayName, password: 'correct horse battery staple' });
+  const register = (agent: ReturnType<typeof request.agent>, username: string) =>
+    agent.post('/api/auth/register').set('Origin', allowedOrigin).send({ username });
 
   it('registers, restores, and revokes an opaque cookie session', async () => {
     const agent = request.agent(authApp);
-    const registration = await register(agent, 'auth_alice', 'Alice Listener').expect(201);
-    expect(registration.body).toEqual({ user: expect.objectContaining({ username: 'auth_alice', displayName: 'Alice Listener' }) });
+    const registration = await register(agent, 'auth_alice').expect(201);
+    expect(registration.body).toEqual({ user: expect.objectContaining({ username: 'auth_alice', displayName: 'auth_alice' }) });
     expect(registration.headers['set-cookie']?.[0]).toMatch(/music_rank_session=.*HttpOnly.*SameSite=Lax/);
     await agent.get('/api/auth/session').expect(200).expect(({ body }) => expect(body.user.username).toBe('auth_alice'));
     await agent.get('/api/me/top-list').expect(200).expect('Cache-Control', 'private, no-store');
@@ -96,7 +108,7 @@ describe('Authentication and public lists', () => {
 
   it('defaults new settings to public while keeping missing legacy settings private', async () => {
     const agent = request.agent(authApp);
-    const { body } = await register(agent, 'auth_alice', 'Alice Listener').expect(201);
+    const { body } = await register(agent, 'auth_alice').expect(201);
     await db.delete(userListSettings).where(eq(userListSettings.userId, body.user.id));
     await agent.get('/api/me/list-settings').expect(200).expect({ topList: 'PRIVATE', singingList: 'PRIVATE' });
     await request(authApp).get('/api/users/auth_alice').expect(404);
@@ -111,7 +123,7 @@ describe('Authentication and public lists', () => {
 
   it('rejects and removes expired sessions', async () => {
     const agent = request.agent(authApp);
-    const registration = await register(agent, 'auth_alice', 'Alice Listener').expect(201);
+    const registration = await register(agent, 'auth_alice').expect(201);
     const cookie = registration.headers['set-cookie']?.[0] as unknown as string;
     const token = /music_rank_session=([^;]+)/.exec(cookie)?.[1];
     expect(token).toBeTruthy();
@@ -123,23 +135,111 @@ describe('Authentication and public lists', () => {
     expect(remaining).toHaveLength(0);
   });
 
-  it('normalizes usernames and does not enumerate accounts on login', async () => {
-    const agent = request.agent(authApp);
-    await register(agent, 'Auth_Case_User', 'Case Listener').expect(201);
-    await request(authApp).post('/api/auth/register').set('Origin', allowedOrigin)
-      .send({ username: 'auth_case_user', displayName: 'Duplicate', password: 'another secure passphrase' })
-      .expect(409).expect(({ body }) => expect(body.code).toBe('USERNAME_TAKEN'));
-    const wrongPassword = await request(authApp).post('/api/auth/login').set('Origin', allowedOrigin)
-      .send({ username: 'auth_case_user', password: 'definitely incorrect' }).expect(401);
+  it('normalizes usernames, prompts missing users to register without writes, and prevents duplicate registration', async () => {
     const missingUser = await request(authApp).post('/api/auth/login').set('Origin', allowedOrigin)
-      .send({ username: 'auth_bob', password: 'definitely incorrect' }).expect(401);
-    expect(wrongPassword.body).toEqual(missingUser.body);
-    expect(wrongPassword.body.code).toBe('INVALID_CREDENTIALS');
+      .send({ username: 'auth_case_user' }).expect(404).expect('Cache-Control', 'no-store');
+    expect(missingUser.body.code).toBe('USERNAME_NOT_REGISTERED');
+    expect(missingUser.headers['set-cookie']).toBeUndefined();
+    expect(await db.select().from(users).where(eq(users.username, 'auth_case_user'))).toHaveLength(0);
+    const agent = request.agent(authApp);
+    const registration = await register(agent, ' Auth_Case_User ').expect(201);
+    expect(registration.body.user).toMatchObject({ username: 'auth_case_user', displayName: 'auth_case_user' });
+    const credentials = await db.select().from(passwordCredentials).where(eq(passwordCredentials.userId, registration.body.user.id));
+    await request(authApp).post('/api/auth/register').set('Origin', allowedOrigin)
+      .send({ username: 'auth_case_user' }).expect(409)
+      .expect(({ body }) => expect(body.code).toBe('USERNAME_TAKEN'));
+    expect(await db.select().from(passwordCredentials).where(eq(passwordCredentials.userId, registration.body.user.id))).toEqual(credentials);
+    const login = await request(authApp).post('/api/auth/login').set('Origin', allowedOrigin)
+      .send({ username: ' AUTH_CASE_USER ' }).expect(200);
+    expect(login.body).toEqual(registration.body);
+  });
+
+  it.each(['login', 'register'])('validates username-only %s input without creating a session', async (mode) => {
+    for (const input of [{}, { username: 'ab' }, { username: 'bad-name' }, { username: 'x'.repeat(33) }, { username: '   ' }]) {
+      const failure = await request(authApp).post(`/api/auth/${mode}`).set('Origin', allowedOrigin).send(input).expect(400);
+      expect(failure.body.code).toBe('INVALID_REQUEST');
+      expect(failure.headers['set-cookie']).toBeUndefined();
+    }
+  });
+
+  it('stores an unusable uniform password placeholder without exposing it', async () => {
+    const alice = await register(request.agent(authApp), 'auth_alice').expect(201);
+    const bob = await register(request.agent(authApp), 'auth_bob').expect(201);
+    for (const registration of [alice, bob]) {
+      const [credential] = await db.select().from(passwordCredentials).where(eq(passwordCredentials.userId, registration.body.user.id));
+      expect(credential.passwordHash).toBe(transitionalPasswordPlaceholder);
+      expect(await verifyPassword(transitionalPasswordPlaceholder, credential.passwordHash)).toBe(false);
+      expect(Object.keys(registration.body.user).sort()).toEqual(['displayName', 'id', 'username']);
+      expect(JSON.stringify(registration.body)).not.toContain(transitionalPasswordPlaceholder);
+    }
+  });
+
+  it('preserves legacy hashes, display names and private data during username-only login', async () => {
+    const agent = request.agent(authApp);
+    const { body } = await register(agent, 'auth_alice').expect(201);
+    const legacyHash = await hashPassword('legacy test password');
+    await db.update(passwordCredentials).set({ passwordHash: legacyHash }).where(eq(passwordCredentials.userId, body.user.id));
+    await db.update(users).set({ displayName: 'Legacy Alice' }).where(eq(users.id, body.user.id));
+    await agent.patch('/api/me/lists/singing-list/visibility').set('Origin', allowedOrigin).send({ visibility: 'PRIVATE' }).expect(200);
+    await agent.put(`/api/me/singing-list/items/${songIds[0]}`).set('Origin', allowedOrigin)
+      .send({ status: 'PRACTICING', note: 'Legacy private note' }).expect(200);
+    const before = await db.select().from(passwordCredentials).where(eq(passwordCredentials.userId, body.user.id));
+    await request(authApp).post('/api/auth/register').set('Origin', allowedOrigin).send({ username: 'auth_alice' }).expect(409);
+    await agent.post('/api/auth/logout').set('Origin', allowedOrigin).expect(204);
+    await agent.post('/api/auth/login').set('Origin', allowedOrigin).send({ username: 'auth_alice' }).expect(200)
+      .expect(({ body: login }) => expect(login.user).toEqual({ ...body.user, displayName: 'Legacy Alice' }));
+    expect(await db.select().from(passwordCredentials).where(eq(passwordCredentials.userId, body.user.id))).toEqual(before);
+    await agent.get('/api/me/singing-list').expect(200).expect(({ body }) => expect(body[0].note).toBe('Legacy private note'));
+    await request(authApp).get('/api/users/auth_alice/singing-list').expect(404);
+  });
+
+  it('creates one account and placeholder under concurrent registration', async () => {
+    const attempts = await Promise.all([
+      register(request.agent(authApp), 'auth_alice'),
+      register(request.agent(authApp), 'auth_alice')
+    ]);
+    expect(attempts.map((attempt) => attempt.status).sort()).toEqual([201, 409]);
+    const [account] = await db.select().from(users).where(eq(users.username, 'auth_alice'));
+    expect(await db.select().from(passwordCredentials).where(eq(passwordCredentials.userId, account.id))).toHaveLength(1);
+    expect(await db.select().from(groupMemberships).where(eq(groupMemberships.userId, account.id))).toHaveLength(1);
+    expect(await db.select().from(authSessions).where(eq(authSessions.userId, account.id))).toHaveLength(1);
+  });
+
+  it('rolls back account, placeholder, settings and membership when the final session insert fails', async () => {
+    const transaction = db.transaction.bind(db);
+    let userId: string | undefined;
+    const spy = vi.spyOn(db, 'transaction').mockImplementation((callback, config) => transaction(async (tx) => {
+      const insert = tx.insert.bind(tx);
+      vi.spyOn(tx, 'insert').mockImplementation(((table) => {
+        if (Object.is(table, authSessions)) throw new Error('Test final session insert failure');
+        return insert(table);
+      }) as typeof tx.insert);
+      try { return await callback(tx); }
+      catch (error) {
+        // The injected failure happens before SQL, so partial rows remain
+        // readable inside this transaction until the original error is rethrown.
+        const [account] = await tx.select({ id: users.id }).from(users).where(eq(users.username, 'auth_alice'));
+        userId = account?.id;
+        throw error;
+      }
+    }, config));
+    try {
+      const failed = await register(request.agent(authApp), 'auth_alice').expect(500);
+      expect(failed.headers['set-cookie']).toBeUndefined();
+    } finally { spy.mockRestore(); }
+    expect(await db.select().from(users).where(eq(users.username, 'auth_alice'))).toHaveLength(0);
+    expect(userId).toBeTruthy();
+    expect(await db.select().from(passwordCredentials).where(eq(passwordCredentials.userId, userId!))).toHaveLength(0);
+    expect(await db.select().from(userListSettings).where(eq(userListSettings.userId, userId!))).toHaveLength(0);
+    expect(await db.select().from(groupMemberships).where(eq(groupMemberships.userId, userId!))).toHaveLength(0);
+    expect(await db.select().from(authSessions).where(eq(authSessions.userId, userId!))).toHaveLength(0);
+    // A successful retry proves the username was not reserved by the failure.
+    await register(request.agent(authApp), 'auth_alice').expect(201);
   });
 
   it('rejects unsafe requests from an unapproved origin', async () => {
     await request(authApp).post('/api/auth/register')
-      .send({ username: 'auth_alice', displayName: 'Alice', password: 'correct horse battery staple' })
+      .send({ username: 'auth_alice' })
       .expect(403).expect(({ body }) => expect(body.code).toBe('INVALID_ORIGIN'));
   });
 
@@ -151,7 +251,7 @@ describe('Authentication and public lists', () => {
 
   it('keeps invitation previews read-only and protects joins with authentication and Origin checks', async () => {
     const alice = request.agent(authApp);
-    const { body } = await register(alice, 'auth_alice', 'Alice Listener').expect(201);
+    const { body } = await register(alice, 'auth_alice').expect(201);
     await db.delete(groupMemberships).where(eq(groupMemberships.userId, body.user.id));
     await request(authApp).get('/api/group-invitations/default').expect(200)
       .expect({ id: defaultGroupId, name: 'Default Group', slug: 'default' });
@@ -166,11 +266,11 @@ describe('Authentication and public lists', () => {
 
   it('does not backfill membership on ordinary login and joins idempotently under concurrent invitations', async () => {
     const alice = request.agent(authApp);
-    const { body } = await register(alice, 'auth_alice', 'Alice Listener').expect(201);
+    const { body } = await register(alice, 'auth_alice').expect(201);
     await db.delete(groupMemberships).where(eq(groupMemberships.userId, body.user.id));
     await alice.post('/api/auth/logout').set('Origin', allowedOrigin).expect(204);
     await alice.post('/api/auth/login').set('Origin', allowedOrigin)
-      .send({ username: 'auth_alice', password: 'correct horse battery staple' }).expect(200);
+      .send({ username: 'auth_alice' }).expect(200);
     await alice.get('/api/me/groups').expect(200).expect([]);
     const joins = await Promise.all([
       alice.post('/api/group-invitations/default/join').set('Origin', allowedOrigin),
@@ -186,8 +286,8 @@ describe('Authentication and public lists', () => {
   it('reveals only safe member profiles and preserves private lists and notes', async () => {
     const alice = request.agent(authApp);
     const bob = request.agent(authApp);
-    await register(alice, 'auth_alice', 'Alice Listener').expect(201);
-    const { body: registration } = await register(bob, 'auth_bob', 'Bob Listener').expect(201);
+    await register(alice, 'auth_alice').expect(201);
+    const { body: registration } = await register(bob, 'auth_bob').expect(201);
     await bob.patch('/api/me/lists/top-list/visibility').set('Origin', allowedOrigin).send({ visibility: 'PRIVATE' }).expect(200);
     await bob.patch('/api/me/lists/singing-list/visibility').set('Origin', allowedOrigin).send({ visibility: 'PRIVATE' }).expect(200);
     await bob.put(`/api/me/singing-list/items/${songIds[0]}`).set('Origin', allowedOrigin)
@@ -198,7 +298,7 @@ describe('Authentication and public lists', () => {
         for (const member of body) expect(Object.keys(member).sort()).toEqual(['displayName', 'id', 'username']);
       });
     await alice.get(`/api/me/groups/${defaultGroupId}/members/auth_bob`).expect(200)
-      .expect(({ body }) => expect(body).toEqual({ username: 'auth_bob', displayName: 'Bob Listener', lists: { topList: 'PRIVATE', singingList: 'PRIVATE' } }));
+      .expect(({ body }) => expect(body).toEqual({ username: 'auth_bob', displayName: 'auth_bob', lists: { topList: 'PRIVATE', singingList: 'PRIVATE' } }));
     await request(authApp).get('/api/users/auth_bob').expect(404);
     await alice.get('/api/users/auth_bob/singing-list').expect(404);
     await bob.patch('/api/me/lists/singing-list/visibility').set('Origin', allowedOrigin).send({ visibility: 'PUBLIC' }).expect(200);
@@ -206,8 +306,11 @@ describe('Authentication and public lists', () => {
       expect(body).toHaveLength(1);
       expect(body[0]).not.toHaveProperty('note');
     });
+    await bob.get('/api/auth/session').expect(200).expect({ user: registration.user });
     await db.delete(groupMemberships).where(eq(groupMemberships.userId, registration.user.id));
-    await bob.get(`/api/me/groups/${defaultGroupId}/members/auth_alice`).expect(403);
+    expect(await db.select().from(groupMemberships).where(eq(groupMemberships.userId, registration.user.id))).toHaveLength(0);
+    const denied = await bob.get(`/api/me/groups/${defaultGroupId}/members/auth_alice`);
+    expect({ status: denied.status, code: denied.body.code }).toEqual({ status: 403, code: 'GROUP_MEMBERSHIP_REQUIRED' });
     await alice.get(`/api/me/groups/${defaultGroupId}/members/auth_bob`).expect(404);
     await alice.get('/api/me/groups/not-a-uuid/members').expect(400);
     await alice.get('/api/me/groups/d0000000-0000-4000-8000-000000000099/members').expect(404);
@@ -216,8 +319,8 @@ describe('Authentication and public lists', () => {
   it('isolates users and publishes only approved list fields', async () => {
     const alice = request.agent(authApp);
     const bob = request.agent(authApp);
-    await register(alice, 'auth_alice', 'Alice Listener').expect(201);
-    await register(bob, 'auth_bob', 'Bob Listener').expect(201);
+    await register(alice, 'auth_alice').expect(201);
+    await register(bob, 'auth_bob').expect(201);
 
     await alice.post('/api/me/top-list/items').set('Origin', allowedOrigin).send({ songId: songIds[0] }).expect(201);
     await alice.put(`/api/me/singing-list/items/${songIds[0]}`).set('Origin', allowedOrigin)
@@ -232,7 +335,7 @@ describe('Authentication and public lists', () => {
     await request(authApp).get('/api/users/auth_alice').expect(404);
     await alice.post('/api/auth/logout').set('Origin', allowedOrigin).expect(204);
     await alice.post('/api/auth/login').set('Origin', allowedOrigin)
-      .send({ username: 'auth_alice', password: 'correct horse battery staple' }).expect(200);
+      .send({ username: 'auth_alice' }).expect(200);
     await alice.get('/api/me/list-settings').expect(200).expect({ topList: 'PRIVATE', singingList: 'PRIVATE' });
 
     await alice.patch('/api/me/lists/top-list/visibility').set('Origin', allowedOrigin).send({ visibility: 'PUBLIC' }).expect(200);
@@ -252,10 +355,9 @@ describe('Authentication and public lists', () => {
   });
 
   it('rate limits repeated authentication attempts', async () => {
-    const limitedApp = createApp({ allowedOrigin, authRateLimit: { maxAttempts: 1, windowMs: 60_000 } });
     const attempt = () => request(limitedApp).post('/api/auth/login').set('Origin', allowedOrigin)
-      .send({ username: 'auth_bob', password: 'definitely incorrect' });
-    await attempt().expect(401);
+      .send({ username: 'auth_bob' });
+    await attempt().expect(404);
     await attempt().expect(429).expect(({ body }) => expect(body.code).toBe('AUTH_RATE_LIMITED'));
   });
 

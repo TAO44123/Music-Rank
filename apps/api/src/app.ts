@@ -21,7 +21,7 @@ import {
   usernameSchema,
   upsertSingingListItemSchema
 } from '@music-rank/contracts';
-import { authenticatePassword, createSession, registerUser, revokeSession, sessionDurationMs } from './auth.js';
+import { authenticateUsername, createSession, registerUser, revokeSession, sessionDurationMs } from './auth.js';
 import { createCurrentUserResolver, createOptionalCurrentUserResolver, readCookie } from './current-user.js';
 import { asyncRoute, errorHandler } from './errors.js';
 import { createAuthRateLimiter, createOriginGuard } from './security.js';
@@ -92,6 +92,10 @@ export function createApp({ currentUserId, allowedOrigin = config.server.appOrig
   }));
   app.get('/api/songs', asyncRoute(async (request, response) => response.json(await listSongs(parseQuery(request.query.q)))));
 
+  app.use('/api/auth', (_request, response, next) => {
+    response.setHeader('Cache-Control', 'no-store');
+    next();
+  });
   const authLimiter = createAuthRateLimiter(authRateLimit);
   app.get('/api/group-invitations/default', asyncRoute(async (_request, response) => {
     response.json(await getDefaultGroup());
@@ -109,7 +113,7 @@ export function createApp({ currentUserId, allowedOrigin = config.server.appOrig
   }));
   app.post('/api/auth/login', authLimiter, asyncRoute(async (request, response) => {
     const input = loginSchema.parse(request.body);
-    const user = await authenticatePassword(input.username, input.password);
+    const user = await authenticateUsername(input.username);
     const session = await createSession(user.id);
     response.setHeader('Cache-Control', 'no-store');
     response.cookie(sessionCookie.name, session.token, { ...sessionCookie.options, maxAge: sessionDurationMs });

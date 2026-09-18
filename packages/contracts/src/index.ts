@@ -14,16 +14,9 @@ export const usernameSchema = z.string()
 export const displayNameSchema = z.string().trim().min(1).max(80);
 export const passwordSchema = z.string().min(12).max(128);
 
-export const registerSchema = z.object({
-  username: usernameSchema,
-  displayName: displayNameSchema,
-  password: passwordSchema
-});
-
-export const loginSchema = z.object({
-  username: usernameSchema,
-  password: z.string().min(1).max(128)
-});
+// DESIGN-008: username-only entry for the transitional release.
+export const registerSchema = z.object({ username: usernameSchema });
+export const loginSchema = z.object({ username: usernameSchema });
 
 export const listTypePathSchema = z.enum(['top-list', 'singing-list']).transform((value) =>
   value === 'top-list' ? 'TOP_LIST' as const : 'SINGING_LIST' as const

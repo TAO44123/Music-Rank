@@ -31,8 +31,6 @@ function home(path: string) {
 function submitAuth(mode: 'login' | 'register', account = user) {
   const dialog = screen.getByRole('dialog');
   fireEvent.change(within(dialog).getByLabelText(/Username/), { target: { value: account.username } });
-  if (mode === 'register') fireEvent.change(within(dialog).getByLabelText(/Display name/), { target: { value: account.displayName } });
-  fireEvent.change(within(dialog).getByLabelText(/Password/), { target: { value: 'correct horse battery staple' } });
   fireEvent.click(within(dialog).getByRole('button', { name: mode === 'login' ? 'Sign in' : 'Create account' }));
 }
 
@@ -118,14 +116,14 @@ describe('Default invitation', () => {
     const { fetchMock, router } = mount('/invite/default', (path) => {
       if (path === '/api/auth/session') return response({ user: null });
       if (path === '/api/group-invitations/default') return response(group);
-      if (path === '/api/auth/login') return response({ code: 'INVALID_CREDENTIALS', message: 'Invalid username or password' }, 401);
+      if (path === '/api/auth/login') return response({ code: 'USERNAME_NOT_REGISTERED', message: 'This username is not registered. Register to create an account.' }, 404);
       return home(path);
     });
     await screen.findByText('Sign in or create an account to automatically join Default Group.');
     fireEvent.click(screen.getAllByRole('button', { name: 'Sign in' }).at(-1)!);
     await screen.findByRole('dialog');
     submitAuth('login');
-    expect(await screen.findByText('Invalid username or password')).toBeVisible();
+    expect(await screen.findByText('This username is not registered. Register to create an account.')).toBeVisible();
     expect(router.state.location.pathname).toBe('/invite/default');
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
