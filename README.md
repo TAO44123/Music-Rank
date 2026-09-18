@@ -1,8 +1,8 @@
 # Music Rank
 
-Music Rank is a local, full-stack application for browsing a fictional ranking of 1990s Mainland China pop songs, building a persistent Top 10, maintaining a singing list, and selectively sharing those personal lists.
+Music Rank is a full-stack application for browsing published song rankings, maintaining a personal Top 10 and Practice Library, and discovering members’ public lists through Default Group.
 
-The ranking is explicitly **Demo Data**. It is a set of product fixtures, not an official, authoritative, or complete chart.
+The local database currently has three imported rankings: 80s Chinese Songs Top 100 (100 entries), 90s Mainland China Top 100 (100), and 90s Cantonese Songs Top 70 (72). The retained 30-entry **Demo Data** ranking is unpublished. A fresh setup seeds Demo fixtures; importing the formal rankings is a separate step in the [database guide](docs/DATABASE_MIGRATION.md).
 
 ## Requirements
 
@@ -22,7 +22,9 @@ npm run dev
 
 Open [http://localhost:5173](http://localhost:5173). The Vite development server proxies `/api` requests to the Express server on port 3001.
 
-Create an account from the page header. Usernames contain 3–32 letters, numbers, or underscores; passwords contain 12–128 characters. Anonymous visitors can browse the demo ranking, while personal-list operations require login.
+Create an account from the page header. Usernames contain 3–32 letters, numbers, or underscores; passwords contain 12–128 characters. Anonymous visitors can browse published rankings, while personal-list operations and the group directory require login. New accounts automatically join Default Group and initialize both personal lists as Public. Existing visibility is preserved, and Practice Library notes always remain private.
+
+Open Groups to see members and share `/invite/default`. Invitation registration/login joins the group and lands there; ordinary registration finishes home and ordinary login does not add membership. Public-list sharing and invitations open a centered link dialog with an explicit Copy button and manual-copy fallback.
 
 The seed is idempotent. You can run `npm run db:seed` again without duplicating the credential-free demo user, ranking, songs, or ranking entries. It does not overwrite personal lists or create a login account.
 
@@ -74,13 +76,15 @@ All `/api/me` requests resolve an opaque database-backed session cookie in one m
 
 - [First Local Run Guide](docs/LOCAL_FIRST_RUN_GUIDE.md): environment checks, configuration, startup, health checks, full verification, troubleshooting, and Agent handoff rules.
 - [Deployment Guide](DEPLOYMENT.md): first-time server setup, routine redeploys, per-environment builds, restarts, verification, rollback, and troubleshooting.
-- [Database Migration and Ranking Sync Guide](docs/DATABASE_MIGRATION.md): apply schema migrations, import and publish both production ranking manifests, verify counts, and handle controlled replacements.
+- [Database Migration and Ranking Sync Guide](docs/DATABASE_MIGRATION.md): apply schema migrations, import and publish the three formal ranking manifests, verify counts, and handle controlled replacements.
 - [Current Session Handoff](docs/SESSION_HANDOFF.md): repository state and the approved focus, open decisions, implementation sequence, and acceptance checklist for the next development session.
 - [Engineering Guide](docs/ENGINEERING_GUIDE.md): current architecture, API reference, data model, testing strategy, operational notes, and maintenance rules.
+- [Default Group Design](docs/DESIGN_007_DEFAULT_GROUP.md): approved membership, invitations, public-list discovery, and deferred group management.
+- [Default Group Implementation Plan](docs/PLAN_007_DEFAULT_GROUP.md): implementation and validation records, including sharing and PUBLIC-default refinements.
 - [Authentication Design](docs/AUTHENTICATION_DESIGN.md): approved login, session, public-list, security, and future SSO boundaries.
 - [Chinese Product Specification](docs/PROJECT_SPEC_ZH.md): approved Version 1 product specification in Chinese.
 - [English Product Specification](docs/PROJECT_SPEC_EN.md): approved Version 1 product specification in English.
 
 ## Scope
 
-Authentication and public/private personal lists are an approved extension to the original Version 1 specification. The current scope still excludes implemented SSO providers, password recovery, email verification, account deletion, user discovery/follows, audio or lyrics, video ingestion, OCR, AI extraction, and admin tooling. See [AUTHENTICATION_DESIGN.md](docs/AUTHENTICATION_DESIGN.md) for the approved extension and [PROJECT_SPEC_EN.md](docs/PROJECT_SPEC_EN.md) for the original baseline.
+Authentication, public/private personal lists, and Default Group invitations/member discovery are approved extensions to the original Version 1 specification. The current scope still excludes group management, multiple groups, group-only visibility, implemented SSO providers, password recovery, email verification, account deletion, anonymous user discovery/follows, audio or lyrics, video ingestion, OCR, AI extraction, and admin tooling. See [AUTHENTICATION_DESIGN.md](docs/AUTHENTICATION_DESIGN.md) for the approved extension and [PROJECT_SPEC_EN.md](docs/PROJECT_SPEC_EN.md) for the original baseline.

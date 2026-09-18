@@ -1,7 +1,7 @@
 ---
 design_id: DESIGN-007
 title: Default Group and Invitation Onboarding
-status: Implemented in the working tree; see PLAN-007 for validation
+status: Implemented and verified; local commits 7053051 and 83ab826
 created: 2026-09-17
 updated: 2026-09-17
 related:
@@ -20,7 +20,8 @@ public Top 10 and Practice Library. A shared invitation URL carries visitors
 through registration or login and into the group.
 
 The user approved the behavior below and subsequently authorized implementation.
-The feature is implemented on `codex/default-group`, based on `83b24f3`.
+The feature is implemented on `codex/default-group`, based on `83b24f3`,
+and saved locally as `7053051` plus refinement commit `83ab826`.
 The user authorized a local Git commit. GitHub push, merge, and deployment
 have not been requested or performed.
 

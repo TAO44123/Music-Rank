@@ -6,9 +6,9 @@
 | --- | --- |
 | 文档性质 | 持续维护的工程实现说明 |
 | 目标读者 | 负责开发、测试、排障和后续维护的工程师 |
-| 当前产品版本 | Version 1 + 认证扩展 + 响应式导航 + 多榜单目录，本地多用户应用 |
-| 最后更新日期 | 2026-09-17（America/New_York） |
-| 最后核对的代码提交 | Local refinement commit `feat: add share link dialogs and default lists to public` on `codex/default-group` (parent `7053051`) |
+| 当前产品版本 | Version 1 + 认证扩展 + 响应式导航 + 多榜单目录 + Default Group 与邀请，本地多用户应用 |
+| 最后更新日期 | 2026-09-18 (America/New_York) |
+| 最后核对的代码提交 | `83ab826` on `codex/default-group` (parent `7053051`); this refresh changes documentation only |
 | 事实来源 | 当前仓库代码、配置、迁移和自动化测试 |
 
 这份文档描述系统现在如何工作。首次在本机配置和运行项目时，先执行 [LOCAL_FIRST_RUN_GUIDE.md](LOCAL_FIRST_RUN_GUIDE.md)；PROJECT_SPEC_ZH.md、PROJECT_SPEC_EN.md 与 IMPLEMENTATION_HANDOFF.md 保留 Version 1 历史基线，当前已批准扩展以 [AUTHENTICATION_DESIGN.md](AUTHENTICATION_DESIGN.md)、[RANKING_CATALOG_DESIGN.md](RANKING_CATALOG_DESIGN.md) 和 [SESSION_HANDOFF.md](SESSION_HANDOFF.md) 为准。若文档与代码不一致，应先核对代码和测试，再更新本文档。
@@ -46,7 +46,7 @@ Management, multiple groups, and group-only visibility remain future work.
 
 ## 2. 系统概览
 
-Music Rank 是一个本地运行的全栈演示应用。公开榜单按年代和地区组织；当前仍发布一份明确标记为 Demo Data 的 1990 年代中国大陆虚构榜单，四份真实视频榜单将在后续独立任务审核和导入。用户可以维护个人 Top 10，并维护带演唱状态和备注的 Practice Library。
+Music Rank 是一个全栈多用户应用。公开目录按来源无关的 slug 展示三个已导入真实榜单，年代和地区为可选展示元数据；Demo 榜单保留但未发布。用户可以维护 Top 10 和带演唱状态与私密备注的 Practice Library，并通过 Default Group 发现成员的公开列表。
 
 应用支持本地用户名/密码注册登录、PostgreSQL Session、多用户隔离，以及分别公开或隐藏 Top 10 和 Practice Library。匿名用户仍可浏览公共歌曲榜单。
 
@@ -83,9 +83,9 @@ flowchart LR
 
 - SSO、邮箱验证、密码重置和账户删除。
 - Anonymous user directory, following, and Unlisted sharing.
-- 远程仓库、部署或生产基础设施。
+- 本次功能交付不包含 GitHub 推送、合并或 EC2 部署；已有部署流程见 DEPLOYMENT.md。
 - 音频播放、歌词、视频采集、OCR 或 AI 提取。
-- 四份真实 YouTube 榜单数据及其导入工具。
+- 自动从视频提取榜单内容；正式榜单通过已提供的 JSON manifest 和现有导入器同步。
 - Group management, chat, and admin tools.
 
 ## 3. 技术栈与版本约束
@@ -967,15 +967,15 @@ DESIGN-002 起，用户可见文案统一使用 Practice Library：Tab 名称、
 
 ### 12.7 响应式布局
 
-- 三个页面均为全宽单列。DESIGN-002 之前的 1.6fr / 0.85fr 两列布局已移除，个人列表改为独立路由。
+- 排名、个人列表和群组页面均为全宽单列。DESIGN-002 之前的 1.6fr / 0.85fr 两列布局已移除，个人列表改为独立路由。
 - TabNav 始终使用 MUI `Tabs` 的 `fullWidth` 变体；`sm` 断点通过 `flex: '0 0 auto'` 让整行收缩为自然宽度并左对齐。同一个 Tabs 实例贯穿所有断点，不做变体切换，避免 Tab 列表重新挂载。
-- Tab 文案有长短两套，同时存在于 DOM 中，由 `sx` 断点切换 `display`：小于 `sm` 显示 Ranking / Personal / Practice，`sm` 及以上显示 The Ranking / Personal Ranking / Practice Library。不使用 `useMediaQuery`，它首帧返回 false 会导致桌面端闪一下短文案。
+- Tab 文案有长短两套，同时存在于 DOM 中，由 `sx` 断点切换 `display`：小于 `sm` 显示 Ranking / Personal / Practice / Groups，`sm` 及以上显示 The Ranking / Personal Ranking / Practice Library / Groups。不使用 `useMediaQuery`，它首帧返回 false 会导致桌面端闪一下短文案。
 - TabNav 容器高度固定为 52px，Session 解析完成后另外三个 Tab 出现时不会推动下方内容。
 - 唯一断点是 MUI 的 `sm`（600px），全部通过 `sx` 的断点对象表达，不使用 `useMediaQuery`。
 - 主导航有两套并存的实现，由同一个断点互斥显隐：`sm` 及以上显示顶部 TabNav，小于 `sm` 显示固定在视口底部的 BottomNav。两者都渲染在 DOM 里，靠 `sx` 的 `display` 切换，不做 JS 宽度判断。
 - 目的地表是 `apps/web/src/navigation.ts` 的 `destinations`，TabNav 和 BottomNav 共用，同时导出 `bottomNavHeight`（56）。改导航目的地只改这一处。
 - BottomNav 对匿名访客显示全部四项：受守卫的三项渲染成按钮而非链接，点击直接打开登录弹窗。渲染成链接会走到 `routes/personal.tsx` 的 `beforeLoad` 守卫、被重定向回 `/` 并闪过一个访客没要求的页面。守卫本身不变，它负责的是直接输入 URL 这个入口。
-- TabNav 对匿名访客仍然过滤掉受守卫的三项，所以匿名访客在手机上看到四个目的地、在桌面上只看到一个。用户于 2026-09-15 确认该差异不影响本次发布并选择保留，后续除非产品决策变化，无需统一。
+- TabNav 对匿名访客仍然过滤掉受守卫的三项，所以匿名访客在手机上看到四个目的地、在桌面上只看到一个。用户于 2026-09-15 接受该手机与桌面差异；2026-09-17 新增 Groups 后沿用同一匿名认证入口规则。
 - BottomNav 是 `position: fixed`，不占布局空间，因此 AppShellContext 给内容区加了 `pb: calc(56px + env(safe-area-inset-bottom))`，Snackbar 也在 xs 下相应上移，否则列表最后一行和通知都会压在底栏下面。
 - 断点行为只能由 Playwright 验证：jsdom 的 `getComputedStyle` 不把 emotion 注入的样式表计入 computed style，两个导航在单元测试里都表现为可见，而 `window.matchMedia` 在 jsdom 中未实现。
 - 三个列表面板（RankingPanel / TopListPanel / SingingListPanel）遵循同一条规则：小于 `sm` 时，一行放不下的操作控件下沉到文字下方并缩进对齐文字列；`sm` 及以上保持原有的左文右操作布局。细节见 12.3–12.5。
@@ -1052,6 +1052,8 @@ ranking/list/auth/privacy rules and the group access matrix, read-only GETs,
 transactional registration membership, ordinary login without backfill,
 concurrent/idempotent joining, safe member/profile projections, and private
 lists/notes remaining inaccessible to other members and anonymous visitors.
+Coverage also verifies both new-account PUBLIC defaults, the database column
+default, missing legacy settings staying PRIVATE, and private choices surviving login.
 
 既有业务规则测试通过 createApp 注入固定测试用户；认证测试使用真实 Cookie Agent 和动态账户。beforeEach/afterAll 只删除测试用户名和固定测试用户。测试不应读写 demo 用户的个人列表。
 
@@ -1061,7 +1063,7 @@ dry-run 无写入、幂等导入、可空 decade/region、事务回滚、原子�
 
 ### 14.4 Playwright E2E
 
-当前 6 条用例。第 1 条是关键流程覆盖：`/` 进入 displayOrder 最前的 `/rankings/:slug`、匿名时桌面顶部导航只显示 Ranking、注册、退出、密码登录后个人目的地出现、搜索写入 URL Search 参数、添加 Top 10 与 Practice Library、经导航跳转到 `/personal` 和 `/practice`、设置状态与私密备注、刷新后仍停在 `/practice`、分别公开列表、登出后落在同一默认榜单、匿名深链接被重定向并弹出登录框，以及匿名读取公开页时看不到备注。
+当前 6 条用例。第 1 条是关键流程覆盖：`/` 进入 displayOrder 最前的 `/rankings/:slug`、匿名时桌面顶部导航只显示 Ranking、注册、退出、密码登录后个人目的地出现、搜索写入 URL Search 参数、添加 Top 10 与 Practice Library、经导航跳转到 `/personal` 和 `/practice`、设置状态与私密备注、刷新后仍停在 `/practice`、验证两个列表初始 Public、分别切换 Private 再确认公开、复制分享链接、登出后落在同一默认榜单、匿名深链接被重定向并弹出登录框，以及匿名读取公开页时看不到备注。
 
 第 2 条是响应式回归 `e2e/responsive.spec.ts`：注册用户后把种子里最宽的一行（`纤夫的爱 / 尹相杰、于文华 · 1993`）放进两个个人列表并写入一条长备注，然后在 320 / 375 / 414 / 600 / 900 五个视口下依次访问 `/`、`/personal`、`/practice`，逐项断言页面无横向溢出、且行内没有任何文字压在控件下面。
 
@@ -1275,8 +1277,9 @@ E2E 不复用已有服务器；3101 被占用时应先定位占用者。
 
 | 日期 | 代码基线 | 内容 |
 | --- | --- | --- |
-| 2026-09-17 | Local refinement commit after `7053051` | New registrations initialize both personal lists PUBLIC. Forward migration 0006 only changes the column default; existing visibility/membership and private notes are preserved. Full typecheck/build passed; API 26, Web 63, config 8, database 10, Playwright 6/6 passed. Local Git commit only; no GitHub push/deployment. |
-| 2026-09-17 | Local refinement commit after `7053051` | Sharing refinement: lists and invitations always open ShareLinkDialog with dimmed backdrop, URL, contextual hint, and explicit Copy. HTTP/rejected clipboard uses selection-based copying or manual instructions. Web typecheck/build passed; Web 63/63 and Playwright 6/6 with real clipboard reads and desktop/mobile visual QA. Local Git commit only; no GitHub push/deployment. |
+| 2026-09-17 | Documentation refresh against `83ab826` | Updates current branch/commit, delivered group scope, four-item navigation, sharing/defaults, migration chain and latest verification. Document links/fences and diff checked; no application changes or tests rerun. Refresh saved in a subsequent local documentation commit; no GitHub push. |
+| 2026-09-17 | Local commit `83ab826` | New registrations initialize both personal lists PUBLIC. Forward migration 0006 only changes the column default; existing visibility/membership and private notes are preserved. Full typecheck/build passed; API 26, Web 63, config 8, database 10, Playwright 6/6 passed. Local Git commit only; no GitHub push/deployment. |
+| 2026-09-17 | Local commit `83ab826` | Sharing refinement: lists and invitations always open ShareLinkDialog with dimmed backdrop, URL, contextual hint, and explicit Copy. HTTP/rejected clipboard uses selection-based copying or manual instructions. Web typecheck/build passed; Web 63/63 and Playwright 6/6 with real clipboard reads and desktop/mobile visual QA. Local Git commit only; no GitHub push/deployment. |
 | 2026-09-17 | Local commit `7053051`, based on `83b24f3` | Implements DESIGN-007: group tables/0005, transactional registration membership, fixed invitations, protected directory/profile reads, desktop/mobile Groups, and HTTP manual-copy fallback. Local TTT joined; AAA preserved outside. Typecheck/build passed; tests API 25/25, Web 59/59, config 8/8, database 10/10, Playwright 6/6. See PLAN-007 for details. Local Git commit only; no GitHub push/deployment. |
 | 2026-09-17 | feature `b5507cc` / main merge `81a3e33` | 新增并发布 100 首 `80s Chinese Songs Top 100`；清单原样保留用户 JSON；导入器允许正式清单升级精确匹配的 Demo 歌曲并让 dry-run 同步检查年份冲突；E2E 不再假设默认榜单含 Demo 歌曲。typecheck、API 22/22、Web 44/44、config 8/8、database 10/10、build、Playwright 3/3 及桌面/手机验收通过；按用户授权直接合并并推送至 main。 |
 | 2026-09-15 | feature `ecd1e45` / main `62292ba` | 合并多榜单目录与 DESIGN-004/006：保留来源无关 slug 路由、两份已发布真实榜单、移动底栏和响应式列表；更新 BottomNav 测试夹具与 Session 等待；typecheck、API 15/15、Web 40/40、database 8/8、build、Playwright 3/3 均通过。 |

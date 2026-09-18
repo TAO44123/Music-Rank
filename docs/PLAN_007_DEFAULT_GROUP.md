@@ -22,11 +22,13 @@ handoff before implementation; preserve all existing changes.
 Planning baseline: synchronized `main` at `83b24f3`. The database-guide commit
 `68d8071` and deployment PR #9 are integrated and pushed. The working tree was
 clean before planning documents were created. The user subsequently authorized
-implementation; feature code and local setup now exist in the working tree.
+implementation; the feature is saved locally as `7053051`, with sharing and
+PUBLIC-default refinements saved as `83ab826`.
 
 Implementation branch: `codex/default-group`, from `83b24f3`. Planning changes
 were preserved, including an unrelated untracked editor swap file.
-Commit, push, PR, merge, and production operations require user direction.
+The user authorized both local commits. Push, PR, merge, and production
+operations have not been authorized for this feature.
 
 The group name (`Default Group`) and navigation placement (`Groups` in the
 desktop top bar and mobile bottom bar) have been confirmed. The user authorized
@@ -287,7 +289,33 @@ configuration checklist. Do not fabricate validation results.
 
 - User authorized a local Git commit for the sharing-dialog and public-default
   refinements: `feat: add share link dialogs and default lists to public`
-  (parent `7053051`, branch `codex/default-group`). Prior full typecheck,
+  (commit `83ab826`, parent `7053051`, branch `codex/default-group`). Prior full typecheck,
   107 tests, production build, and six E2E tests passed; final diff checked.
 - No GitHub push, PR, merge, or deployment. The unrelated editor swap file
   `docs/.ENGINEERING_GUIDE.md.swp` remains untracked and untouched.
+
+### 2026-09-17 — Post-commit documentation refresh
+
+- Verified local HEAD `83ab826` on `codex/default-group`; local `main` and
+  cached `origin/main` remain `83b24f3`. No remote fetch or GitHub operation.
+- Updated SESSION_HANDOFF and ENGINEERING_GUIDE with exact delivered commits,
+  four-destination navigation, protected group discovery, PUBLIC defaults,
+  sharing dialogs, migration chain through 0006, and latest verification.
+- Updated DESIGN-007/PLAN-007 delivery status and README overview/entry points.
+  Authentication design and migration guide already cover the new defaults;
+  configuration/deployment commands need no change. Older specifications and
+  historical validation records remain historical context.
+- This refresh changes documents only. Local links, Markdown fences, and
+  `git diff --check` passed; application tests were not rerun. Latest code
+  verification remains 107 workspace tests and six E2E cases, all passing.
+- Documentation edits remain uncommitted. The unrelated editor swap file is
+  untouched. No membership reset, database write, push, PR, merge, or deployment.
+
+### 2026-09-18 - Local documentation delivery
+
+- User authorized saving the documentation refresh in local Git only:
+  `docs: refresh group feature handoff and engineering guide`.
+- Application baseline remains `83ab826`; no application/API/config changes
+  are included. Pre-commit typecheck and full workspace tests passed (107 tests).
+- No GitHub push, PR, merge, or deployment. The editor swap file remains
+  untracked and untouched.

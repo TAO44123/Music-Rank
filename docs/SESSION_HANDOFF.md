@@ -1,6 +1,6 @@
 # Music Rank — Session Handoff
 
-> Last updated: 2026-09-17 (America/New_York)
+> Last updated: 2026-09-18 (America/New_York)
 >
 > Active feature: `docs/DESIGN_007_DEFAULT_GROUP.md` and
 > `docs/PLAN_007_DEFAULT_GROUP.md` (implemented and verified; local Git commit only)
@@ -32,13 +32,14 @@ remain deferred.
 Migration `0005_bizarre_the_stranger.sql` creates groups/memberships and inserts
 the stable default group. Apply normal `npm run db:migrate` before running the
 new API. No configuration or dependency changes were needed. Demo seed does
-not backfill users. Local development setup added `ttt` once and verified `aaa`
-is still outside; these usernames are never business logic or migration rules.
+not backfill users. Initial local setup added `ttt` once and verified `aaa`
+was outside at that time; these usernames are never business logic or migration rules.
 Accepting the invitation as AAA will change its membership; do not reset it
 silently. Account/list/catalog data were preserved. EC2 was not modified.
 
-The baseline feature is saved locally as `7053051`. The subsequent sharing
-refinement is saved in the local refinement commit following `7053051`: public lists and invitations now use ShareLinkDialog
+The baseline feature is saved locally as `7053051`; sharing and public-default
+refinements are saved as `83ab826` (application code baseline). Public lists and invitations
+now use ShareLinkDialog
 with a dimmed background, visible URL, adjacent Copy button, and contextual hint.
 Opening never copies or invokes native sharing. Copy uses async clipboard or
 selection-based copying on HTTP; blocked copying retains manual instructions.
@@ -53,7 +54,8 @@ New registration defaults now initialize both Top 10 and Practice Library as
 PUBLIC. Migration `0006_panoramic_machine_man.sql` changes only the database
 column default and was applied locally. Existing stored visibility and
 memberships are unchanged; missing legacy settings and all notes remain
-private. This refinement is saved in the same local refinement commit. Full typecheck and 107/107 tests passed
+private. This refinement is saved in `83ab826`. Full typecheck and 107/107
+tests passed
 (API 26, Web 63, config 8, database 10); production build and Playwright 6/6
 passed. Migration snapshot and final diff/document checks passed. Details
 are recorded in PLAN-007.
@@ -90,15 +92,15 @@ Established application behavior remains:
 
 - Local username/password registration and login.
 - Opaque server-managed cookie sessions that expire after seven days.
-- Anonymous access to the global ranking and explicitly public personal lists.
+- Anonymous access to published rankings and PUBLIC personal lists.
 - Independent `private`/`public` settings for My Top 10 and My Singing List; both default to `public` for new registrations; existing settings are preserved.
-- A shareable `/u/:username` page that shows only lists the owner has made public.
-- `PUBLIC` currently means accessible through the shareable profile URL. There is no public directory, user search, feed, or other in-app discovery path.
+- A shareable `/u/:username` page that shows only PUBLIC lists, including new-account defaults.
+- Members discover each other through the protected Default Group directory. PUBLIC lists are also accessible anonymously through the profile URL. There is no anonymous directory, user search, or feed.
 - Public Singing List responses omit private notes.
 - Existing demo data remains attached to the credential-free demo user and is private.
-- TanStack Router owns the code-based route tree: `/`, guarded `/personal`, guarded `/practice`, and public `/u/:username`.
-- At 600px and above, authenticated users see The Ranking, Personal Ranking, and Practice Library in the top tab bar; anonymous users see only The Ranking.
-- Below 600px, all visitors see the same three fixed bottom-navigation destinations. For an anonymous visitor, Personal and Practice are buttons that open sign-in without changing the URL.
+- TanStack Router owns `/`, `/rankings/:slug`, guarded `/personal`, `/practice`, `/groups`, public `/invite/default`, and `/u/:username`. Group-origin profile views require membership.
+- At 600px and above, authenticated users see The Ranking, Personal Ranking, Practice Library, and Groups in the top tab bar; anonymous users see only The Ranking.
+- Below 600px, all visitors see the same four fixed bottom-navigation destinations. For an anonymous visitor, Personal, Practice, and Groups are buttons that open sign-in without changing the URL.
 - The anonymous destination-count difference between phone and desktop is intentional for this release: on 2026-09-15 the user accepted it as non-blocking and asked that it remain unchanged.
 - Ranking filters are validated URL search parameters, so they survive refresh and browser history navigation.
 - User-facing copy now says Practice Library; database, API, error-code, and component identifiers retain the existing `singing` terminology.
@@ -154,13 +156,20 @@ were not rerun because no application, configuration, or database code changed.
 
 ## 2. Repository State
 
-- Branch: `main`, HEAD `83b24f3`. The user authorized pulling and merging
-  deployment PR #9 (`d26f727`, `e4a2034`) while preserving the local migration
-  guide commit `68d8071`, then authorized pushing the integrated `main`.
-  Local and remote main were synchronized and clean before the default-group
-  planning edits. The current planning changes are uncommitted and unpushed;
-  inspect live status for the exact list. No feature implementation branch has
-  been created. The 80s feature branch remains available at
+- Current branch: `codex/default-group`; application code baseline `83ab826`.
+  The subsequent local documentation commit is titled
+  `docs: refresh group feature handoff and engineering guide`; inspect the live
+  Git log for its exact HEAD hash.
+- Local commits: `7053051` (Default Group and invitations) and `83ab826`
+  (shared link dialogs and PUBLIC defaults). Neither was pushed to GitHub.
+- Local `main` and cached `origin/main` both resolve to `83b24f3`. This refresh
+  inspected local refs only; it did not fetch GitHub or verify its live state.
+- At refresh start, no tracked edits remained; the only untracked item was
+  `docs/.ENGINEERING_GUIDE.md.swp`. This documentation refresh is saved in the subsequent local documentation
+  commit. No GitHub push was performed. Preserve the swap file and all user changes.
+- The earlier migration guide `68d8071` and deployment PR #9 (`d26f727`,
+  `e4a2034`) were integrated and pushed before this feature branch was created.
+  The 80s feature branch remains available in the cached remote refs at
   `origin/feature/80s-ranking-import` (`b5507cc`).
 - The synchronized feature branch is pushed at `ecd1e45`; its pre-integration
   tip was `d2ef428`.
@@ -176,10 +185,11 @@ were not rerun because no application, configuration, or database code changed.
   into `main` on 2026-09-15.
 - Preserve every working-tree change. Do not reset, discard, or overwrite it.
 - Use `git status --short --branch` and the live diff for the exact file list.
-- Migrations through `0004_abnormal_butterfly.sql` have been applied to the
+- Migrations through `0006_panoramic_machine_man.sql` have been applied to the
   normal local database. `0003` renames the pilot slug, makes decade/region
   nullable, and removes published decade/region uniqueness; `0004` adds
-  nullable submitter attribution for shared songs.
+  nullable submitter attribution for shared songs. `0005` creates Default Group
+  and memberships; `0006` changes only the list-setting column default to PUBLIC.
 - PostgreSQL uses 5432; Playwright uses 3101 temporarily. Do not terminate
   unknown development services.
 - A 2026-09-17 read-only database check found the 80s Chinese ranking published
@@ -330,31 +340,37 @@ jsdom's unimplemented `window.scrollTo()` notices during Web tests.
 
 ## 6. Remaining Work
 
-### Default group — current implementation
+### Default group — delivered implementation and current verification
 
 - Read DESIGN-007 / PLAN-007 for behavior and implementation evidence.
 - Added shared contracts, migration SQL/snapshot/journal, registration membership,
   Origin-protected real-session invitation join, protected directory/profile
   APIs, routes, navigation, query keys, auth continuation, and shared link dialogs.
-- Existing and clean migrations passed; repeat migration/seed initializes one
+- Baseline `7053051` existing/clean migrations passed; repeat migration/seed initializes one
   group without backfill. A deliberate final-session-insert failure confirmed
   rollback of account, membership, credentials, private settings, and session.
-- Full typecheck passed. Full workspace tests passed: API 25/25, Web 59/59 in
-  15 files, config 8/8, database 10/10; contracts has no source tests.
-- Production build passed with existing warnings. Final Playwright passed 6/6
-  on a clean temporary database, including keyboard activation and 320–900px
-  navigation/layout checks. Desktop/mobile group screenshots were inspected.
+- Latest verification for `83ab826`: full typecheck passed; 107 workspace
+  tests passed (API 26/26, Web 63/63 in 16 files, config 8/8, database 10/10).
+  Contracts has no source tests. Earlier rollback/clean-database acceptance
+  below was performed for `7053051`, before the PUBLIC-default refinement.
+- Latest production build and Playwright passed 6/6 with existing warnings.
+  Baseline clean temporary-database E2E acceptance also passed 6/6, including
+  keyboard activation and 320–900px layout checks. Group screenshots were inspected.
 - Test-created accounts/memberships were cleaned and temporary databases/scripts
-  removed. Final local check: TTT has one membership; AAA none. Final diff and
+  removed. Initial setup check: TTT had one membership; AAA none. Their live
+  membership was not rechecked or reset during this documentation refresh. Final diff and
   document checks passed. Earlier test-selector/timing/fixture failures were
   corrected before these final passing results.
 - Local formal rankings are unchanged: published 80s 100 / Mainland 100 /
   Cantonese 72; Demo retained unpublished with 30 entries.
 - Tests use owned fixtures; local TTT/AAA are reserved for user acceptance.
-- Local commit is authorized; GitHub push/PR/merge/deployment require new direction.
-  No additional product decisions are pending for this release.
+- Delivered locally as `7053051` and `83ab826`; no product decisions remain
+  pending for this scope. GitHub push/PR/merge/deployment need user direction.
+- Optional future work: group creation, exit, member removal, dissolution, roles,
+  multiple groups, group-only visibility, and user-created lists; none is part
+  of the delivered release. Read DESIGN-007 for the agreed deferred scope.
 
-### Integration baseline verification
+### Historical integration baseline verification (before Default Group)
 
 - API integration tests: 11 passing.
 - Web tests: 10 files and 28 tests passing; the complete Web suite passed three consecutive parallel runs after the timing fix.
@@ -498,18 +514,25 @@ clean temporary database. Record exact test counts and any skipped check.
 ## 10. Copy-Paste Prompt for the Next Follow-up
 
 ```text
-Continue the Default Group feature from locally committed branch codex/default-group,
-based on 83b24f3. Read docs/SESSION_HANDOFF.md, docs/DESIGN_007_DEFAULT_GROUP.md,
+Continue from codex/default-group, application code baseline 83ab826 (parent
+7053051), with a subsequent local documentation commit; inspect live HEAD,
+based on main 83b24f3. Read docs/SESSION_HANDOFF.md, docs/DESIGN_007_DEFAULT_GROUP.md,
 and docs/PLAN_007_DEFAULT_GROUP.md, then inspect and preserve the working tree
 including the unrelated docs/.ENGINEERING_GUIDE.md.swp editor swap file.
-The feature is implemented; use PLAN-007 for actual verification outcomes.
+The feature and refinements are committed locally: fixed default-group
+invitations, centered share dialogs, and both lists initially PUBLIC for new
+accounts. Existing visibility is preserved; missing legacy settings and notes
+remain private. Migrations through 0006 were applied locally. Latest validation:
+full typecheck/build, 107 workspace tests, and six E2E cases passed. Use PLAN-007
+for historical and latest verification outcomes.
 Do not rerun local TTT/AAA setup or reset AAA after it accepts the invitation.
 The user requested a local commit only. No GitHub push/PR/merge/deployment.
 
 Keep the simplified scope: one default group; ordinary new registration joins
 automatically and lands on home; invitation authentication joins if needed and
-lands on the group; ordinary login does not add membership. TTT starts joined
-and AAA stays outside for the user's local invitation test. Never hardcode
+lands on the group; ordinary login does not add membership. TTT was initially
+joined and AAA outside for the user's local invitation test; do not assume AAA
+is still outside after manual testing. Never hardcode
 those usernames in production logic. Nonmembers see an empty group state with
 no join button. Public still means everyone, not group-only. Management and
 richer visibility remain future work.
