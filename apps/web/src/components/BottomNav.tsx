@@ -9,7 +9,7 @@ export function BottomNav() {
   const current = destinations.some((destination) => destination.to === pathname) ? pathname : '/';
 
   return <Paper component="nav" aria-label="Primary bottom" square elevation={3} sx={{ display: { xs: 'block', sm: 'none' }, position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: (theme) => theme.zIndex.appBar, pb: 'env(safe-area-inset-bottom)' }}>
-    <BottomNavigation showLabels value={current} sx={{ height: bottomNavHeight }}>
+    <BottomNavigation showLabels value={current} sx={{ height: bottomNavHeight, '& .MuiBottomNavigationAction-root': { minWidth: 0, px: 0.5 } }}>
       {destinations.map((destination) => {
         const Icon = destination.icon;
         // A guarded destination is not a link for an anonymous visitor: following
@@ -23,7 +23,7 @@ export function BottomNav() {
           key={destination.to}
           value={destination.to}
           label={destination.short}
-          // The visible label is shortened to fit three destinations at 320px.
+          // The visible label is shortened to fit four destinations at 320px.
           // The accessible name must not be.
           aria-label={destination.full}
           icon={<Icon />}

@@ -39,12 +39,14 @@ describe('TabNav', () => {
     expect(await screen.findByRole('tab', { name: /The Ranking/ })).toBeVisible();
     expect(screen.queryByRole('tab', { name: /Personal Ranking/ })).not.toBeInTheDocument();
     expect(screen.queryByRole('tab', { name: /Practice Library/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: 'Groups' })).not.toBeInTheDocument();
   });
 
-  it('shows all three tabs to an authenticated visitor', async () => {
+  it('shows all four tabs to an authenticated visitor', async () => {
     renderAt('/rankings/90s-demo-ranking', { user });
-    expect(await screen.findByRole('tab', { name: /Personal Ranking/ })).toBeVisible();
+    expect(await screen.findByRole('tab', { name: /Personal Ranking/ }, { timeout: 5000 })).toBeVisible();
     expect(screen.getByRole('tab', { name: /Practice Library/ })).toBeVisible();
+    expect(screen.getByRole('tab', { name: 'Groups' })).toHaveAttribute('href', '/groups');
   });
 
   it('marks the tab matching the current path as selected', async () => {

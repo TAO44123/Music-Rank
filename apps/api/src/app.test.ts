@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import request from 'supertest';
 import { and, eq, inArray } from 'drizzle-orm';
-import { authSessions, closeDatabase, db, demoUserId, rankingEntries, rankings, singingListEntries, songs, users, userTopListEntries } from '@music-rank/database';
+import { authSessions, closeDatabase, db, defaultGroupId, demoUserId, groupMemberships, rankingEntries, rankings, singingListEntries, songs, users, userTopListEntries } from '@music-rank/database';
 import { createApp } from './app.js';
 import { hashSessionToken } from './auth.js';
 
@@ -84,6 +84,9 @@ describe('Authentication and public lists', () => {
     expect(registration.headers['set-cookie']?.[0]).toMatch(/music_rank_session=.*HttpOnly.*SameSite=Lax/);
     await agent.get('/api/auth/session').expect(200).expect(({ body }) => expect(body.user.username).toBe('auth_alice'));
     await agent.get('/api/me/top-list').expect(200).expect('Cache-Control', 'private, no-store');
+    await agent.get('/api/me/groups').expect(200).expect(({ body }) => {
+      expect(body).toEqual([{ id: defaultGroupId, slug: 'default', name: 'Default Group' }]);
+    });
     await agent.post('/api/auth/logout').set('Origin', allowedOrigin).expect(204);
     await agent.get('/api/me/top-list').expect(401).expect(({ body }) => expect(body.code).toBe('AUTH_REQUIRED'));
   });
@@ -126,6 +129,68 @@ describe('Authentication and public lists', () => {
     await request(authApp).post('/api/me/top-list/items').set('Origin', allowedOrigin)
       .send({ song: { title: 'API submitted Top song', artist: 'API Artist' } })
       .expect(401).expect(({ body }) => expect(body.code).toBe('AUTH_REQUIRED'));
+  });
+
+  it('keeps invitation previews read-only and protects joins with authentication and Origin checks', async () => {
+    const alice = request.agent(authApp);
+    const { body } = await register(alice, 'auth_alice', 'Alice Listener').expect(201);
+    await db.delete(groupMemberships).where(eq(groupMemberships.userId, body.user.id));
+    await request(authApp).get('/api/group-invitations/default').expect(200)
+      .expect({ id: defaultGroupId, name: 'Default Group', slug: 'default' });
+    await alice.get('/api/me/groups').expect(200).expect([]);
+    await request(authApp).post('/api/group-invitations/default/join').set('Origin', allowedOrigin).expect(401);
+    await alice.post('/api/group-invitations/default/join').set('Origin', 'https://untrusted.example').expect(403);
+    await alice.get('/api/me/groups').expect(200).expect([]);
+    await request(authApp).get(`/api/me/groups/${defaultGroupId}/members`).expect(401);
+    await alice.get(`/api/me/groups/${defaultGroupId}/members`).expect(403)
+      .expect(({ body }) => expect(body.code).toBe('GROUP_MEMBERSHIP_REQUIRED'));
+  });
+
+  it('does not backfill membership on ordinary login and joins idempotently under concurrent invitations', async () => {
+    const alice = request.agent(authApp);
+    const { body } = await register(alice, 'auth_alice', 'Alice Listener').expect(201);
+    await db.delete(groupMemberships).where(eq(groupMemberships.userId, body.user.id));
+    await alice.post('/api/auth/logout').set('Origin', allowedOrigin).expect(204);
+    await alice.post('/api/auth/login').set('Origin', allowedOrigin)
+      .send({ username: 'auth_alice', password: 'correct horse battery staple' }).expect(200);
+    await alice.get('/api/me/groups').expect(200).expect([]);
+    const joins = await Promise.all([
+      alice.post('/api/group-invitations/default/join').set('Origin', allowedOrigin),
+      alice.post('/api/group-invitations/default/join').set('Origin', allowedOrigin)
+    ]);
+    expect(joins.map((join) => join.status)).toEqual([200, 200]);
+    await alice.post('/api/group-invitations/default/join').set('Origin', allowedOrigin).expect(200);
+    expect(await db.select().from(groupMemberships).where(eq(groupMemberships.userId, body.user.id))).toHaveLength(1);
+    await alice.get('/api/me/groups').expect(200).expect('Cache-Control', 'private, no-store')
+      .expect(({ body }) => expect(body).toHaveLength(1));
+  });
+
+  it('reveals only safe member profiles and preserves private lists and notes', async () => {
+    const alice = request.agent(authApp);
+    const bob = request.agent(authApp);
+    await register(alice, 'auth_alice', 'Alice Listener').expect(201);
+    const { body: registration } = await register(bob, 'auth_bob', 'Bob Listener').expect(201);
+    await bob.put(`/api/me/singing-list/items/${songIds[0]}`).set('Origin', allowedOrigin)
+      .send({ status: 'PRACTICING', note: 'Group must never see this note.' }).expect(200);
+    await alice.get(`/api/me/groups/${defaultGroupId}/members`).expect(200)
+      .expect('Cache-Control', 'private, no-store').expect(({ body }) => {
+        expect(body).toContainEqual(registration.user);
+        for (const member of body) expect(Object.keys(member).sort()).toEqual(['displayName', 'id', 'username']);
+      });
+    await alice.get(`/api/me/groups/${defaultGroupId}/members/auth_bob`).expect(200)
+      .expect(({ body }) => expect(body).toEqual({ username: 'auth_bob', displayName: 'Bob Listener', lists: { topList: 'PRIVATE', singingList: 'PRIVATE' } }));
+    await request(authApp).get('/api/users/auth_bob').expect(404);
+    await alice.get('/api/users/auth_bob/singing-list').expect(404);
+    await bob.patch('/api/me/lists/singing-list/visibility').set('Origin', allowedOrigin).send({ visibility: 'PUBLIC' }).expect(200);
+    await request(authApp).get('/api/users/auth_bob/singing-list').expect(200).expect(({ body }) => {
+      expect(body).toHaveLength(1);
+      expect(body[0]).not.toHaveProperty('note');
+    });
+    await db.delete(groupMemberships).where(eq(groupMemberships.userId, registration.user.id));
+    await bob.get(`/api/me/groups/${defaultGroupId}/members/auth_alice`).expect(403);
+    await alice.get(`/api/me/groups/${defaultGroupId}/members/auth_bob`).expect(404);
+    await alice.get('/api/me/groups/not-a-uuid/members').expect(400);
+    await alice.get('/api/me/groups/d0000000-0000-4000-8000-000000000099/members').expect(404);
   });
 
   it('isolates users and publishes only approved list fields', async () => {

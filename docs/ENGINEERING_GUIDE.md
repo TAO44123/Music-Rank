@@ -7,8 +7,8 @@
 | 文档性质 | 持续维护的工程实现说明 |
 | 目标读者 | 负责开发、测试、排障和后续维护的工程师 |
 | 当前产品版本 | Version 1 + 认证扩展 + 响应式导航 + 多榜单目录，本地多用户应用 |
-| 最后更新日期 | 2026-09-15（America/New_York） |
-| 最后核对的代码提交 | `main`（榜单目录通过 `62292ba` 合入） |
+| 最后更新日期 | 2026-09-17（America/New_York） |
+| 最后核对的代码提交 | Current working tree on `codex/default-group`, based on `83b24f3`; group schema/API/auth/navigation checked |
 | 事实来源 | 当前仓库代码、配置、迁移和自动化测试 |
 
 这份文档描述系统现在如何工作。首次在本机配置和运行项目时，先执行 [LOCAL_FIRST_RUN_GUIDE.md](LOCAL_FIRST_RUN_GUIDE.md)；PROJECT_SPEC_ZH.md、PROJECT_SPEC_EN.md 与 IMPLEMENTATION_HANDOFF.md 保留 Version 1 历史基线，当前已批准扩展以 [AUTHENTICATION_DESIGN.md](AUTHENTICATION_DESIGN.md)、[RANKING_CATALOG_DESIGN.md](RANKING_CATALOG_DESIGN.md) 和 [SESSION_HANDOFF.md](SESSION_HANDOFF.md) 为准。若文档与代码不一致，应先核对代码和测试，再更新本文档。
@@ -26,6 +26,21 @@
 - 新增已知风险、技术债或排障结论。
 
 更新时同时修改“最后更新日期”“最后核对的代码提交”和第 18 节的近期变更记录。提交尚未创建时，可以暂写“当前工作树”，提交后再替换为 commit。
+
+### 1.2 Default Group
+
+The user authorized implementing one default group on 2026-09-17. Product behavior
+is recorded in [DESIGN-007](DESIGN_007_DEFAULT_GROUP.md); implementation phases
+and acceptance gates are in [PLAN-007](PLAN_007_DEFAULT_GROUP.md). The starting
+baseline is integrated `main` at `83b24f3`.
+
+The implementation adds group tables, a member directory, `/groups`, and fixed
+invitation `/invite/default`. New registrations join transactionally. Ordinary
+login does not backfill membership. Invitation authentication joins if needed
+and opens the group; repeat joins are idempotent. `Groups` appears in desktop
+top navigation and mobile bottom navigation. PUBLIC still means anyone,
+including anonymous visitors; private lists and notes remain private.
+Management, multiple groups, and group-only visibility remain future work.
 
 ## 2. 系统概览
 
@@ -58,18 +73,18 @@ flowchart LR
 - 本地数据库迁移、幂等种子、组件测试、API 集成测试和 Playwright E2E。
 - 用户注册、登录、七天持久 Session 和退出撤销。
 - 默认私密且可独立公开的 Top 10 与 Practice Library；公开 Practice Library 不包含备注。
-- TanStack Router 管理的三 Tab 导航、slug 榜单路由、受保护个人路由和公开个人资料路由。
+- TanStack Router manages four primary destinations, slug ranking routes, protected personal/group routes, fixed invitations, and public profiles.
 - 排名搜索、歌手、年份和客户端页码写入并校验 URL Search 参数；歌手与年份 Facet 只来自当前榜单。
 - macOS、Linux、PowerShell 和 cmd.exe 均可使用的 production-shaped 启动命令。
 
 当前不包含：
 
 - SSO、邮箱验证、密码重置和账户删除。
-- 用户目录、关注和 Unlisted 分享。
+- Anonymous user directory, following, and Unlisted sharing.
 - 远程仓库、部署或生产基础设施。
 - 音频播放、歌词、视频采集、OCR 或 AI 提取。
 - 四份真实 YouTube 榜单数据及其导入工具。
-- 社交能力和管理后台。
+- Group management, chat, and admin tools.
 
 ## 3. 技术栈与版本约束
 
@@ -113,8 +128,8 @@ Vite 7.2.1 和 @vitejs/plugin-react 5.1.1 是有意锁定的组合。此前更�
 | --- | --- |
 | apps/web | React/Vite 前端 |
 | apps/web/src/router.tsx | 路由树、Router 工厂和类型声明合并 |
-| apps/web/src/routes | 根布局 `__root` 与四条页面路由：`/`、`/personal`、`/practice`、`/u/$username` |
-| apps/web/src/shell/AppShellContext.tsx | Session、认证对话框、Snackbar 和全部 Mutation 的唯一持有者 |
+| apps/web/src/routes | Root layout, ranking, personal, practice, public profile, groups, and default invitation routes |
+| apps/web/src/shell/AppShellContext.tsx | Session, auth dialog, Snackbar, shared list/auth mutations, and protected-cache cleanup |
 | apps/web/src/queries.ts | queryOptions 工厂，供组件与路由守卫共用同一份定义 |
 | apps/web/src/api.ts | 前端 API 类型、请求封装和 ApiError |
 | apps/web/src/components | Ranking、Top 10、Practice Library、TabNav 和 BottomNav UI |
@@ -124,6 +139,7 @@ Vite 7.2.1 和 @vitejs/plugin-react 5.1.1 是有意锁定的组合。此前更�
 | apps/api/src/auth.ts | 密码哈希、凭据校验、Session 创建/解析/撤销 |
 | apps/api/src/security.ts | Origin 防护与认证速率限制 |
 | apps/api/src/services.ts | 数据访问和业务规则 |
+| apps/api/src/groups.ts | Default-group lookup, idempotent joining, membership-authorized directory/profile reads |
 | apps/api/src/errors.ts | AppError、Zod 错误和未知错误处理 |
 | apps/api/src/current-user.ts | Session Cookie 用户解析、可选认证和测试用户注入边界 |
 | apps/api/src/index.ts | 监听端口、静态文件和优雅退出 |
@@ -429,6 +445,21 @@ release-year values verbatim from the user-provided JSON; it has no
 canonicalization overrides. The source URL is display metadata only and was not
 visited or used to validate the replacement.
 
+### 7.13 Groups and memberships
+
+`groups` has a UUID primary key, unique slug, display name, and created/updated
+timestamps. `group_memberships` has composite primary key `(group_id,user_id)`,
+`joined_at`, cascading group/user foreign keys, and a user-ID index.
+`0005_bizarre_the_stranger.sql` creates both tables and inserts Default Group.
+The canonical ID is exported by `packages/database/src/groups.ts`.
+
+New-account registration writes membership in the existing transaction with
+credentials, private list settings, and session. Ordinary login, GET APIs, and
+Demo seed do not backfill users. Invitation joins use `ON CONFLICT DO NOTHING`;
+concurrent/repeated requests keep one membership. TTT was joined only in the
+local development database; AAA was preserved as a nonmember for user testing.
+No production database operation was performed.
+
 ## 8. REST API 总览
 
 | 方法 | 路径 | 成功状态 | 作用 |
@@ -441,6 +472,11 @@ visited or used to validate the replacement.
 | POST | /api/auth/login | 200 | 密码登录并创建 Session |
 | POST | /api/auth/logout | 204 | 撤销当前 Session 并清除 Cookie |
 | GET | /api/auth/session | 200 | 获取当前用户或 null |
+| GET | /api/group-invitations/default | 200 | Anonymous-safe group summary; no membership writes |
+| POST | /api/group-invitations/default/join | 200 | Real session and valid Origin; insert or confirm membership |
+| GET | /api/me/groups | 200 | Current user's groups; nonmembers receive an empty array |
+| GET | /api/me/groups/:groupId/members | 200 | Member-only safe directory |
+| GET | /api/me/groups/:groupId/members/:username | 200 | Member-only identity and visibility flags; no list contents |
 | GET | /api/me/list-settings | 200 | 获取两个个人榜单的有效可见性 |
 | PATCH | /api/me/lists/:listType/visibility | 200 | 修改一个个人榜单的可见性 |
 | GET | /api/me/top-list | 200 | 获取当前用户 Top 10 |
@@ -717,6 +753,27 @@ GET /api/me/list-settings 返回两个有效设置。PATCH `/api/me/lists/top-li
 GET `/api/users/:username` 仅当至少一个列表公开时返回 PublicProfile。两个公开列表端点各自验证设置；Private 和不存在统一返回 404。公开 Singing List 的 SQL Projection 从源头排除 note，而不是先查询后在路由删除字段。
 - 500 INTERNAL_ERROR：数据库或未知错误。
 
+### 10.13 Default Group APIs
+
+`GET /api/group-invitations/default` returns `{id,name,slug}` without a session
+or membership write. `POST .../join` requires a real session and accepted Origin;
+it returns the same summary after inserting or confirming membership.
+`GET /api/me/groups` returns an array of the caller's summaries, including `[]`
+for a nonmember.
+
+`GET /api/me/groups/:groupId/members` checks actual membership and returns only
+`{id,username,displayName}` rows, sorted by display name/username/ID. The sibling
+`members/:username` endpoint checks both viewer and target membership and
+returns `{username,displayName,lists:{topList,singingList}}`, even when both
+lists are private. It never returns list contents or notes. Private endpoints
+use `Cache-Control: private, no-store`. Public contents still come from the
+existing `/api/users/:username/{top-list,singing-list}` endpoints.
+
+Invalid group UUID/username returns `400 INVALID_REQUEST`, missing session
+`401 AUTH_REQUIRED`, nonmember `403 GROUP_MEMBERSHIP_REQUIRED`, unknown group
+`404 GROUP_NOT_FOUND`, and missing group member `404 GROUP_MEMBER_NOT_FOUND`.
+Join failures are recoverable without destroying a valid authenticated session.
+
 ## 11. API 通用约定
 
 ### 11.1 请求和响应
@@ -746,6 +803,9 @@ GET `/api/users/:username` 仅当至少一个列表公开时返回 PublicProfile
 | 401 | AUTH_REQUIRED | /api/me 请求没有有效 Session |
 | 401 | INVALID_CREDENTIALS | 用户名不存在或密码错误；二者使用相同响应 |
 | 403 | INVALID_ORIGIN | Unsafe 请求 Origin 不匹配 APP_ORIGIN |
+| 403 | GROUP_MEMBERSHIP_REQUIRED | Viewer is not a member of the requested group |
+| 404 | GROUP_NOT_FOUND | Group does not exist |
+| 404 | GROUP_MEMBER_NOT_FOUND | Target username is not a member of this group |
 | 404 | RANKING_NOT_FOUND | 榜单不存在或未发布 |
 | 404 | PUBLIC_PROFILE_NOT_FOUND | 用户没有任何公开榜单或不存在 |
 | 404 | PUBLIC_LIST_NOT_FOUND | 指定榜单未公开或用户不存在 |
@@ -786,11 +846,21 @@ Unsafe 请求必须携带与 APP_ORIGIN 完全匹配的 Origin，显式 cross-si
 | `/rankings/$slug` | The Ranking，全宽榜单与直接榜单标签 | 有 | 否 |
 | `/personal` | Personal Ranking，My Top 10 | 有 | 是 |
 | `/practice` | Practice Library | 有 | 是 |
+| `/groups` | Default Group member directory or nonmember empty state | Yes | Yes |
+| `/invite/default` | Anonymous invitation introduction or authenticated automatic join | Yes | No |
 | `/u/$username` | 公开资料页 | 无 | 否 |
 
-`__root` 是布局路由，通过 AppShellProvider 持有 Session Query、认证对话框、Snackbar 和三个 Mutation，页面组件用 useAppShell 取用，避免穿过 Outlet 的 Prop 传递。公开资料页用 `chrome={false}` 跳过顶栏和 Tab 栏，保留自己的"Back to ranking"入口。
+`__root` holds Session, the auth dialog, Snackbar, and shared mutations through
+AppShellProvider. The invitation page owns its join mutation. Public profiles
+use `chrome={false}`; group-origin profiles have a validated group UUID in search
+and a Back to group link, while ordinary public profiles return to ranking.
 
-`/personal` 与 `/practice` 各自在 beforeLoad 里 `ensureQueryData(sessionQueryOptions())`，无用户则重定向到 `/` 并带上 `signin` Search 参数；首页再选择第一个已发布榜单并弹出登录框。守卫只挂在这两条路由上，公开榜单和 `/u/$username` 不等待 Session，匿名首屏不被认证往返拖慢。守卫与组件必须共用 queries.ts 的同一个 queryOptions 对象，否则守卫写入的缓存项组件读不到。
+`/personal`, `/practice`, and `/groups` use
+`ensureQueryData(sessionQueryOptions())` in beforeLoad; anonymous deep links
+redirect home with `signin`. Guards and components share the same query options.
+Ordinary public profiles do not wait for session. Group-origin profile reads
+wait for session and use the member endpoint when authenticated; anonymous
+visitors still use the existing public API.
 
 beforeLoad 只在导航时执行，因此 Session 在页面内失效时需要显式 `router.invalidate()` 让守卫重新求值；这一步放在 loseAuthentication 里。主动登出走另一条路径：先导航回 `/` 再清除 Session，否则守卫会把刚选择登出的用户立刻重定向并要求登录。
 
@@ -808,7 +878,24 @@ beforeLoad 只在导航时执行，因此 Session 在页面内失效时需要显
 - personal + userId + top-list
 - personal + userId + singing-list + status
 - personal + userId + list-settings
+- personal + userId + groups (+ groupId + members)
+- personal + userId + group-profile + groupId + username
+- group-invitation + default (public introduction only)
 - public-profile + username + 可选列表类型
+
+Invitation intent is the current `/invite/default` route, preserved across
+refresh, auth validation failures, and login/register switching. After session
+resolution, join runs automatically once per account attempt, with explicit
+retry after failure and navigation only on success. Ordinary registration
+joins at the API and navigates home; ordinary login keeps its current behavior.
+Groups, members, and member profiles use the protected `personal` cache prefix
+with user-scoped keys; logout, expiry, and account switching clear old data.
+Invitation metadata contains no member data and uses a public cache key.
+
+ShareInvitation tries native sharing, clipboard, then a selectable manual-copy
+dialog. It handles absent APIs and rejected permission calls; cancellation ends
+native sharing. Its URL comes from the current browser origin. This fallback
+applies to invitation sharing; existing list-share buttons were not refactored.
 
 ### 12.2 术语分界
 
@@ -877,12 +964,12 @@ DESIGN-002 起，用户可见文案统一使用 Practice Library：Tab 名称、
 - 三个页面均为全宽单列。DESIGN-002 之前的 1.6fr / 0.85fr 两列布局已移除，个人列表改为独立路由。
 - TabNav 始终使用 MUI `Tabs` 的 `fullWidth` 变体；`sm` 断点通过 `flex: '0 0 auto'` 让整行收缩为自然宽度并左对齐。同一个 Tabs 实例贯穿所有断点，不做变体切换，避免 Tab 列表重新挂载。
 - Tab 文案有长短两套，同时存在于 DOM 中，由 `sx` 断点切换 `display`：小于 `sm` 显示 Ranking / Personal / Practice，`sm` 及以上显示 The Ranking / Personal Ranking / Practice Library。不使用 `useMediaQuery`，它首帧返回 false 会导致桌面端闪一下短文案。
-- TabNav 容器高度固定为 52px，Session 解析完成后另外两个 Tab 出现时不会推动下方内容。
+- TabNav 容器高度固定为 52px，Session 解析完成后另外三个 Tab 出现时不会推动下方内容。
 - 唯一断点是 MUI 的 `sm`（600px），全部通过 `sx` 的断点对象表达，不使用 `useMediaQuery`。
 - 主导航有两套并存的实现，由同一个断点互斥显隐：`sm` 及以上显示顶部 TabNav，小于 `sm` 显示固定在视口底部的 BottomNav。两者都渲染在 DOM 里，靠 `sx` 的 `display` 切换，不做 JS 宽度判断。
 - 目的地表是 `apps/web/src/navigation.ts` 的 `destinations`，TabNav 和 BottomNav 共用，同时导出 `bottomNavHeight`（56）。改导航目的地只改这一处。
-- BottomNav 对匿名访客显示全部三项：受守卫的两项渲染成按钮而非链接，点击直接打开登录弹窗。渲染成链接会走到 `routes/personal.tsx` 的 `beforeLoad` 守卫、被重定向回 `/` 并闪过一个访客没要求的页面。守卫本身不变，它负责的是直接输入 URL 这个入口。
-- TabNav 对匿名访客仍然过滤掉受守卫的两项，所以匿名访客在手机上看到三个目的地、在桌面上只看到一个。用户于 2026-09-15 确认该差异不影响本次发布并选择保留，后续除非产品决策变化，无需统一。
+- BottomNav 对匿名访客显示全部四项：受守卫的三项渲染成按钮而非链接，点击直接打开登录弹窗。渲染成链接会走到 `routes/personal.tsx` 的 `beforeLoad` 守卫、被重定向回 `/` 并闪过一个访客没要求的页面。守卫本身不变，它负责的是直接输入 URL 这个入口。
+- TabNav 对匿名访客仍然过滤掉受守卫的三项，所以匿名访客在手机上看到四个目的地、在桌面上只看到一个。用户于 2026-09-15 确认该差异不影响本次发布并选择保留，后续除非产品决策变化，无需统一。
 - BottomNav 是 `position: fixed`，不占布局空间，因此 AppShellContext 给内容区加了 `pb: calc(56px + env(safe-area-inset-bottom))`，Snackbar 也在 xs 下相应上移，否则列表最后一行和通知都会压在底栏下面。
 - 断点行为只能由 Playwright 验证：jsdom 的 `getComputedStyle` 不把 emotion 注入的样式表计入 computed style，两个导航在单元测试里都表现为可见，而 `window.matchMedia` 在 jsdom 中未实现。
 - 三个列表面板（RankingPanel / TopListPanel / SingingListPanel）遵循同一条规则：小于 `sm` 时，一行放不下的操作控件下沉到文字下方并缩进对齐文字列；`sm` 及以上保持原有的左文右操作布局。细节见 12.3–12.5。
@@ -943,27 +1030,35 @@ npm run typecheck 会先构建 contracts 和 database，再执行所有 workspac
 
 ### 14.2 前端组件测试
 
-当前有 12 个测试文件、40 项测试，覆盖匿名/登录/退出缓存状态、路由守卫、404 与公开路由、直接榜单导航、可选元数据展示、URL Search 与页码参数、TabNav、BottomNav、AppShell、RankingPanel、来源链接安全、SingingListPanel、登录注册对话框、紧凑可见性锁控件、公开前确认和备注私密提示。
+The current Web suite has 15 files and 59 tests. It covers the existing ranking,
+list/auth/privacy/navigation behavior plus groups, invitation refresh and mode
+switching, failed authentication/cancellation, join retry, private-profile empty
+states, protected-cache cleanup on logout/expiry/account switching, and sharing
+when browser APIs are absent or permission/native sharing fails.
 
 Vitest 保持文件级并行。`apps/web/vite.config.ts` 把单测试超时设为 10 秒；首页排名加载断言另用 5 秒 Testing Library 等待窗口。该设置来自合并后对负载敏感超时的复现：默认限制下完整套件可能失败，而测试文件单独或串行运行可以通过。调整并行度、测试运行器或查询初始化时，应连续运行完整 Web 套件至少三次确认稳定性，不要只验证单个测试文件。
 
 ### 14.3 API 集成测试
 
-当前有 15 项 Supertest 测试并使用真实 PostgreSQL。除既有榜单和列表规则外，还覆盖发布目录排序、slug 解析、可空元数据、同元数据多榜发布、榜单级 Facet、跨榜独立名次、未发布 404、注册、Session 恢复/退出/过期、用户名规范化与冲突、非枚举登录错误、Origin 防护、速率限制、用户隔离、默认私密、公开 Projection 和 demo fixture 保留。
+There are 25 Supertest tests using real PostgreSQL, covering the existing
+ranking/list/auth/privacy rules and the group access matrix, read-only GETs,
+transactional registration membership, ordinary login without backfill,
+concurrent/idempotent joining, safe member/profile projections, and private
+lists/notes remaining inaccessible to other members and anonymous visitors.
 
 既有业务规则测试通过 createApp 注入固定测试用户；认证测试使用真实 Cookie Agent 和动态账户。beforeEach/afterAll 只删除测试用户名和固定测试用户。测试不应读写 demo 用户的个人列表。
 
-Database workspace 当前有 8 项 importer 集成测试，覆盖 rank 连续性、
+Database workspace has 10 importer integration tests, covering rank continuity,
 dry-run 无写入、幂等导入、可空 decade/region、事务回滚、原子替换与孤儿
 清理、Demo 保留式发布、重复歌曲和 slug 格式。
 
 ### 14.4 Playwright E2E
 
-当前 3 条用例。第 1 条是关键流程覆盖：`/` 进入 displayOrder 最前的 `/rankings/:slug`、匿名时桌面顶部导航只显示 Ranking、注册、退出、密码登录后个人目的地出现、搜索写入 URL Search 参数、添加 Top 10 与 Practice Library、经导航跳转到 `/personal` 和 `/practice`、设置状态与私密备注、刷新后仍停在 `/practice`、分别公开列表、登出后落在同一默认榜单、匿名深链接被重定向并弹出登录框，以及匿名读取公开页时看不到备注。
+当前 6 条用例。第 1 条是关键流程覆盖：`/` 进入 displayOrder 最前的 `/rankings/:slug`、匿名时桌面顶部导航只显示 Ranking、注册、退出、密码登录后个人目的地出现、搜索写入 URL Search 参数、添加 Top 10 与 Practice Library、经导航跳转到 `/personal` 和 `/practice`、设置状态与私密备注、刷新后仍停在 `/practice`、分别公开列表、登出后落在同一默认榜单、匿名深链接被重定向并弹出登录框，以及匿名读取公开页时看不到备注。
 
 第 2 条是响应式回归 `e2e/responsive.spec.ts`：注册用户后把种子里最宽的一行（`纤夫的爱 / 尹相杰、于文华 · 1993`）放进两个个人列表并写入一条长备注，然后在 320 / 375 / 414 / 600 / 900 五个视口下依次访问 `/`、`/personal`、`/practice`，逐项断言页面无横向溢出、且行内没有任何文字压在控件下面。
 
-它还验证小于 600px 的固定底部导航、600px 及以上的顶部导航、列表末行和 Snackbar 不被底栏遮挡。匿名访客在手机看到三个目的地、桌面只看到 Ranking，是产品已接受的差异。
+它还验证小于 600px 的固定底部导航、600px 及以上的顶部导航、列表末行和 Snackbar 不被底栏遮挡。匿名访客在手机看到四个目的地、桌面只看到 Ranking，是产品已接受的差异。
 
 第 3 条 `e2e/account-label.spec.ts` 使用像素级边界检查，防止账户按钮文字下伸部被裁切。
 
@@ -984,6 +1079,21 @@ npm run test:e2e
 ~~~
 
 涉及 Vite 或 React 插件版本时，还必须启动开发服务器并验证 /@vite/client。
+
+### 14.5 Default Group acceptance
+
+The three cases in `e2e/groups.spec.ts` cover ordinary registration/home,
+ordinary login without backfill, nonmember empty state, logged-in invitation
+joining and member re-entry, invitation registration after refresh/mode
+switching, invitation login for an existing nonmember, member/public-list
+navigation, private-note exclusion, manual-copy fallback, and 320/390/600/900px
+layouts. Member links also support keyboard activation. Test-created accounts
+are removed after each test; fixture cleanup failures propagate.
+
+Clean/repeat migration and seed were checked on an isolated temporary database.
+An intentionally failing final session insert verified complete registration
+rollback including the newly added membership. Local TTT/AAA were not used as
+automated test fixtures. See PLAN-007 for exact final commands and outcomes.
 
 ## 15. 安全与可靠性
 
@@ -1124,7 +1234,7 @@ E2E 不复用已有服务器；3101 被占用时应先定位占用者。
 | 测试数据库 | 测试仍使用本地 PostgreSQL | CI 或多人开发前提供独立数据库 |
 | 认证限流 | 当前为单进程内存窗口 | 多实例或公网部署前迁移到共享存储 |
 | 依赖漏洞 | 6 项未自动修复 | 分别验证 Drizzle 与 Vite 升级 |
-| 前端包体积 | 821.00 KB，gzip 256.48 KB（最近一次构建） | 优先评估路由级 lazy loading，再决定 vendor manualChunks |
+| 前端包体积 | 846.18 KB，gzip 263.35 KB（Default Group build） | 优先评估路由级 lazy loading，再决定 vendor manualChunks |
 | Web 测试日志噪声 | jsdom scrollTo 与 MUI out-of-range 提示不影响通过 | 用测试 setup polyfill 和完整筛选 fixture 消除噪声 |
 | 跨平台 CI | 当前无 GitHub checks，跨平台改动依赖人工复核 | 增加 Node 24.21.0/npm 11.19.0 的 Linux 与 Windows 工作流 |
 | 换行符策略 | 仓库尚无共享 .gitattributes | 为文本文件固定 LF，脚本类型按平台显式例外 |
@@ -1158,6 +1268,7 @@ E2E 不复用已有服务器；3101 被占用时应先定位占用者。
 
 | 日期 | 代码基线 | 内容 |
 | --- | --- | --- |
+| 2026-09-17 | Current working tree `codex/default-group`, based on `83b24f3` | Implements DESIGN-007: group tables/0005, transactional registration membership, fixed invitations, protected directory/profile reads, desktop/mobile Groups, and HTTP manual-copy fallback. Local TTT joined; AAA preserved outside. Typecheck/build passed; tests API 25/25, Web 59/59, config 8/8, database 10/10, Playwright 6/6. See PLAN-007 for details. Local Git commit only; no GitHub push/deployment. |
 | 2026-09-17 | feature `b5507cc` / main merge `81a3e33` | 新增并发布 100 首 `80s Chinese Songs Top 100`；清单原样保留用户 JSON；导入器允许正式清单升级精确匹配的 Demo 歌曲并让 dry-run 同步检查年份冲突；E2E 不再假设默认榜单含 Demo 歌曲。typecheck、API 22/22、Web 44/44、config 8/8、database 10/10、build、Playwright 3/3 及桌面/手机验收通过；按用户授权直接合并并推送至 main。 |
 | 2026-09-15 | feature `ecd1e45` / main `62292ba` | 合并多榜单目录与 DESIGN-004/006：保留来源无关 slug 路由、两份已发布真实榜单、移动底栏和响应式列表；更新 BottomNav 测试夹具与 Session 等待；typecheck、API 15/15、Web 40/40、database 8/8、build、Playwright 3/3 均通过。 |
 | 2026-09-15 | `feature/90s-ranking-pilot` latest local commit after `6729972` | 新增 72 首 `90s Cantonese Songs Top 70`；导入器取消恰好 100 条的限制，改为支持任意正数的连续唯一名次；Cantonese 榜单不设置 region，来源 URL 仅用于 Watch source。 |

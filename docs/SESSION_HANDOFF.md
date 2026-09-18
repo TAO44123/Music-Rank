@@ -2,11 +2,44 @@
 
 > Last updated: 2026-09-17 (America/New_York)
 >
-> Feature authority: `docs/RANKING_CATALOG_EXPANSION_EXECUTION_PLAN.md`
+> Active feature: `docs/DESIGN_007_DEFAULT_GROUP.md` and
+> `docs/PLAN_007_DEFAULT_GROUP.md` (implemented and verified; local Git commit only)
+>
+> Delivered ranking feature authority: `docs/RANKING_CATALOG_EXPANSION_EXECUTION_PLAN.md`
 >
 > Task 1 design: `docs/RANKING_CATALOG_DESIGN.md`
 
 ## 1. Current Status
+
+Default Group is implemented on
+`codex/default-group`, based on synchronized `main` / `origin/main` at `83b24f3`.
+The user authorized implementation after approving DESIGN-007 / PLAN-007.
+Formal display name: `Default Group`; `Groups` is in desktop top and mobile
+bottom navigation. The user authorized a local Git commit only.
+No GitHub push, PR, merge, or deployment was performed.
+An unrelated untracked `docs/.ENGINEERING_GUIDE.md.swp` was preserved.
+
+New ordinary registrations join transactionally and finish home. Invitation
+registration/login joins if needed and finishes `/groups`; logged-in visitors
+join automatically and repeated joins keep one membership. Ordinary login
+never backfills membership. Nonmembers see no-groups copy with no join button.
+Members can discover public lists and return from profiles to the group;
+private-list members get an explicit no-public-lists state. PUBLIC still means
+anyone, including anonymous visitors; private lists and notes remain private.
+Creation/exit/removal/dissolution, roles, multiple groups, and richer visibility
+remain deferred.
+
+Migration `0005_bizarre_the_stranger.sql` creates groups/memberships and inserts
+the stable default group. Apply normal `npm run db:migrate` before running the
+new API. No configuration or dependency changes were needed. Demo seed does
+not backfill users. Local development setup added `ttt` once and verified `aaa`
+is still outside; these usernames are never business logic or migration rules.
+Accepting the invitation as AAA will change its membership; do not reset it
+silently. Account/list/catalog data were preserved. EC2 was not modified.
+
+Invitation sharing supports native share, clipboard, and a selectable manual
+link when APIs are unavailable/rejected, including HTTP. Existing list-share
+buttons and HTTPS deployment remain separate work.
 
 The authentication and list-sharing iteration, compact visibility controls,
 DESIGN-002 routing, DESIGN-006 responsive panels, the PR #4 account-label
@@ -104,12 +137,13 @@ were not rerun because no application, configuration, or database code changed.
 
 ## 2. Repository State
 
-- Branch: `main`, with the database migration-guide refresh based on
-  `a040a6c`. The user authorized a local documentation commit on 2026-09-17;
-  these documentation updates have not been pushed. At the pre-commit check,
-  `origin/main` was two deployment-documentation commits ahead (`d26f727`
-  and `e4a2034`); no pull or merge was performed for this local commit.
-  The 80s feature branch remains available at
+- Branch: `main`, HEAD `83b24f3`. The user authorized pulling and merging
+  deployment PR #9 (`d26f727`, `e4a2034`) while preserving the local migration
+  guide commit `68d8071`, then authorized pushing the integrated `main`.
+  Local and remote main were synchronized and clean before the default-group
+  planning edits. The current planning changes are uncommitted and unpushed;
+  inspect live status for the exact list. No feature implementation branch has
+  been created. The 80s feature branch remains available at
   `origin/feature/80s-ranking-import` (`b5507cc`).
 - The synchronized feature branch is pushed at `ecd1e45`; its pre-integration
   tip was `d2ef428`.
@@ -188,8 +222,8 @@ were not rerun because no application, configuration, or database code changed.
 - Anonymous visitors see the global ranking and a sign-in/register entry point.
 - Authentication uses a dialog with separate login and registration modes.
 - Authenticated users can edit personal lists and independently publish or privatize each list from a compact lock button in its panel header. A closed lock means private and an open lock means public; a small label beneath the list title states the current visibility. Publishing still requires confirmation, while returning to private is immediate. Public lists also show a curved-arrow share action, using the native share sheet when available and copying the link as a fallback.
-- TanStack Router provides one root layout plus The Ranking (`/`), Personal Ranking (`/personal`), Practice Library (`/practice`), and public profile (`/u/:username`) routes.
-- `/personal` and `/practice` use Session-backed route guards; anonymous deep links return to `/` and open the sign-in dialog.
+- TanStack Router provides one root layout plus The Ranking (`/`), Personal Ranking (`/personal`), Practice Library (`/practice`), Groups (`/groups`), default invitation (`/invite/default`), and public profile (`/u/:username`) routes.
+- `/personal`, `/practice`, and `/groups` use Session-backed route guards; anonymous deep links return to `/` and open the sign-in dialog.
 - The ranking page is full-width. Personal Ranking and Practice Library are independent full-width pages rather than side columns.
 - Ranking text, artist, and year filters are validated as URL search parameters and update with history replacement.
 - `/u/:username` is the shareable public profile route.
@@ -278,6 +312,30 @@ jsdom's unimplemented `window.scrollTo()` notices during Web tests.
   between song metadata and action buttons; the final layout was rechecked.
 
 ## 6. Remaining Work
+
+### Default group — current implementation
+
+- Read DESIGN-007 / PLAN-007 for behavior and implementation evidence.
+- Added shared contracts, migration SQL/snapshot/journal, registration membership,
+  Origin-protected real-session invitation join, protected directory/profile
+  APIs, routes, navigation, query keys, auth continuation, and sharing fallback.
+- Existing and clean migrations passed; repeat migration/seed initializes one
+  group without backfill. A deliberate final-session-insert failure confirmed
+  rollback of account, membership, credentials, private settings, and session.
+- Full typecheck passed. Full workspace tests passed: API 25/25, Web 59/59 in
+  15 files, config 8/8, database 10/10; contracts has no source tests.
+- Production build passed with existing warnings. Final Playwright passed 6/6
+  on a clean temporary database, including keyboard activation and 320–900px
+  navigation/layout checks. Desktop/mobile group screenshots were inspected.
+- Test-created accounts/memberships were cleaned and temporary databases/scripts
+  removed. Final local check: TTT has one membership; AAA none. Final diff and
+  document checks passed. Earlier test-selector/timing/fixture failures were
+  corrected before these final passing results.
+- Local formal rankings are unchanged: published 80s 100 / Mainland 100 /
+  Cantonese 72; Demo retained unpublished with 30 entries.
+- Tests use owned fixtures; local TTT/AAA are reserved for user acceptance.
+- Local commit is authorized; GitHub push/PR/merge/deployment require new direction.
+  No additional product decisions are pending for this release.
 
 ### Integration baseline verification
 
@@ -371,7 +429,9 @@ outside this feature scope.
 ## 7. Instructions for the Next Session
 
 1. Read this document and
-   `docs/RANKING_CATALOG_EXPANSION_EXECUTION_PLAN.md` completely.
+   the documents for the current task completely. For the default-group work,
+   read DESIGN-007 and PLAN-007; the ranking execution plan remains the authority
+   for preserving delivered ranking behavior.
 2. Inspect `git status --short --branch`, recent commits, staged changes, and the
    full working-tree diff before editing.
 3. Preserve all three imported rankings and their current publication state;
@@ -421,9 +481,23 @@ clean temporary database. Record exact test counts and any skipped check.
 ## 10. Copy-Paste Prompt for the Next Follow-up
 
 ```text
-Continue Music Rank from the integrated main branch. Read
-docs/SESSION_HANDOFF.md and docs/RANKING_CATALOG_EXPANSION_EXECUTION_PLAN.md
-completely, then inspect and preserve the working tree. The 80s import feature
+Continue the Default Group feature from locally committed branch codex/default-group,
+based on 83b24f3. Read docs/SESSION_HANDOFF.md, docs/DESIGN_007_DEFAULT_GROUP.md,
+and docs/PLAN_007_DEFAULT_GROUP.md, then inspect and preserve the working tree
+including the unrelated docs/.ENGINEERING_GUIDE.md.swp editor swap file.
+The feature is implemented; use PLAN-007 for actual verification outcomes.
+Do not rerun local TTT/AAA setup or reset AAA after it accepts the invitation.
+The user requested a local commit only. No GitHub push/PR/merge/deployment.
+
+Keep the simplified scope: one default group; ordinary new registration joins
+automatically and lands on home; invitation authentication joins if needed and
+lands on the group; ordinary login does not add membership. TTT starts joined
+and AAA stays outside for the user's local invitation test. Never hardcode
+those usernames in production logic. Nonmembers see an empty group state with
+no join button. Public still means everyone, not group-only. Management and
+richer visibility remain future work.
+
+Preserve the delivered ranking feature. The 80s import feature
 commit is b5507cc and its direct main merge is 81a3e33; use the live Git log for
 the handoff-refresh commit and final remote state.
 

@@ -1,5 +1,5 @@
 import { queryOptions } from '@tanstack/react-query';
-import { request, type AuthSession, type AuthUser, type ListSettings, type PublicProfile, type PublicSingingListEntry, type Ranking, type RankingDetail, type SingingListEntry, type SingingStatus, type Song, type TopListEntry } from './api';
+import { request, type AuthSession, type AuthUser, type GroupMember, type GroupSummary, type ListSettings, type PublicProfile, type PublicSingingListEntry, type Ranking, type RankingDetail, type SingingListEntry, type SingingStatus, type Song, type TopListEntry } from './api';
 
 export const queryKeys = {
   session: ['auth-session'] as const,
@@ -7,6 +7,8 @@ export const queryKeys = {
   songs: ['songs'] as const,
   ranking: (slug: string, q: string, artist: string, releaseYear: number | 'ALL') => ['ranking', slug, q, artist, releaseYear] as const,
   personal: ['personal'] as const,
+  groups: (userId: string) => ['personal', userId, 'groups'] as const,
+  groupMembers: (userId: string, groupId: string) => ['personal', userId, 'groups', groupId, 'members'] as const,
   signedOut: (resource: string, detail?: string) => ['signed-out', resource, detail ?? 'all'] as const,
   topList: (userId: string) => ['personal', userId, 'top-list'] as const,
   singingList: (userId: string, status: string) => ['personal', userId, 'singing-list', status] as const,
@@ -67,9 +69,37 @@ export const listSettingsQueryOptions = (user: AuthUser | null) => queryOptions(
   retry: false
 });
 
-export const publicProfileQueryOptions = (username: string) => queryOptions({
+export const publicProfileQueryOptions = (username: string, enabled = true) => queryOptions({
   queryKey: queryKeys.publicProfile(username),
   queryFn: () => request<PublicProfile>(`/api/users/${encodeURIComponent(username)}`),
+  enabled,
+  retry: false
+});
+
+export const defaultInvitationQueryOptions = () => queryOptions({
+  queryKey: ['group-invitation', 'default'],
+  queryFn: ({ signal }) => request<GroupSummary>('/api/group-invitations/default', { signal }),
+  retry: false
+});
+
+export const groupsQueryOptions = (user: AuthUser | null) => queryOptions({
+  queryKey: user ? queryKeys.groups(user.id) : queryKeys.signedOut('groups'),
+  queryFn: ({ signal }) => request<GroupSummary[]>('/api/me/groups', { signal }),
+  enabled: Boolean(user),
+  retry: false
+});
+
+export const groupMembersQueryOptions = (user: AuthUser | null, groupId: string) => queryOptions({
+  queryKey: user ? queryKeys.groupMembers(user.id, groupId) : queryKeys.signedOut('group-members'),
+  queryFn: ({ signal }) => request<GroupMember[]>(`/api/me/groups/${groupId}/members`, { signal }),
+  enabled: Boolean(user),
+  retry: false
+});
+
+export const groupMemberProfileQueryOptions = (user: AuthUser | null, groupId: string | undefined, username: string) => queryOptions({
+  queryKey: user ? ['personal', user.id, 'group-profile', groupId, username] : queryKeys.signedOut('group-profile', username),
+  queryFn: ({ signal }) => request<PublicProfile>(`/api/me/groups/${groupId}/members/${encodeURIComponent(username)}`, { signal }),
+  enabled: Boolean(user && groupId),
   retry: false
 });
 

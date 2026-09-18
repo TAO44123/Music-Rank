@@ -1,6 +1,6 @@
 import { createHash, randomBytes, randomUUID, scrypt, timingSafeEqual } from 'node:crypto';
 import { and, eq } from 'drizzle-orm';
-import { authSessions, db, passwordCredentials, userListSettings, users } from '@music-rank/database';
+import { authSessions, db, defaultGroupId, groupMemberships, passwordCredentials, userListSettings, users } from '@music-rank/database';
 import type { RegisterInput } from '@music-rank/contracts';
 import { AppError } from './errors.js';
 
@@ -74,6 +74,7 @@ export async function registerUser(input: RegisterInput): Promise<{ user: Authen
   try {
     await db.transaction(async (transaction) => {
       await transaction.insert(users).values(user);
+      await transaction.insert(groupMemberships).values({ groupId: defaultGroupId, userId: user.id });
       await transaction.insert(passwordCredentials).values({ userId: user.id, passwordHash });
       await transaction.insert(userListSettings).values([
         { userId: user.id, listType: 'TOP_LIST', visibility: 'PRIVATE' },
