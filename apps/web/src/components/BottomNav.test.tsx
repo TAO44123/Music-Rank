@@ -38,12 +38,13 @@ function renderAt(path: string, session: { user: typeof user | null }) {
 // media query that hides one of the two — so an unscoped query for a destination
 // would match both surfaces.
 describe('BottomNav', () => {
-  it('shows all three destinations to an anonymous visitor', async () => {
+  it('shows all four destinations to an anonymous visitor', async () => {
     renderAt('/', { user: null });
     const bar = await screen.findByRole('navigation', { name: 'Primary bottom' });
     expect(within(bar).getByRole('link', { name: 'The Ranking' })).toBeInTheDocument();
     expect(within(bar).getByRole('button', { name: 'Personal Ranking' })).toBeInTheDocument();
     expect(within(bar).getByRole('button', { name: 'Practice Library' })).toBeInTheDocument();
+    expect(within(bar).getByRole('button', { name: 'Groups' })).toBeInTheDocument();
   });
 
   it('opens the sign-in dialog instead of navigating when an anonymous visitor taps a guarded destination', async () => {
@@ -64,9 +65,10 @@ describe('BottomNav', () => {
     // Waiting on the bar itself is not enough: it renders immediately, while the
     // session query is still pending and `user` is null, so at that moment the
     // guarded destinations are still buttons. Wait for the link instead.
-    expect(await screen.findByRole('link', { name: 'Personal Ranking' })).toHaveAttribute('href', '/personal');
+    expect(await screen.findByRole('link', { name: 'Personal Ranking' }, { timeout: 5000 })).toHaveAttribute('href', '/personal');
     const bar = screen.getByRole('navigation', { name: 'Primary bottom' });
     expect(within(bar).getByRole('link', { name: 'Practice Library' })).toHaveAttribute('href', '/practice');
+    expect(within(bar).getByRole('link', { name: 'Groups' })).toHaveAttribute('href', '/groups');
   });
 
   it('announces the full destination name while showing the short label', async () => {

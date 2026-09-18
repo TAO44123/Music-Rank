@@ -4,6 +4,7 @@ import ReplyOutlinedIcon from '@mui/icons-material/ReplyOutlined';
 import { Alert, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Stack, Tooltip, Typography } from '@mui/material';
 import { useState } from 'react';
 import type { ListVisibility } from '../api';
+import { ShareLinkDialog } from './ShareLinkDialog';
 
 type VisibilityControlProps = {
   label: string;
@@ -22,6 +23,7 @@ export function VisibilityStatus({ label, visibility }: { label: string; visibil
 
 export function VisibilityControl({ label, visibility, publicUrl, privateNotes, disabled, onChange, onShareComplete }: VisibilityControlProps) {
   const [confirming, setConfirming] = useState(false);
+  const [sharing, setSharing] = useState(false);
   const controlId = label.toLowerCase().replaceAll(' ', '-');
   const toggleVisibility = () => {
     if (visibility === 'PRIVATE') setConfirming(true);
@@ -30,19 +32,6 @@ export function VisibilityControl({ label, visibility, publicUrl, privateNotes, 
   const publish = () => {
     setConfirming(false);
     onChange('PUBLIC');
-  };
-  const shareLink = async () => {
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: `${label} on Music Rank`, url: publicUrl });
-        onShareComplete('shared');
-        return;
-      } catch (error) {
-        if (error instanceof DOMException && error.name === 'AbortError') return;
-      }
-    }
-    await navigator.clipboard.writeText(publicUrl);
-    onShareComplete('copied');
   };
   const visibilityAction = `${label} is ${visibility === 'PUBLIC' ? 'public. Make private' : 'private. Make public'}`;
 
@@ -55,7 +44,7 @@ export function VisibilityControl({ label, visibility, publicUrl, privateNotes, 
           </IconButton>
         </span>
       </Tooltip>
-      {visibility === 'PUBLIC' && <Tooltip title={`Share ${label}`}><IconButton aria-label={`Share ${label}`} size="small" onClick={() => void shareLink()}><ReplyOutlinedIcon fontSize="small" sx={{ transform: 'scaleX(-1)' }} /></IconButton></Tooltip>}
+      {visibility === 'PUBLIC' && <Tooltip title={`Share ${label}`}><IconButton aria-label={`Share ${label}`} size="small" onClick={() => setSharing(true)}><ReplyOutlinedIcon fontSize="small" sx={{ transform: 'scaleX(-1)' }} /></IconButton></Tooltip>}
     </Stack>
     <Dialog open={confirming} onClose={() => setConfirming(false)} aria-labelledby={`${controlId}-publish-title`}>
       <DialogTitle id={`${controlId}-publish-title`}>Make {label} public?</DialogTitle>
@@ -67,5 +56,6 @@ export function VisibilityControl({ label, visibility, publicUrl, privateNotes, 
       </DialogContent>
       <DialogActions><Button onClick={() => setConfirming(false)}>Keep private</Button><Button variant="contained" onClick={publish}>Make public</Button></DialogActions>
     </Dialog>
+    <ShareLinkDialog open={sharing && visibility === 'PUBLIC'} onClose={() => setSharing(false)} title={`Share ${label}`} hint="Copy the link to share this list." url={publicUrl} linkLabel="List link" onCopied={() => onShareComplete('copied')} />
   </>;
 }

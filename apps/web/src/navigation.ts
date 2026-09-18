@@ -1,10 +1,11 @@
 import FormatListNumberedOutlinedIcon from '@mui/icons-material/FormatListNumberedOutlined';
 import MicNoneIcon from '@mui/icons-material/MicNone';
 import StarOutlineIcon from '@mui/icons-material/StarOutline';
+import GroupsOutlinedIcon from '@mui/icons-material/GroupsOutlined';
 import type { SvgIconComponent } from '@mui/icons-material';
 
 export type Destination = {
-  to: '/' | '/personal' | '/practice';
+  to: '/' | '/personal' | '/practice' | '/groups';
   short: string;
   full: string;
   icon: SvgIconComponent;
@@ -13,14 +14,15 @@ export type Destination = {
   personal: boolean;
 };
 
-// `short` and `full` are the labels DESIGN-002 D5 introduced so all three
-// destinations fit at 375px. `icon` is used only by the bottom bar: MicNone is
+// `short` and `full` are the labels DESIGN-002 D5 introduced; short labels
+// keep the four destinations usable at 320px. `icon` is used by the bottom bar: MicNone is
 // already the icon on the ranking row's practice action, so the bar names
 // Practice with the icon the visitor has been tapping.
 export const destinations: readonly Destination[] = [
   { to: '/', short: 'Ranking', full: 'The Ranking', icon: FormatListNumberedOutlinedIcon, personal: false },
   { to: '/personal', short: 'Personal', full: 'Personal Ranking', icon: StarOutlineIcon, personal: true },
-  { to: '/practice', short: 'Practice', full: 'Practice Library', icon: MicNoneIcon, personal: true }
+  { to: '/practice', short: 'Practice', full: 'Practice Library', icon: MicNoneIcon, personal: true },
+  { to: '/groups', short: 'Groups', full: 'Groups', icon: GroupsOutlinedIcon, personal: true }
 ];
 
 // MUI's BottomNavigation height. Defined here because AppShellContext spends it

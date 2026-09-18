@@ -36,6 +36,7 @@ test('registers, authenticates, publishes, and anonymously reads personal lists'
   await page.getByLabel('Password').fill(password);
   await page.getByRole('button', { name: 'Create account' }).click();
   await expect(page.getByRole('button', { name: `@${username}` })).toBeVisible();
+  expect(await (await page.request.get('/api/me/list-settings')).json()).toEqual({ topList: 'PUBLIC', singingList: 'PUBLIC' });
 
   await page.getByRole('button', { name: `@${username}` }).click();
   await page.getByRole('menuitem', { name: 'Sign out' }).click();
@@ -63,9 +64,22 @@ test('registers, authenticates, publishes, and anonymously reads personal lists'
   await page.getByLabel('Artist').fill('E2E Submitter');
   await page.getByRole('button', { name: 'Add song' }).click();
   await expect(page.getByRole('region', { name: 'My Top 10' }).getByText(personalSubmissionTitle)).toBeVisible();
+  await expect(page.getByLabel('Top 10 visibility: public')).toBeVisible();
+  await page.getByRole('button', { name: 'Top 10 is public. Make private' }).click();
   await page.getByRole('button', { name: 'Top 10 is private. Make public' }).click();
   await page.getByRole('button', { name: 'Make public' }).click();
   await expect(page.getByLabel('Top 10 visibility: public')).toBeVisible();
+  await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
+  await page.getByRole('button', { name: 'Share Top 10', exact: true }).click();
+  await expect(page.getByRole('dialog', { name: 'Share Top 10' })).toBeVisible();
+  await expect.poll(() => page.getByRole('dialog', { name: 'Share Top 10' }).evaluate((element) => getComputedStyle(element.parentElement!).opacity)).toBe('1');
+  await expect(page.getByText('Copy the link to share this list.')).toBeVisible();
+  await expect(page.getByRole('textbox', { name: 'List link' })).toHaveValue(`http://127.0.0.1:3101/u/${username}`);
+  await page.screenshot({ path: 'test-results/share-list-desktop.png' });
+  await page.getByRole('button', { name: 'Copy', exact: true }).click();
+  await expect(page.getByRole('status')).toHaveText('Link copied.');
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(`http://127.0.0.1:3101/u/${username}`);
+  await page.getByRole('button', { name: 'Done', exact: true }).click();
 
   await page.getByRole('tab', { name: /Practice Library/ }).click();
   await expect(page).toHaveURL(/\/practice$/);
@@ -82,10 +96,18 @@ test('registers, authenticates, publishes, and anonymously reads personal lists'
   await expect(page).toHaveURL(/\/practice$/);
   const practiceEntry = page.getByRole('region', { name: 'My Practice Library' }).getByRole('listitem').filter({ hasText: '涛声依旧' });
   await expect(practiceEntry.getByText('Practicing', { exact: true })).toBeVisible();
+  await expect(page.getByLabel('Practice Library visibility: public')).toBeVisible();
+  await page.getByRole('button', { name: 'Practice Library is public. Make private' }).click();
   await page.getByRole('button', { name: 'Practice Library is private. Make public' }).click();
   await expect(page.getByText('Your Practice Library notes always remain private.')).toBeVisible();
   await page.getByRole('button', { name: 'Make public' }).click();
   await expect(page.getByLabel('Practice Library visibility: public')).toBeVisible();
+  await page.getByRole('button', { name: 'Share Practice Library', exact: true }).click();
+  await expect(page.getByRole('dialog', { name: 'Share Practice Library' })).toBeVisible();
+  await page.getByRole('button', { name: 'Copy', exact: true }).click();
+  await expect(page.getByRole('status')).toHaveText('Link copied.');
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(`http://127.0.0.1:3101/u/${username}`);
+  await page.getByRole('button', { name: 'Done', exact: true }).click();
 
   await page.goBack();
   await expect(page).toHaveURL(/\/personal$/);

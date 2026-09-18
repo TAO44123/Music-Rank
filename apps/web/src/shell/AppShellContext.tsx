@@ -66,11 +66,16 @@ export function AppShellProvider({ children, chrome = true }: { children: ReactN
 
   const authMutation = useMutation({
     mutationFn: ({ mode, ...input }: { mode: AuthMode; username: string; displayName?: string; password: string }) => request<{ user: AuthUser }>(mode === 'register' ? '/api/auth/register' : '/api/auth/login', { method: 'POST', body: JSON.stringify(input) }),
-    onSuccess: async ({ user: authenticatedUser }) => {
+    onSuccess: async ({ user: authenticatedUser }, { mode }) => {
       await clearPersonalData();
       client.setQueryData<AuthSession>(queryKeys.session, { user: authenticatedUser });
       setAuthDialog((current) => ({ ...current, open: false }));
       setNotice({ severity: 'success', message: `Welcome, ${authenticatedUser.displayName}` });
+      // The invitation page owns its join continuation. Ordinary registration
+      // lands on home, while ordinary login retains the current destination.
+      if (mode === 'register' && router.state.location.pathname !== '/invite/default') {
+        await router.navigate({ to: '/', search: {} });
+      }
     }
   });
   const authMutationReset = authMutation.reset;

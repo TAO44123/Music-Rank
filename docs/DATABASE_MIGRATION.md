@@ -1,8 +1,8 @@
 # 数据库迁移与正式榜单同步手册
 
-本手册用于把 Music Rank 的数据库结构、Demo 前置数据和两个正式榜单同步到一个目标 PostgreSQL 数据库。目标读者是开发者、部署人员和 AI agent；所有命令都从仓库根目录执行。
+本手册用于把 Music Rank 的数据库结构、Demo 前置数据和三个正式榜单同步到一个目标 PostgreSQL 数据库。目标读者是开发者、部署人员和 AI agent；所有命令都从仓库根目录执行。
 
-> 这里的“数据库迁移”包含两层含义：`db:migrate` 只应用 Drizzle 结构迁移；正式榜单歌曲内容由 manifest importer 单独写入。只执行 `db:migrate` 和 `db:seed` 不会得到两个正式榜单。
+> 这里的“数据库迁移”包含两层含义：`db:migrate` 只应用 Drizzle 结构迁移；正式榜单歌曲内容由 manifest importer 单独写入。只执行 `db:migrate` 和 `db:seed` 不会得到三个正式榜单。新增 80s 榜单没有改变 Schema，因此没有新增 migration SQL。
 
 ## 1. 权威来源与安全边界
 
@@ -10,10 +10,23 @@
 - 已跟踪结构迁移：`packages/database/migrations/`
 - Demo Seed：`packages/database/src/seed.ts`
 - 正式榜单导入器：`packages/database/src/ranking-importer.ts`
+- 80s 华语榜内容：[`packages/database/manifests/80s-chinese-top-100.json`](../packages/database/manifests/80s-chinese-top-100.json)
 - 大陆榜内容：[`packages/database/manifests/90s-mainland-top-100.json`](../packages/database/manifests/90s-mainland-top-100.json)
 - 粤语榜内容：[`packages/database/manifests/90s-cantonese-top-70.json`](../packages/database/manifests/90s-cantonese-top-70.json)
 
-两个 manifest 是榜单标题、歌手、名次、发行年份和来源元数据的唯一权威。不要把 172 条歌曲复制到 SQL 或另一份文档；需要审计内容时直接读取并检查这两个 JSON 文件。
+三个 manifest 是榜单标题、歌手、名次、发行年份和来源元数据的唯一权威。不要把 272 条榜单记录复制到 SQL 或另一份文档；需要审计内容时直接读取并检查这三个 JSON 文件。
+
+当前已跟踪的 Schema migration 链如下。已经应用过的文件不得修改：
+
+| Migration | 作用 |
+| --- | --- |
+| `0000_fast_nemesis.sql` | 建立初始用户、歌曲、榜单、榜单条目和个人列表结构 |
+| `0001_lively_the_watchers.sql` | 加入密码凭据、Session、列表公开设置及其约束 |
+| `0002_bumpy_thor_girl.sql` | 加入榜单 slug、年代、地区和显示顺序，并回填 Demo 榜单 |
+| `0003_red_silver_samurai.sql` | 改为来源无关 slug，并让年代和地区成为可选元数据 |
+| `0004_abnormal_butterfly.sql` | 加入用户补录歌曲的可空提交者归属和索引 |
+| `0005_bizarre_the_stranger.sql` | Creates groups/memberships and initializes Default Group; no existing-user backfill |
+| `0006_panoramic_machine_man.sql` | Changes new list-setting default to PUBLIC; no existing visibility updates |
 
 操作时遵守以下边界：
 
@@ -24,14 +37,17 @@
 5. staging/production 操作前必须备份数据库，并确认 `APP_ENV` 与目标连接串。
 6. `--replace` 会删除并重建目标榜单及其条目。AI agent 不得因为普通 import 冲突就自动执行 `--replace`；必须先检查 manifest diff、备份数据库并取得明确授权。
 
-## 2. 本次同步的两个正式榜单
+## 2. 本次同步的三个正式榜单
 
 | 榜单 | 稳定 slug | 权威 manifest | 当前条目 | 名次范围 | 区域 | `displayOrder` | 来源类型 |
 | --- | --- | --- | ---: | --- | --- | ---: | --- |
+| 80s Chinese Songs Top 100 | `80s-chinese-top-100` | `80s-chinese-top-100.json` | 100 | 1–100 | `null` | 3 | `COMMUNITY` |
 | 90s Mainland China Top 100 | `90s-mainland-top-100` | `90s-mainland-top-100.json` | 100 | 1–100 | `MAINLAND` | 4 | `COMMUNITY` |
 | 90s Cantonese Songs Top 70 | `90s-cantonese-top-70` | `90s-cantonese-top-70.json` | 72 | 1–72 | `null` | 5 | `COMMUNITY` |
 
 注意：粤语榜的历史标题和文件名保留 `Top 70`，但当前已批准的 manifest 实际有 **72 条**连续名次。迁移和验收都以 manifest 的 72 条为准，不要擅自截断成 70 条。
+
+80s 榜完全以用户提供的 JSON 为准。第 85 名的 `releaseYear` 是 1979；这是已批准的源值，导入时不得为了匹配榜单年代而改写。
 
 每条 manifest entry 包含：
 
@@ -41,12 +57,13 @@
 - `releaseYear`：发行年份或 `null`；
 - `sourceTimestampSeconds`：可选的来源时间点。
 
-两个榜单的来源链接、来源标题和提取说明也保存在各自 manifest 中。导入器不会访问外部链接重新抓取或校验内容。
+三个榜单的来源链接、来源标题和提取说明也保存在各自 manifest 中。导入器不会访问外部链接重新抓取或校验内容。
 
 完成同步后的期望发布状态：
 
 | slug | 条目数 | `is_published` | 说明 |
 | --- | ---: | --- | --- |
+| `80s-chinese-top-100` | 100 | `true` | 正式 80s 华语榜 |
 | `90s-mainland-top-100` | 100 | `true` | 正式大陆榜 |
 | `90s-cantonese-top-70` | 72 | `true` | 正式粤语榜 |
 | `90s-demo-ranking` | 30 | `false` | Demo 保留但不公开，不得删除 |
@@ -60,7 +77,36 @@
 | 正式榜单导入 | `import:ranking` | 校验 manifest，并以事务方式创建或复用正式榜单、歌曲和条目；首次导入保持未发布 |
 | 正式榜单发布 | `publish:ranking` | 检查条目完整性，发布目标榜单，同时撤下但保留 Demo |
 
-`db:seed` 不会导入两个正式榜单，也不会创建或覆盖普通用户的 Top 10、Practice Library、用户名、密码、Session 或公开设置。
+`db:seed` 不会导入三个正式榜单，也不会创建或覆盖普通用户的 Top 10、Practice Library、用户名、密码、Session 或公开设置。
+
+### 3.1 Default Group initialization
+
+`0005` inserts the canonical default group
+(`d0000000-0000-4000-8000-000000000001`, slug `default`, name `Default Group`).
+Run the normal `npm run db:migrate` before starting this version of the API:
+registration now inserts membership in the same transaction as the account,
+credentials, initial public settings, and session. Without the migration, registration
+cannot complete.
+
+Migration and repeat Demo seed do not add any existing users, including the
+credential-free Demo. Ordinary login also never adds membership. Existing
+users join via `/invite/default`; newly registered users join automatically.
+TTT's local acceptance membership was a separate operation on the development
+database, not SQL migration or seed logic. AAA remains outside for manual
+invitation testing. Do not copy this local setup to EC2 or reset an account
+after it has accepted the invitation.
+
+No new configuration keys, certificate setup, ranking import, or dependency
+installation is needed for this migration. Existing deployment migration
+commands apply; this implementation session did not change production data.
+
+### 3.2 Public defaults for new registrations
+
+`0006_panoramic_machine_man.sql` only changes the column default to PUBLIC.
+Registration explicitly initializes both lists as PUBLIC. It does not update
+existing visibility, publish old lists, or change memberships. Missing legacy
+settings still resolve to PRIVATE; Practice Library notes remain private.
+Apply the normal migration command before starting the updated API.
 
 ## 4. 本地 development：完整复制粘贴流程
 
@@ -85,34 +131,40 @@ npm run db:seed
 
 必须执行 Seed，因为发布器要求 `90s-demo-ranking` 存在。Seed 是幂等的；如果 Demo 已经被正式榜单撤下，重复 Seed 会保留它当前的未发布状态。
 
-### 4.3 对两个正式榜单执行只读预检
+### 4.3 对三个正式榜单执行只读预检
 
 ```bash
+npm run import:ranking --workspace @music-rank/database -- --dry-run manifests/80s-chinese-top-100.json
 npm run import:ranking --workspace @music-rank/database -- --dry-run manifests/90s-mainland-top-100.json
 npm run import:ranking --workspace @music-rank/database -- --dry-run manifests/90s-cantonese-top-70.json
 ```
 
 首次同步时，预期摘要分别显示：
 
+- 80s 华语榜：`rankingCreated: true`、`entriesCreated: 100`；在只有当前 Demo Seed 的数据库中会创建 98 首歌曲，并精确复用、升级 2 首 Demo 歌曲；
 - 大陆榜：`rankingCreated: true`、`entriesCreated: 100`；歌曲会根据标准化标题和歌手被创建或复用；
 - 粤语榜：`rankingCreated: true`、`entriesCreated: 72`；歌曲同样可能与已有记录复用。
 
 已经同步过的数据库通常会显示 `rankingCreated: false`，并复用全部榜单条目。Dry run 不写数据库；任何 metadata、名次或歌曲冲突都会中止。
 
-### 4.4 导入两个榜单
+### 4.4 导入三个榜单
 
 ```bash
+npm run import:ranking --workspace @music-rank/database -- manifests/80s-chinese-top-100.json
 npm run import:ranking --workspace @music-rank/database -- manifests/90s-mainland-top-100.json
 npm run import:ranking --workspace @music-rank/database -- manifests/90s-cantonese-top-70.json
 ```
 
 导入器在单个数据库事务中工作：后续条目失败时，本次导入产生的前序写入会一并回滚。首次导入的正式榜单默认 `is_published = false`。
 
-重复执行完全相同的普通 import 是幂等的。共享歌曲按“标准化标题 + 标准化歌手”复用；普通 import 会把复用歌曲标记为 `VERIFIED`，并仅在原发行年份为空时补入 manifest 年份。
+重复执行完全相同的普通 import 是幂等的。共享歌曲按“标准化标题 + 标准化歌手”复用。精确匹配的 `DEMO` 歌曲可由正式 manifest 升级为 `VERIFIED` 并采用 manifest 年份；非 Demo 歌曲只在原发行年份为空时补入年份，非空且不一致时会拒绝导入。Dry run 与写入路径执行相同的年份冲突检查。
 
-### 4.5 发布两个榜单
+80s 榜会原位升级 Demo 中的《昨夜星辰》和《弯弯的月亮》，把年份分别改为 1984 和 1989，并复用同一 `songs` 行。不会复制歌曲，也不会删除 Demo 榜单条目。之后再次运行 Seed 不会把年份或 `VERIFIED` 状态改回 Demo 值。
+
+### 4.5 发布三个榜单
 
 ```bash
+npm run publish:ranking --workspace @music-rank/database -- 80s-chinese-top-100
 npm run publish:ranking --workspace @music-rank/database -- 90s-mainland-top-100
 npm run publish:ranking --workspace @music-rank/database -- 90s-cantonese-top-70
 ```
@@ -135,19 +187,24 @@ npm run dev
 
 非 development 环境必须显式设置 `APP_ENV`；否则数据库命令会读取 development 配置。
 
-下面的示例写于只有两个 90s 榜单时,此后仓库又加入了 `80s-chinese-top-100.json`。**以 `packages/database/manifests/` 下的实际文件为准**,不要照抄清单;遍历整个目录的写法见 [`DEPLOYMENT.md`](../DEPLOYMENT.md) 第 3.1 节。
+以下示例覆盖当前三个正式榜单。新增 manifest 后,**以 `packages/database/manifests/` 下的实际文件为准**;遍历整个目录的写法见 [`DEPLOYMENT.md`](../DEPLOYMENT.md) 第 3.1 节。发布范围仍须按产品决定逐个确认。
 
 macOS / Linux 的 production 示例：
 
 ```bash
-APP_ENV=production npm run db:migrate
-APP_ENV=production npm run db:seed
-APP_ENV=production npm run import:ranking --workspace @music-rank/database -- --dry-run manifests/90s-mainland-top-100.json
-APP_ENV=production npm run import:ranking --workspace @music-rank/database -- --dry-run manifests/90s-cantonese-top-70.json
-APP_ENV=production npm run import:ranking --workspace @music-rank/database -- manifests/90s-mainland-top-100.json
-APP_ENV=production npm run import:ranking --workspace @music-rank/database -- manifests/90s-cantonese-top-70.json
-APP_ENV=production npm run publish:ranking --workspace @music-rank/database -- 90s-mainland-top-100
-APP_ENV=production npm run publish:ranking --workspace @music-rank/database -- 90s-cantonese-top-70
+export APP_ENV=production
+npm run db:migrate
+npm run db:seed
+npm run import:ranking --workspace @music-rank/database -- --dry-run manifests/80s-chinese-top-100.json
+npm run import:ranking --workspace @music-rank/database -- --dry-run manifests/90s-mainland-top-100.json
+npm run import:ranking --workspace @music-rank/database -- --dry-run manifests/90s-cantonese-top-70.json
+npm run import:ranking --workspace @music-rank/database -- manifests/80s-chinese-top-100.json
+npm run import:ranking --workspace @music-rank/database -- manifests/90s-mainland-top-100.json
+npm run import:ranking --workspace @music-rank/database -- manifests/90s-cantonese-top-70.json
+npm run publish:ranking --workspace @music-rank/database -- 80s-chinese-top-100
+npm run publish:ranking --workspace @music-rank/database -- 90s-mainland-top-100
+npm run publish:ranking --workspace @music-rank/database -- 90s-cantonese-top-70
+unset APP_ENV
 ```
 
 PowerShell 示例：
@@ -156,10 +213,13 @@ PowerShell 示例：
 $env:APP_ENV = 'production'
 npm run db:migrate
 npm run db:seed
+npm run import:ranking --workspace @music-rank/database -- --dry-run manifests/80s-chinese-top-100.json
 npm run import:ranking --workspace @music-rank/database -- --dry-run manifests/90s-mainland-top-100.json
 npm run import:ranking --workspace @music-rank/database -- --dry-run manifests/90s-cantonese-top-70.json
+npm run import:ranking --workspace @music-rank/database -- manifests/80s-chinese-top-100.json
 npm run import:ranking --workspace @music-rank/database -- manifests/90s-mainland-top-100.json
 npm run import:ranking --workspace @music-rank/database -- manifests/90s-cantonese-top-70.json
+npm run publish:ranking --workspace @music-rank/database -- 80s-chinese-top-100
 npm run publish:ranking --workspace @music-rank/database -- 90s-mainland-top-100
 npm run publish:ranking --workspace @music-rank/database -- 90s-cantonese-top-70
 Remove-Item Env:APP_ENV
@@ -186,6 +246,7 @@ SELECT
 FROM rankings r
 LEFT JOIN ranking_entries re ON re.ranking_id = r.id
 WHERE r.slug IN (
+  '80s-chinese-top-100',
   '90s-mainland-top-100',
   '90s-cantonese-top-70',
   '90s-demo-ranking'
@@ -199,6 +260,7 @@ ORDER BY r.slug;
 
 | slug | 发布 | 条目 | min | max | 唯一名次 | 唯一歌曲 |
 | --- | --- | ---: | ---: | ---: | ---: | ---: |
+| `80s-chinese-top-100` | true | 100 | 1 | 100 | 100 | 100 |
 | `90s-mainland-top-100` | true | 100 | 1 | 100 | 100 | 100 |
 | `90s-cantonese-top-70` | true | 72 | 1 | 72 | 72 | 72 |
 | `90s-demo-ranking` | false | 30 | 1 | 30 | 30 | 30 |
@@ -210,11 +272,12 @@ ORDER BY r.slug;
 ```bash
 curl --fail --silent --show-error http://localhost:3001/api/health
 curl --fail --silent --show-error http://localhost:3001/api/rankings
+curl --fail --silent --show-error http://localhost:3001/api/rankings/80s-chinese-top-100
 curl --fail --silent --show-error http://localhost:3001/api/rankings/90s-mainland-top-100
 curl --fail --silent --show-error http://localhost:3001/api/rankings/90s-cantonese-top-70
 ```
 
-`GET /api/rankings` 应返回两个正式 slug，不应返回未发布的 `90s-demo-ranking`。两个详情接口的 `songCount` 应分别为 100 和 72。
+`GET /api/rankings` 应按显示顺序返回三个正式 slug，不应返回未发布的 `90s-demo-ranking`。三个详情接口的 `songCount` 应分别为 100、100 和 72。
 
 ## 7. 已有榜单内容变更时
 
@@ -225,6 +288,12 @@ curl --fail --silent --show-error http://localhost:3001/api/rankings/90s-cantone
 3. 运行普通 `--dry-run`。对于已有内容冲突，它可能按设计失败；当前工具不支持 `--dry-run --replace`。
 4. 得到明确授权后，只替换发生变化的榜单。
 5. 重新执行第 6 节的 SQL 和 API 验证。
+
+80s 华语榜替换命令：
+
+```bash
+npm run import:ranking --workspace @music-rank/database -- --replace manifests/80s-chinese-top-100.json
+```
 
 大陆榜替换命令：
 
@@ -257,7 +326,7 @@ npm run import:ranking --workspace @music-rank/database -- --replace manifests/9
 | `90s Demo ranking is required` | 未运行 Seed，或 Demo 被人为删除 | 运行 `db:seed`，确认 Demo slug 和 `sourceType=DEMO` 后重试 |
 | rank continuity / duplicate 错误 | manifest 名次不连续、重复，或歌曲标准化后重复 | 修正并重新审批 manifest；不要绕过 validator |
 | metadata does not match manifest | 数据库已有同 slug 榜单，但 metadata 与 manifest 不同 | 先审计差异；只有批准的权威更新才能走 `--replace` |
-| release year conflict | 复用歌曲的已有年份与 manifest 冲突 | 人工确认数据来源；不要直接改数据库或自动 `--replace` |
+| release year conflict | 非 Demo 复用歌曲的已有年份与 manifest 冲突 | 人工确认数据来源；不要直接改数据库或自动 `--replace`。精确匹配的 Demo 歌曲由正式 import 自动升级，不会触发此错误 |
 | publish 后 Demo 仍公开 | 发布事务未成功或数据库被手工修改 | 检查命令错误与数据库状态；修复后重新运行幂等 publish |
 | import 中途失败 | validator、约束或数据库连接失败 | 事务会回滚本次导入；解决原始错误后从 dry run 重新开始 |
 
@@ -266,17 +335,17 @@ npm run import:ranking --workspace @music-rank/database -- --replace manifests/9
 AI agent 在报告“迁移完成”前必须逐项确认：
 
 - [ ] 已读取 `AGENTS.md`、本手册和配置说明。
-- [ ] 已确认 Git 分支、工作区状态和两个 manifest 均来自预期提交。
+- [ ] 已确认 Git 分支、工作区状态和三个 manifest 均来自预期提交。
 - [ ] 已确认目标环境；非 development 已显式设置 `APP_ENV`。
 - [ ] 未输出密码、Token 或完整数据库连接串。
 - [ ] 远程写操作前已有数据库备份。
 - [ ] 已应用所有已跟踪 migration。
 - [ ] Demo Seed 已成功，且未覆盖个人列表数据。
-- [ ] 两个 manifest 的 dry run 均已检查。
-- [ ] 大陆榜已导入 100 条，粤语榜已导入 72 条。
-- [ ] 两个正式榜单已发布，Demo 保留 30 条且未发布。
+- [ ] 三个 manifest 的 dry run 均已检查。
+- [ ] 80s 华语榜和大陆榜各导入 100 条，粤语榜导入 72 条。
+- [ ] 三个正式榜单已发布，Demo 保留 30 条且未发布。
 - [ ] SQL 或等价数据库查询验证了条目数、名次连续性和唯一歌曲数。
-- [ ] API 返回两个正式榜单且详情 `songCount` 正确。
+- [ ] API 返回三个正式榜单且详情 `songCount` 正确。
 - [ ] 若使用了 `--replace`，报告中记录了授权、备份、manifest diff 和替换摘要。
 
-最终报告至少应包含：目标环境、执行的 migration 范围、两个榜单的导入摘要、发布状态、验证结果，以及任何未完成或需要人工处理的异常。不要在报告中包含敏感配置值。
+最终报告至少应包含：目标环境、执行的 migration 范围、三个榜单的导入摘要、发布状态、验证结果，以及任何未完成或需要人工处理的异常。不要在报告中包含敏感配置值。

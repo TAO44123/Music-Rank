@@ -211,7 +211,7 @@ systemctl start music-rank
 
 ### 3.1 榜单数据导入与发布
 
-榜单是数据,不随代码自动生效。新增或更新 manifest 后要显式导入,**导入与发布是分开的两步**:导入后榜单处于未发布状态,确认无误再发布。
+榜单是数据,不随代码自动生效。新增或更新 manifest 后要显式导入,**首次导入与发布是分开的两步**:首次导入的榜单处于未发布状态,确认无误再发布。重复导入相同内容会保留原发布状态;内容冲突时按数据库指南执行受控替换,不要直接套用普通导入。
 
 下面的命令遍历 `packages/database/manifests/` 下的全部文件,新增 manifest 时无需改动:
 
@@ -259,8 +259,7 @@ APP_ENV=production npm run publish:ranking --workspace @music-rank/database -- <
 **验证已发布的结果:**
 
 ```bash
-curl -s localhost/api/rankings | node -e "let d='';process.stdin.on('data',c=>d+=c).on('end',()=>console.log(JSON.parse(d).map(r=>r.slug).join('
-')))"
+curl -fsS localhost/api/rankings | node -e "let d='';process.stdin.on('data',c=>d+=c).on('end',()=>console.log(JSON.parse(d).map(r=>r.slug).join('\n')))"
 ```
 
 返回的是已发布列表,应看到你发布的 slug,且不再有 Demo。

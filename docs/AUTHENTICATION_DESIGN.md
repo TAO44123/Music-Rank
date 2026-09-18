@@ -10,7 +10,7 @@ Approved behavior:
 - Users can register with a username, display name, and password.
 - Sessions use an opaque token in an HTTP-only cookie and expire after seven days.
 - `/api/me/*` endpoints require an authenticated session.
-- Top 10 and Singing List visibility is configured independently and defaults to `PRIVATE`.
+- Top 10 and Singing List visibility is configured independently and defaults to `PUBLIC` for new registrations (updated 2026-09-17). Existing stored visibility is preserved.
 - A public Top 10 exposes songs and ordering.
 - A public Singing List exposes songs and singing statuses, but never notes.
 - Public lists are available without authentication at `/u/:username`.
@@ -81,11 +81,11 @@ The raw token is never persisted. Expired sessions are rejected and deleted oppo
 
 - `user_id`, cascading foreign key to `users`.
 - `list_type`, `TOP_LIST` or `SINGING_LIST`.
-- `visibility`, `PRIVATE` or `PUBLIC`, defaulting to `PRIVATE`.
+- `visibility`, `PRIVATE` or `PUBLIC`, defaulting to `PUBLIC`.
 - `created_at` and `updated_at`.
 - Composite primary key `(user_id, list_type)`.
 
-Missing settings always resolve to `PRIVATE`. Registration creates both private settings in the same transaction as the user and password credential.
+Missing settings always resolve to `PRIVATE`. Registration creates both public settings in the same transaction as the user and password credential.
 
 ## 5. Session and Request Security
 
@@ -105,7 +105,7 @@ Missing settings always resolve to `PRIVATE`. Registration creates both private 
 
 | Method | Path | Behavior |
 | --- | --- | --- |
-| `POST` | `/api/auth/register` | Create account, private list settings, and session |
+| `POST` | `/api/auth/register` | Create account, initial public list settings, and session |
 | `POST` | `/api/auth/login` | Validate password and create session |
 | `POST` | `/api/auth/logout` | Revoke current session and clear cookie |
 | `GET` | `/api/auth/session` | Return `{ user }`, where `user` may be `null` |
@@ -157,7 +157,7 @@ Private and nonexistent public resources intentionally share a `404` response.
 - Valid registration/login establishes a persistent session; invalid credentials return a generic error.
 - Logout, expiration, and revoked tokens cannot access `/api/me/*`.
 - User A cannot read or mutate User B's private resources.
-- Visibility defaults private and existing demo data remains private.
+- New registrations default both lists public; existing private settings and demo data remain private. Missing legacy settings stay private.
 - Public Top 10 order is preserved.
 - Public Singing Lists never include the `note` property.
 - Anonymous public ranking behavior remains unchanged.
