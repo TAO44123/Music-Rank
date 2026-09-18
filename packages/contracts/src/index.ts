@@ -34,6 +34,19 @@ export const updateListVisibilitySchema = z.object({
 });
 
 export const songIdSchema = z.uuid();
+export const groupIdSchema = z.uuid();
+export const groupSummarySchema = z.object({
+  id: groupIdSchema,
+  name: z.string().min(1),
+  slug: z.string().min(1)
+});
+export const groupMemberSchema = z.object({
+  id: z.uuid(),
+  username: usernameSchema,
+  displayName: displayNameSchema
+});
+export type GroupSummary = z.infer<typeof groupSummarySchema>;
+export type GroupMember = z.infer<typeof groupMemberSchema>;
 export const rankingIdSchema = z.uuid();
 export const rankingSlugSchema = z.string().trim().min(1).max(120).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'Invalid ranking slug');
 export const rankingDecades = ['80s', '90s'] as const;

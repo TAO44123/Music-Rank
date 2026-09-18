@@ -7,6 +7,7 @@ import {
   addTopListItemSchema,
   addSingingListItemSchema,
   artistFilterSchema,
+  groupIdSchema,
   listTypePathSchema,
   loginSchema,
   rankingSlugSchema,
@@ -24,6 +25,7 @@ import { authenticatePassword, createSession, registerUser, revokeSession, sessi
 import { createCurrentUserResolver, createOptionalCurrentUserResolver, readCookie } from './current-user.js';
 import { asyncRoute, errorHandler } from './errors.js';
 import { createAuthRateLimiter, createOriginGuard } from './security.js';
+import { getDefaultGroup, getGroupMemberProfile, getGroupMembers, getMyGroups, joinDefaultGroup } from './groups.js';
 import {
   addTopListItem,
   addSingingListItem,
@@ -91,6 +93,13 @@ export function createApp({ currentUserId, allowedOrigin = config.server.appOrig
   app.get('/api/songs', asyncRoute(async (request, response) => response.json(await listSongs(parseQuery(request.query.q)))));
 
   const authLimiter = createAuthRateLimiter(authRateLimit);
+  app.get('/api/group-invitations/default', asyncRoute(async (_request, response) => {
+    response.json(await getDefaultGroup());
+  }));
+  app.post('/api/group-invitations/default/join', createCurrentUserResolver(sessionCookie.name), asyncRoute(async (_request, response) => {
+    response.setHeader('Cache-Control', 'private, no-store');
+    response.json(await joinDefaultGroup(response.locals.userId));
+  }));
   app.post('/api/auth/register', authLimiter, asyncRoute(async (request, response) => {
     const input = registerSchema.parse(request.body);
     const { user, session } = await registerUser(input);
@@ -141,6 +150,13 @@ export function createApp({ currentUserId, allowedOrigin = config.server.appOrig
     next();
   });
   app.get('/api/me/list-settings', asyncRoute(async (_request, response) => response.json(await getListSettings(response.locals.userId))));
+  app.get('/api/me/groups', asyncRoute(async (_request, response) => response.json(await getMyGroups(response.locals.userId))));
+  app.get('/api/me/groups/:groupId/members', asyncRoute(async (request, response) => {
+    response.json(await getGroupMembers(response.locals.userId, groupIdSchema.parse(request.params.groupId)));
+  }));
+  app.get('/api/me/groups/:groupId/members/:username', asyncRoute(async (request, response) => {
+    response.json(await getGroupMemberProfile(response.locals.userId, groupIdSchema.parse(request.params.groupId), usernameSchema.parse(request.params.username)));
+  }));
   app.patch('/api/me/lists/:listType/visibility', asyncRoute(async (request, response) => {
     const listType = listTypePathSchema.parse(request.params.listType);
     const { visibility } = updateListVisibilitySchema.parse(request.body);

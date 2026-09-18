@@ -6,8 +6,10 @@ import { Route as rankingRoute } from './routes/rankings.$slug';
 import { Route as personalRoute } from './routes/personal';
 import { Route as practiceRoute } from './routes/practice';
 import { Route as publicProfileRoute } from './routes/u.$username';
+import { Route as groupsRoute } from './routes/groups';
+import { Route as invitationRoute } from './routes/invite.default';
 
-const routeTree = rootRoute.addChildren([indexRoute, rankingRoute, personalRoute, practiceRoute, publicProfileRoute]);
+const routeTree = rootRoute.addChildren([indexRoute, rankingRoute, personalRoute, practiceRoute, publicProfileRoute, groupsRoute, invitationRoute]);
 
 export function createAppRouter(queryClient: QueryClient, history?: RouterHistory) {
   return createRouter({ routeTree, context: { queryClient }, history, defaultPreload: false });

@@ -41,6 +41,22 @@ export const passwordCredentials = pgTable('password_credentials', {
   ...timestamps
 });
 
+export const groups = pgTable('groups', {
+  id: uuid('id').primaryKey(),
+  slug: text('slug').notNull(),
+  name: text('name').notNull(),
+  ...timestamps
+}, (table) => [uniqueIndex('groups_slug_unique').on(table.slug)]);
+
+export const groupMemberships = pgTable('group_memberships', {
+  groupId: uuid('group_id').notNull().references(() => groups.id, { onDelete: 'cascade' }),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  joinedAt: timestamp('joined_at', { withTimezone: true }).defaultNow().notNull()
+}, (table) => [
+  primaryKey({ columns: [table.groupId, table.userId], name: 'group_memberships_group_user_pk' }),
+  index('group_memberships_user_id_index').on(table.userId)
+]);
+
 export const authSessions = pgTable('auth_sessions', {
   id: uuid('id').primaryKey(),
   userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
@@ -54,7 +70,7 @@ export const authSessions = pgTable('auth_sessions', {
 export const userListSettings = pgTable('user_list_settings', {
   userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   listType: listTypeEnum('list_type').notNull(),
-  visibility: listVisibilityEnum('visibility').notNull().default('PRIVATE'),
+  visibility: listVisibilityEnum('visibility').notNull().default('PUBLIC'),
   ...timestamps
 }, (table) => [
   primaryKey({ columns: [table.userId, table.listType], name: 'user_list_settings_user_list_type_pk' })

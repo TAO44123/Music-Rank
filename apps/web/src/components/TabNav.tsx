@@ -4,6 +4,7 @@ import { destinations } from '../navigation';
 import { useAppShell } from '../shell/AppShellContext';
 
 function Label({ short, full }: { short: string; full: string }) {
+  if (short === full) return <>{full}</>;
   return <>
     <Box component="span" sx={{ display: { xs: 'inline', sm: 'none' } }}>{short}</Box>
     <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>{full}</Box>

@@ -1,4 +1,5 @@
 import type { RankingDecade as ContractRankingDecade, RankingRegionPath } from '@music-rank/contracts';
+export type { GroupSummary, GroupMember } from '@music-rank/contracts';
 
 export type Song = { id: string; title: string; artist: string; releaseYear: number | null };
 export type RankingDecade = ContractRankingDecade;
