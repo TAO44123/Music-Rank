@@ -70,7 +70,7 @@ export const authSessions = pgTable('auth_sessions', {
 export const userListSettings = pgTable('user_list_settings', {
   userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   listType: listTypeEnum('list_type').notNull(),
-  visibility: listVisibilityEnum('visibility').notNull().default('PRIVATE'),
+  visibility: listVisibilityEnum('visibility').notNull().default('PUBLIC'),
   ...timestamps
 }, (table) => [
   primaryKey({ columns: [table.userId, table.listType], name: 'user_list_settings_user_list_type_pk' })

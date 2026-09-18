@@ -52,6 +52,11 @@ test('ordinary registration joins, ordinary login does not backfill, and logged-
   await page.goto('/invite/default');
   await expect(page).toHaveURL(/\/groups$/);
   expect(await db.select().from(groupMemberships).where(eq(groupMemberships.userId, user.id))).toHaveLength(1);
+  for (const list of ['top-list', 'singing-list']) {
+    expect((await page.request.patch(`/api/me/lists/${list}/visibility`, {
+      headers: { Origin: 'http://127.0.0.1:3101' }, data: { visibility: 'PRIVATE' }
+    })).status()).toBe(200);
+  }
   const memberLink = page.getByRole('list', { name: 'Group members' }).getByRole('link').filter({ hasText: username });
   await memberLink.focus();
   await page.keyboard.press('Enter');
@@ -72,7 +77,8 @@ test('invitation registration preserves intent and displays only another memberâ
   const origin = { Origin: 'http://127.0.0.1:3101' };
   expect((await request.post('/api/me/top-list/items', { headers: origin, data: { songId: song.id } })).status()).toBe(201);
   expect((await request.put(`/api/me/singing-list/items/${song.id}`, { headers: origin, data: { status: 'PRACTICING', note: 'E2E group private note' } })).status()).toBe(200);
-  expect((await request.patch('/api/me/lists/singing-list/visibility', { headers: origin, data: { visibility: 'PUBLIC' } })).status()).toBe(200);
+  expect(await (await request.get('/api/me/list-settings')).json()).toEqual({ topList: 'PUBLIC', singingList: 'PUBLIC' });
+  expect((await request.patch('/api/me/lists/top-list/visibility', { headers: origin, data: { visibility: 'PRIVATE' } })).status()).toBe(200);
 
   await page.goto('/invite/default');
   await page.reload();
@@ -98,15 +104,29 @@ test('invitation registration preserves intent and displays only another memberâ
   }
   await page.setViewportSize({ width: 390, height: 844 });
   await page.screenshot({ path: 'test-results/default-group-mobile.png', fullPage: true });
-  // Simulate HTTP API availability even on the test's trusted loopback origin.
+  // Exercise actual selection-based copying when HTTP's async API is absent.
+  await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
   await page.evaluate(() => {
-    Object.defineProperty(navigator, 'share', { value: undefined, configurable: true });
+    Object.defineProperty(navigator, 'share', { value: () => { throw new Error('Native sharing must not be called'); }, configurable: true });
     Object.defineProperty(navigator, 'clipboard', { value: undefined, configurable: true });
   });
   await page.getByRole('button', { name: 'Share invitation' }).click();
-  await expect(page.getByRole('dialog', { name: 'Copy invitation link' })).toBeVisible();
+  await expect(page.getByRole('dialog', { name: 'Invite friends' })).toBeVisible();
+  await expect.poll(() => page.getByRole('dialog', { name: 'Invite friends' }).evaluate((element) => getComputedStyle(element.parentElement!).opacity)).toBe('1');
+  await expect(page.getByText('Copy the link to invite friends to Default Group.')).toBeVisible();
   await expect(page.getByRole('textbox', { name: 'Invitation link', exact: true })).toHaveValue('http://127.0.0.1:3101/invite/default');
+  await page.screenshot({ path: 'test-results/share-invitation-mobile.png' });
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.screenshot({ path: 'test-results/share-invitation-desktop.png' });
+  await page.setViewportSize({ width: 320, height: 720 });
+  await expect(page.getByRole('button', { name: 'Copy', exact: true })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
+  await page.getByRole('button', { name: 'Copy', exact: true }).click();
+  await expect(page.getByRole('status')).toHaveText('Link copied.');
+  await page.evaluate(() => Reflect.deleteProperty(navigator, 'clipboard'));
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe('http://127.0.0.1:3101/invite/default');
   await page.getByRole('button', { name: 'Done', exact: true }).click();
+  await page.setViewportSize({ width: 1280, height: 900 });
   await page.context().clearCookies();
   await page.goto(`/u/${owner}`);
   await expect(page.getByRole('region', { name: 'Practice Library' }).getByText(song.title)).toBeVisible();

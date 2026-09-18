@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import request from 'supertest';
 import { and, eq, inArray } from 'drizzle-orm';
-import { authSessions, closeDatabase, db, defaultGroupId, demoUserId, groupMemberships, rankingEntries, rankings, singingListEntries, songs, users, userTopListEntries } from '@music-rank/database';
+import { authSessions, closeDatabase, db, defaultGroupId, demoUserId, groupMemberships, rankingEntries, rankings, singingListEntries, songs, users, userListSettings, userTopListEntries } from '@music-rank/database';
 import { createApp } from './app.js';
 import { hashSessionToken } from './auth.js';
 
@@ -84,11 +84,29 @@ describe('Authentication and public lists', () => {
     expect(registration.headers['set-cookie']?.[0]).toMatch(/music_rank_session=.*HttpOnly.*SameSite=Lax/);
     await agent.get('/api/auth/session').expect(200).expect(({ body }) => expect(body.user.username).toBe('auth_alice'));
     await agent.get('/api/me/top-list').expect(200).expect('Cache-Control', 'private, no-store');
+    await agent.get('/api/me/list-settings').expect(200).expect({ topList: 'PUBLIC', singingList: 'PUBLIC' });
+    await request(authApp).get('/api/users/auth_alice/top-list').expect(200).expect([]);
+    await request(authApp).get('/api/users/auth_alice/singing-list').expect(200).expect([]);
     await agent.get('/api/me/groups').expect(200).expect(({ body }) => {
       expect(body).toEqual([{ id: defaultGroupId, slug: 'default', name: 'Default Group' }]);
     });
     await agent.post('/api/auth/logout').set('Origin', allowedOrigin).expect(204);
     await agent.get('/api/me/top-list').expect(401).expect(({ body }) => expect(body.code).toBe('AUTH_REQUIRED'));
+  });
+
+  it('defaults new settings to public while keeping missing legacy settings private', async () => {
+    const agent = request.agent(authApp);
+    const { body } = await register(agent, 'auth_alice', 'Alice Listener').expect(201);
+    await db.delete(userListSettings).where(eq(userListSettings.userId, body.user.id));
+    await agent.get('/api/me/list-settings').expect(200).expect({ topList: 'PRIVATE', singingList: 'PRIVATE' });
+    await request(authApp).get('/api/users/auth_alice').expect(404);
+    await request(authApp).get('/api/users/auth_alice/top-list').expect(404);
+    await request(authApp).get('/api/users/auth_alice/singing-list').expect(404);
+    await db.insert(userListSettings).values([
+      { userId: body.user.id, listType: 'TOP_LIST' },
+      { userId: body.user.id, listType: 'SINGING_LIST' }
+    ]);
+    await agent.get('/api/me/list-settings').expect(200).expect({ topList: 'PUBLIC', singingList: 'PUBLIC' });
   });
 
   it('rejects and removes expired sessions', async () => {
@@ -170,6 +188,8 @@ describe('Authentication and public lists', () => {
     const bob = request.agent(authApp);
     await register(alice, 'auth_alice', 'Alice Listener').expect(201);
     const { body: registration } = await register(bob, 'auth_bob', 'Bob Listener').expect(201);
+    await bob.patch('/api/me/lists/top-list/visibility').set('Origin', allowedOrigin).send({ visibility: 'PRIVATE' }).expect(200);
+    await bob.patch('/api/me/lists/singing-list/visibility').set('Origin', allowedOrigin).send({ visibility: 'PRIVATE' }).expect(200);
     await bob.put(`/api/me/singing-list/items/${songIds[0]}`).set('Origin', allowedOrigin)
       .send({ status: 'PRACTICING', note: 'Group must never see this note.' }).expect(200);
     await alice.get(`/api/me/groups/${defaultGroupId}/members`).expect(200)
@@ -205,7 +225,15 @@ describe('Authentication and public lists', () => {
     await bob.get('/api/me/top-list').expect(200).expect([]);
     await bob.delete(`/api/me/top-list/items/${songIds[0]}`).set('Origin', allowedOrigin).expect(404);
     await alice.get('/api/me/top-list').expect(200).expect(({ body }) => expect(body).toHaveLength(1));
+    await request(authApp).get('/api/users/auth_alice/singing-list').expect(200)
+      .expect(({ body }) => expect(body[0]).not.toHaveProperty('note'));
+    await alice.patch('/api/me/lists/top-list/visibility').set('Origin', allowedOrigin).send({ visibility: 'PRIVATE' }).expect(200);
+    await alice.patch('/api/me/lists/singing-list/visibility').set('Origin', allowedOrigin).send({ visibility: 'PRIVATE' }).expect(200);
     await request(authApp).get('/api/users/auth_alice').expect(404);
+    await alice.post('/api/auth/logout').set('Origin', allowedOrigin).expect(204);
+    await alice.post('/api/auth/login').set('Origin', allowedOrigin)
+      .send({ username: 'auth_alice', password: 'correct horse battery staple' }).expect(200);
+    await alice.get('/api/me/list-settings').expect(200).expect({ topList: 'PRIVATE', singingList: 'PRIVATE' });
 
     await alice.patch('/api/me/lists/top-list/visibility').set('Origin', allowedOrigin).send({ visibility: 'PUBLIC' }).expect(200);
     await alice.patch('/api/me/lists/singing-list/visibility').set('Origin', allowedOrigin).send({ visibility: 'PUBLIC' }).expect(200);

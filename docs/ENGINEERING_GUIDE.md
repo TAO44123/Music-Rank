@@ -8,7 +8,7 @@
 | 目标读者 | 负责开发、测试、排障和后续维护的工程师 |
 | 当前产品版本 | Version 1 + 认证扩展 + 响应式导航 + 多榜单目录，本地多用户应用 |
 | 最后更新日期 | 2026-09-17（America/New_York） |
-| 最后核对的代码提交 | Current working tree on `codex/default-group`, based on `83b24f3`; group schema/API/auth/navigation checked |
+| 最后核对的代码提交 | Local refinement commit `feat: add share link dialogs and default lists to public` on `codex/default-group` (parent `7053051`) |
 | 事实来源 | 当前仓库代码、配置、迁移和自动化测试 |
 
 这份文档描述系统现在如何工作。首次在本机配置和运行项目时，先执行 [LOCAL_FIRST_RUN_GUIDE.md](LOCAL_FIRST_RUN_GUIDE.md)；PROJECT_SPEC_ZH.md、PROJECT_SPEC_EN.md 与 IMPLEMENTATION_HANDOFF.md 保留 Version 1 历史基线，当前已批准扩展以 [AUTHENTICATION_DESIGN.md](AUTHENTICATION_DESIGN.md)、[RANKING_CATALOG_DESIGN.md](RANKING_CATALOG_DESIGN.md) 和 [SESSION_HANDOFF.md](SESSION_HANDOFF.md) 为准。若文档与代码不一致，应先核对代码和测试，再更新本文档。
@@ -35,7 +35,9 @@ and acceptance gates are in [PLAN-007](PLAN_007_DEFAULT_GROUP.md). The starting
 baseline is integrated `main` at `83b24f3`.
 
 The implementation adds group tables, a member directory, `/groups`, and fixed
-invitation `/invite/default`. New registrations join transactionally. Ordinary
+invitation `/invite/default`. New registrations join transactionally and start
+with both personal lists PUBLIC; existing stored visibility remains unchanged.
+Migration `0006_panoramic_machine_man.sql` changes only the column default. Ordinary
 login does not backfill membership. Invitation authentication joins if needed
 and opens the group; repeat joins are idempotent. `Groups` appears in desktop
 top navigation and mobile bottom navigation. PUBLIC still means anyone,
@@ -72,7 +74,7 @@ flowchart LR
 - 四种演唱状态和最长 300 字符的纯文本备注。
 - 本地数据库迁移、幂等种子、组件测试、API 集成测试和 Playwright E2E。
 - 用户注册、登录、七天持久 Session 和退出撤销。
-- 默认私密且可独立公开的 Top 10 与 Practice Library；公开 Practice Library 不包含备注。
+- 新注册默认公开且可独立设为私密的 Top 10 与 Practice Library；公开 Practice Library 不包含备注。
 - TanStack Router manages four primary destinations, slug ranking routes, protected personal/group routes, fixed invitations, and public profiles.
 - 排名搜索、歌手、年份和客户端页码写入并校验 URL Search 参数；歌手与年份 Facet 只来自当前榜单。
 - macOS、Linux、PowerShell 和 cmd.exe 均可使用的 production-shaped 启动命令。
@@ -311,7 +313,7 @@ createApp 仍允许注入 currentUserId，但只供既有个人列表集成测�
 
 ### 7.5 user_list_settings
 
-以 `(user_id, list_type)` 为复合主键。visibility 默认为 PRIVATE；缺少记录时 Service 也按 PRIVATE 处理。注册事务会创建 TOP_LIST 和 SINGING_LIST 两条私密设置。
+以 `(user_id, list_type)` 为复合主键。visibility 默认为 PUBLIC；注册事务会创建 TOP_LIST 和 SINGING_LIST 两条公开设置。已有设置不变，缺少记录时 Service 仍按 PRIVATE 处理，避免旧数据意外公开。
 
 ### 7.6 songs
 
@@ -454,7 +456,7 @@ timestamps. `group_memberships` has composite primary key `(group_id,user_id)`,
 The canonical ID is exported by `packages/database/src/groups.ts`.
 
 New-account registration writes membership in the existing transaction with
-credentials, private list settings, and session. Ordinary login, GET APIs, and
+credentials, initial public list settings, and session. Ordinary login, GET APIs, and
 Demo seed do not backfill users. Invitation joins use `ON CONFLICT DO NOTHING`;
 concurrent/repeated requests keep one membership. TTT was joined only in the
 local development database; AAA was preserved as a nonmember for user testing.
@@ -892,10 +894,14 @@ Groups, members, and member profiles use the protected `personal` cache prefix
 with user-scoped keys; logout, expiry, and account switching clear old data.
 Invitation metadata contains no member data and uses a public cache key.
 
-ShareInvitation tries native sharing, clipboard, then a selectable manual-copy
-dialog. It handles absent APIs and rejected permission calls; cancellation ends
-native sharing. Its URL comes from the current browser origin. This fallback
-applies to invitation sharing; existing list-share buttons were not refactored.
+ShareInvitation and VisibilityControl reuse ShareLinkDialog: a centered modal
+with the standard dimmed MUI backdrop, a read-only selectable URL, adjacent Copy
+button, and contextual hint. Opening it never copies or invokes native sharing.
+Copy tries async clipboard, then `document.execCommand('copy')` with the link
+selected for HTTP/permission failure. This legacy API may be blocked in some
+browsers; if both methods fail, the dialog retains the selected link and explains
+manual copying without claiming success. Successful copying updates the button
+and status and notifies the caller. URLs use the current browser origin.
 
 ### 12.2 术语分界
 
@@ -955,7 +961,7 @@ DESIGN-002 起，用户可见文案统一使用 Practice Library：Tab 名称、
 - 登录注册共用 AuthDialog，关闭时清除密码 state。
 - 每个个人榜单卡片使用独立 VisibilityStatus 和 VisibilityControl。标题下方的小标签明确显示 Public 或 Private；操作区的闭合锁表示 Private，打开锁表示 Public。
 - 点击闭合锁切换到 Public 前必须确认；点击打开锁可直接恢复 Private。
-- Public 状态显示弯曲箭头分享按钮。浏览器支持 Web Share API 时打开原生分享面板；不可用或调用失败时复制 `/u/:username` 链接。用户主动取消系统分享时不触发复制降级。
+- Public list share buttons open ShareLinkDialog for `/u/:username`, with contextual instructions and an explicit Copy button. Group invitations use the same dialog for `/invite/default`.
 - `/u/:username` 只请求服务端已批准的公开 Projection。
 - Practice Library 公开页显示状态但不支持编辑，也不接收 note 字段。
 
@@ -1030,17 +1036,18 @@ npm run typecheck 会先构建 contracts 和 database，再执行所有 workspac
 
 ### 14.2 前端组件测试
 
-The current Web suite has 15 files and 59 tests. It covers the existing ranking,
+The current Web suite has 16 files and 63 tests. It covers the existing ranking,
 list/auth/privacy/navigation behavior plus groups, invitation refresh and mode
 switching, failed authentication/cancellation, join retry, private-profile empty
 states, protected-cache cleanup on logout/expiry/account switching, and sharing
-when browser APIs are absent or permission/native sharing fails.
+with explicit button-triggered copying, native sharing never invoked, and
+absent/rejected clipboard APIs handled without false success.
 
 Vitest 保持文件级并行。`apps/web/vite.config.ts` 把单测试超时设为 10 秒；首页排名加载断言另用 5 秒 Testing Library 等待窗口。该设置来自合并后对负载敏感超时的复现：默认限制下完整套件可能失败，而测试文件单独或串行运行可以通过。调整并行度、测试运行器或查询初始化时，应连续运行完整 Web 套件至少三次确认稳定性，不要只验证单个测试文件。
 
 ### 14.3 API 集成测试
 
-There are 25 Supertest tests using real PostgreSQL, covering the existing
+There are 26 Supertest tests using real PostgreSQL, covering the existing
 ranking/list/auth/privacy rules and the group access matrix, read-only GETs,
 transactional registration membership, ordinary login without backfill,
 concurrent/idempotent joining, safe member/profile projections, and private
@@ -1080,13 +1087,13 @@ npm run test:e2e
 
 涉及 Vite 或 React 插件版本时，还必须启动开发服务器并验证 /@vite/client。
 
-### 14.5 Default Group acceptance
+### 14.6 Default Group acceptance
 
 The three cases in `e2e/groups.spec.ts` cover ordinary registration/home,
 ordinary login without backfill, nonmember empty state, logged-in invitation
 joining and member re-entry, invitation registration after refresh/mode
 switching, invitation login for an existing nonmember, member/public-list
-navigation, private-note exclusion, manual-copy fallback, and 320/390/600/900px
+navigation, private-note exclusion, dialog copying, and 320/390/600/900px
 layouts. Member links also support keyboard activation. Test-created accounts
 are removed after each test; fixture cleanup failures propagate.
 
@@ -1234,7 +1241,7 @@ E2E 不复用已有服务器；3101 被占用时应先定位占用者。
 | 测试数据库 | 测试仍使用本地 PostgreSQL | CI 或多人开发前提供独立数据库 |
 | 认证限流 | 当前为单进程内存窗口 | 多实例或公网部署前迁移到共享存储 |
 | 依赖漏洞 | 6 项未自动修复 | 分别验证 Drizzle 与 Vite 升级 |
-| 前端包体积 | 846.18 KB，gzip 263.35 KB（Default Group build） | 优先评估路由级 lazy loading，再决定 vendor manualChunks |
+| 前端包体积 | 846.85 KB，gzip 263.54 KB（sharing-dialog build） | 优先评估路由级 lazy loading，再决定 vendor manualChunks |
 | Web 测试日志噪声 | jsdom scrollTo 与 MUI out-of-range 提示不影响通过 | 用测试 setup polyfill 和完整筛选 fixture 消除噪声 |
 | 跨平台 CI | 当前无 GitHub checks，跨平台改动依赖人工复核 | 增加 Node 24.21.0/npm 11.19.0 的 Linux 与 Windows 工作流 |
 | 换行符策略 | 仓库尚无共享 .gitattributes | 为文本文件固定 LF，脚本类型按平台显式例外 |
@@ -1268,7 +1275,9 @@ E2E 不复用已有服务器；3101 被占用时应先定位占用者。
 
 | 日期 | 代码基线 | 内容 |
 | --- | --- | --- |
-| 2026-09-17 | Current working tree `codex/default-group`, based on `83b24f3` | Implements DESIGN-007: group tables/0005, transactional registration membership, fixed invitations, protected directory/profile reads, desktop/mobile Groups, and HTTP manual-copy fallback. Local TTT joined; AAA preserved outside. Typecheck/build passed; tests API 25/25, Web 59/59, config 8/8, database 10/10, Playwright 6/6. See PLAN-007 for details. Local Git commit only; no GitHub push/deployment. |
+| 2026-09-17 | Local refinement commit after `7053051` | New registrations initialize both personal lists PUBLIC. Forward migration 0006 only changes the column default; existing visibility/membership and private notes are preserved. Full typecheck/build passed; API 26, Web 63, config 8, database 10, Playwright 6/6 passed. Local Git commit only; no GitHub push/deployment. |
+| 2026-09-17 | Local refinement commit after `7053051` | Sharing refinement: lists and invitations always open ShareLinkDialog with dimmed backdrop, URL, contextual hint, and explicit Copy. HTTP/rejected clipboard uses selection-based copying or manual instructions. Web typecheck/build passed; Web 63/63 and Playwright 6/6 with real clipboard reads and desktop/mobile visual QA. Local Git commit only; no GitHub push/deployment. |
+| 2026-09-17 | Local commit `7053051`, based on `83b24f3` | Implements DESIGN-007: group tables/0005, transactional registration membership, fixed invitations, protected directory/profile reads, desktop/mobile Groups, and HTTP manual-copy fallback. Local TTT joined; AAA preserved outside. Typecheck/build passed; tests API 25/25, Web 59/59, config 8/8, database 10/10, Playwright 6/6. See PLAN-007 for details. Local Git commit only; no GitHub push/deployment. |
 | 2026-09-17 | feature `b5507cc` / main merge `81a3e33` | 新增并发布 100 首 `80s Chinese Songs Top 100`；清单原样保留用户 JSON；导入器允许正式清单升级精确匹配的 Demo 歌曲并让 dry-run 同步检查年份冲突；E2E 不再假设默认榜单含 Demo 歌曲。typecheck、API 22/22、Web 44/44、config 8/8、database 10/10、build、Playwright 3/3 及桌面/手机验收通过；按用户授权直接合并并推送至 main。 |
 | 2026-09-15 | feature `ecd1e45` / main `62292ba` | 合并多榜单目录与 DESIGN-004/006：保留来源无关 slug 路由、两份已发布真实榜单、移动底栏和响应式列表；更新 BottomNav 测试夹具与 Session 等待；typecheck、API 15/15、Web 40/40、database 8/8、build、Playwright 3/3 均通过。 |
 | 2026-09-15 | `feature/90s-ranking-pilot` latest local commit after `6729972` | 新增 72 首 `90s Cantonese Songs Top 70`；导入器取消恰好 100 条的限制，改为支持任意正数的连续唯一名次；Cantonese 榜单不设置 region，来源 URL 仅用于 Watch source。 |

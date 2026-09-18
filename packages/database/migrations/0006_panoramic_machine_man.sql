@@ -1,0 +1,1 @@
+ALTER TABLE "user_list_settings" ALTER COLUMN "visibility" SET DEFAULT 'PUBLIC';

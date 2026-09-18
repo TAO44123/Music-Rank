@@ -26,6 +26,7 @@
 | `0003_red_silver_samurai.sql` | 改为来源无关 slug，并让年代和地区成为可选元数据 |
 | `0004_abnormal_butterfly.sql` | 加入用户补录歌曲的可空提交者归属和索引 |
 | `0005_bizarre_the_stranger.sql` | Creates groups/memberships and initializes Default Group; no existing-user backfill |
+| `0006_panoramic_machine_man.sql` | Changes new list-setting default to PUBLIC; no existing visibility updates |
 
 操作时遵守以下边界：
 
@@ -84,7 +85,7 @@
 (`d0000000-0000-4000-8000-000000000001`, slug `default`, name `Default Group`).
 Run the normal `npm run db:migrate` before starting this version of the API:
 registration now inserts membership in the same transaction as the account,
-credentials, private settings, and session. Without the migration, registration
+credentials, initial public settings, and session. Without the migration, registration
 cannot complete.
 
 Migration and repeat Demo seed do not add any existing users, including the
@@ -98,6 +99,14 @@ after it has accepted the invitation.
 No new configuration keys, certificate setup, ranking import, or dependency
 installation is needed for this migration. Existing deployment migration
 commands apply; this implementation session did not change production data.
+
+### 3.2 Public defaults for new registrations
+
+`0006_panoramic_machine_man.sql` only changes the column default to PUBLIC.
+Registration explicitly initializes both lists as PUBLIC. It does not update
+existing visibility, publish old lists, or change memberships. Missing legacy
+settings still resolve to PRIVATE; Practice Library notes remain private.
+Apply the normal migration command before starting the updated API.
 
 ## 4. 本地 development：完整复制粘贴流程
 

@@ -83,7 +83,7 @@ session lookup error must not be mistaken for an anonymous visitor.
 ## 4. List Visibility and Member Discovery
 
 Keep exactly the existing `PRIVATE` and `PUBLIC` values, independently applied
-to Top 10 and Practice Library. Both still default to private.
+to Top 10 and Practice Library. Both default to public for newly registered users. Existing stored visibility is preserved; missing legacy settings remain private.
 
 | Visibility | Who can read the list |
 | --- | --- |
@@ -124,16 +124,18 @@ anonymous visitors: hide Groups in the desktop top bar, and show a sign-in
 button in the mobile bar that does not change the URL or join the group.
 Ordinary sign-in from navigation must not be treated as an invitation.
 
-Invitation sharing must work when native sharing is unavailable. Use native
-sharing where supported, clipboard copying where available, and an explicit
-selectable URL for manual copying if both fail. User cancellation of native
-sharing ends the action. The current EC2 deployment is HTTP, where native
-sharing and the asynchronous clipboard API may both be absent. Do not assume
-the clipboard exists or leave a rejected promise unhandled.
+The user refined sharing after the local feature commit: both public-list
+sharing and group invitations now always open a centered in-app dialog with a
+dimmed backdrop. The dialog displays a read-only selectable URL and a Copy
+button beside it. The list hint is “Copy the link to share this list.”; the
+invitation hint is “Copy the link to invite friends to Default Group.”
 
-This behavior applies to the new invitation action. Extending the same fallback
-to existing list-sharing buttons is a separate implementation scope decision.
-HTTPS deployment is not part of this feature.
+Opening the dialog does not copy anything. Copy uses the asynchronous clipboard
+API where available, then selection-based copying for HTTP or permission
+failure. Success is explicitly reported; if neither method works, retain the
+selected link and explain manual copying. No native share sheet is invoked.
+HTTPS deployment is not part of this refinement. Links and visibility rules
+remain unchanged.
 
 ## 6. Implementation
 
@@ -164,6 +166,9 @@ Default-group initialization must be idempotent. Do not create the group as
 a side effect of every read, or depend on a developer's ignored configuration.
 Migration `0005_bizarre_the_stranger.sql` creates the two tables and inserts
 `Default Group` with the stable ID exported by `packages/database/src/groups.ts`.
+Migration `0006_panoramic_machine_man.sql` changes new list-setting defaults
+to PUBLIC without updating existing visibility. Registration explicitly creates
+both public settings. Missing legacy settings remain private.
 Normal seed does not add existing accounts. A member-only profile endpoint
 returns safe identity and visibility flags, including for members with both
 lists private. Actual list contents still use the existing public endpoints.
@@ -200,8 +205,9 @@ This does not authorize changes to the EC2 or production database.
    no-public-lists case, then return to the group.
 5. Anonymous public-profile access still works. Private lists and all practice
    notes remain inaccessible to other users.
-6. Invitation sharing offers a usable manual-copy fallback on HTTP and handles
-   native-share cancellation and clipboard failure without uncaught errors.
+6. List and invitation sharing open the in-app link dialog, copy only on an
+   explicit button press, and handle absent/rejected clipboard APIs with
+   selection-based copying or a clear manual-copy explanation.
 7. Logout and session expiration remove protected group data from the client.
 8. Existing rankings, Demo data, personal-list behavior, authentication, and
    desktop/mobile layout remain intact.

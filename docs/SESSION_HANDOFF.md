@@ -37,9 +37,26 @@ is still outside; these usernames are never business logic or migration rules.
 Accepting the invitation as AAA will change its membership; do not reset it
 silently. Account/list/catalog data were preserved. EC2 was not modified.
 
-Invitation sharing supports native share, clipboard, and a selectable manual
-link when APIs are unavailable/rejected, including HTTP. Existing list-share
-buttons and HTTPS deployment remain separate work.
+The baseline feature is saved locally as `7053051`. The subsequent sharing
+refinement is saved in the local refinement commit following `7053051`: public lists and invitations now use ShareLinkDialog
+with a dimmed background, visible URL, adjacent Copy button, and contextual hint.
+Opening never copies or invokes native sharing. Copy uses async clipboard or
+selection-based copying on HTTP; blocked copying retains manual instructions.
+Local refinement commit title: `feat: add share link dialogs and default lists to public`.
+No GitHub push or deployment. Refinement verification: Web typecheck passed,
+Web tests 63/63 across 16 files, production build passed, Playwright 6/6 passed.
+Actual clipboard contents were checked for both list links and invitations,
+including the HTTP-style selection-based fallback. Desktop/mobile dialogs
+were visually inspected; final diff/document checks passed.
+
+New registration defaults now initialize both Top 10 and Practice Library as
+PUBLIC. Migration `0006_panoramic_machine_man.sql` changes only the database
+column default and was applied locally. Existing stored visibility and
+memberships are unchanged; missing legacy settings and all notes remain
+private. This refinement is saved in the same local refinement commit. Full typecheck and 107/107 tests passed
+(API 26, Web 63, config 8, database 10); production build and Playwright 6/6
+passed. Migration snapshot and final diff/document checks passed. Details
+are recorded in PLAN-007.
 
 The authentication and list-sharing iteration, compact visibility controls,
 DESIGN-002 routing, DESIGN-006 responsive panels, the PR #4 account-label
@@ -74,7 +91,7 @@ Established application behavior remains:
 - Local username/password registration and login.
 - Opaque server-managed cookie sessions that expire after seven days.
 - Anonymous access to the global ranking and explicitly public personal lists.
-- Independent `private`/`public` settings for My Top 10 and My Singing List; both default to `private`.
+- Independent `private`/`public` settings for My Top 10 and My Singing List; both default to `public` for new registrations; existing settings are preserved.
 - A shareable `/u/:username` page that shows only lists the owner has made public.
 - `PUBLIC` currently means accessible through the shareable profile URL. There is no public directory, user search, feed, or other in-app discovery path.
 - Public Singing List responses omit private notes.
@@ -221,7 +238,7 @@ were not rerun because no application, configuration, or database code changed.
   ranking route with the sign-in dialog.
 - Anonymous visitors see the global ranking and a sign-in/register entry point.
 - Authentication uses a dialog with separate login and registration modes.
-- Authenticated users can edit personal lists and independently publish or privatize each list from a compact lock button in its panel header. A closed lock means private and an open lock means public; a small label beneath the list title states the current visibility. Publishing still requires confirmation, while returning to private is immediate. Public lists also show a curved-arrow share action, using the native share sheet when available and copying the link as a fallback.
+- Authenticated users can edit personal lists and independently publish or privatize each list from a compact lock button in its panel header. A closed lock means private and an open lock means public; a small label beneath the list title states the current visibility. Publishing still requires confirmation, while returning to private is immediate. Public lists also show a curved-arrow share action that opens an in-app link dialog with an explicit Copy button.
 - TanStack Router provides one root layout plus The Ranking (`/`), Personal Ranking (`/personal`), Practice Library (`/practice`), Groups (`/groups`), default invitation (`/invite/default`), and public profile (`/u/:username`) routes.
 - `/personal`, `/practice`, and `/groups` use Session-backed route guards; anonymous deep links return to `/` and open the sign-in dialog.
 - The ranking page is full-width. Personal Ranking and Practice Library are independent full-width pages rather than side columns.
@@ -318,7 +335,7 @@ jsdom's unimplemented `window.scrollTo()` notices during Web tests.
 - Read DESIGN-007 / PLAN-007 for behavior and implementation evidence.
 - Added shared contracts, migration SQL/snapshot/journal, registration membership,
   Origin-protected real-session invitation join, protected directory/profile
-  APIs, routes, navigation, query keys, auth continuation, and sharing fallback.
+  APIs, routes, navigation, query keys, auth continuation, and shared link dialogs.
 - Existing and clean migrations passed; repeat migration/seed initializes one
   group without backfill. A deliberate final-session-insert failure confirmed
   rollback of account, membership, credentials, private settings, and session.

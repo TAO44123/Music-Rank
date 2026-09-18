@@ -77,8 +77,8 @@ export async function registerUser(input: RegisterInput): Promise<{ user: Authen
       await transaction.insert(groupMemberships).values({ groupId: defaultGroupId, userId: user.id });
       await transaction.insert(passwordCredentials).values({ userId: user.id, passwordHash });
       await transaction.insert(userListSettings).values([
-        { userId: user.id, listType: 'TOP_LIST', visibility: 'PRIVATE' },
-        { userId: user.id, listType: 'SINGING_LIST', visibility: 'PRIVATE' }
+        { userId: user.id, listType: 'TOP_LIST', visibility: 'PUBLIC' },
+        { userId: user.id, listType: 'SINGING_LIST', visibility: 'PUBLIC' }
       ]);
       await transaction.insert(authSessions).values({ id: randomUUID(), userId: user.id, tokenHash: hashSessionToken(token), expiresAt });
     });

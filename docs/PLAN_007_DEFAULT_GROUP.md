@@ -55,7 +55,7 @@ behavior must not be replaced by older, more elaborate group proposals.
 - [x] Verify clean-database and existing-database migration paths, plus repeat
   initialization. Existing data must be preserved.
 - [x] Add default membership to the existing registration transaction alongside
-  credentials, private list settings, and session. Rollback covers all of them.
+  credentials, initial public list settings, and session. Rollback covers all of them.
 - [x] Keep ordinary login free of membership writes.
 - [x] Implement an idempotent join service using the database unique constraint;
   concurrent joins resolve successfully to one membership.
@@ -132,9 +132,9 @@ invitation intent.
   navigation. Validate internal navigation context; do not accept external URLs.
 - [x] Show a clear no-public-lists message for known members with both lists
   private. Do not relabel a network failure as a privacy empty state.
-- [x] Implement native share, clipboard, and manual-copy URL fallback for the
-  invitation, including absent APIs and rejected clipboard calls. Native-share
-  cancellation does not trigger fallback copying.
+- [x] Implement the user-refined shared in-app dialog for public lists and
+  invitations, with explicit Copy, clipboard/selection-based copying, and a
+  manual-copy explanation when copying is blocked. Never invoke native sharing.
 - [x] Preserve existing PUBLIC/PRIVATE controls and anonymous public links.
 - [x] Verify keyboard access, long usernames, member rows, and responsive
   navigation/content/Snackbar clearance from 320px upward.
@@ -182,8 +182,8 @@ or broadly backfill all old accounts.
 - [x] Update DESIGN-007, this progress log, and SESSION_HANDOFF to match final
   implementation and any explicitly approved scope changes.
 
-No new environment keys, dependencies, HTTPS deployment, or existing list-share
-refactor are assumed. Any configuration change must follow AGENTS.md's complete
+No new environment keys, dependencies, or HTTPS deployment are required.
+The user-approved sharing refinement now covers both lists and invitations. Any configuration change must follow AGENTS.md's complete
 configuration checklist. Do not fabricate validation results.
 
 ## 9. Progress Log
@@ -242,3 +242,52 @@ configuration checklist. Do not fabricate validation results.
   checks passed; the unrelated editor swap file remains untouched.
 - Delivery: the user authorized saving this implementation in a local Git
   commit only. No GitHub push, PR, merge, or deployment.
+
+### 2026-09-17 — Sharing-dialog refinement after local commit
+
+- Baseline feature saved locally as `7053051`; no GitHub push.
+- User requested identical in-app sharing for lists and group invitations:
+  dimmed background, centered link dialog, adjacent Copy button, and contextual
+  hint. This explicitly expands the original invitation-only sharing scope.
+- Added ShareLinkDialog and reused it from VisibilityControl and ShareInvitation.
+  No copy occurs until a button press. Async clipboard and selection-based
+  fallback cover HTTP/rejected permission; blocked copying retains a selectable
+  link and clear instructions. Existing public URLs/visibility are unchanged.
+- Validation: Web typecheck passed; full Web suite passed 63/63 in 16 files;
+  production build passed through E2E startup; full Playwright passed 6/6.
+  Clipboard reads confirmed both list URLs and the invitation URL after copying,
+  including selection-based copying with navigator.clipboard absent. Native
+  sharing was not invoked. Desktop/mobile screenshots were visually inspected
+  after the dialog fade completed; 320px copy controls remain usable.
+- Final diff and document checks passed. This refinement remains uncommitted;
+  no push/deployment, database schema/config changes, or local membership reset.
+
+### 2026-09-17 — Public defaults for new registrations
+
+- User requested PUBLIC as the initial state for every personal list.
+  Registration initializes both Top 10 and Practice Library as PUBLIC.
+- Generated `0006_panoramic_machine_man.sql`, snapshot, and journal entry.
+  The migration changes only the column default; no existing visibility or
+  membership rows are updated. Applied to the local development database.
+- Missing legacy settings remain PRIVATE, matching public endpoint gates.
+  Existing explicit private settings survive logout/login. Notes remain private.
+- Updated privacy fixtures to explicitly choose PRIVATE; they still verify
+  blocked private access, safe public projections, and all-private member views.
+  Added coverage for database defaults and missing legacy settings. Browser
+  checks verify both initial PUBLIC states and private/public controls.
+- Validation: full typecheck passed; full tests passed 107/107 (API 26, Web 63,
+  config 8, database 10). Production build and migration/seed passed through
+  E2E startup; Playwright passed 6/6. Migration snapshot comparison confirmed
+  the default is the only schema change. Final diff/document checks passed.
+- Updated authentication design, DESIGN-007, migration guide, engineering guide,
+  and session handoff. Sharing and defaults refinements remain uncommitted.
+  No GitHub push, deployment, dependency/config change, or membership reset.
+
+### 2026-09-17 — Local refinement delivery
+
+- User authorized a local Git commit for the sharing-dialog and public-default
+  refinements: `feat: add share link dialogs and default lists to public`
+  (parent `7053051`, branch `codex/default-group`). Prior full typecheck,
+  107 tests, production build, and six E2E tests passed; final diff checked.
+- No GitHub push, PR, merge, or deployment. The unrelated editor swap file
+  `docs/.ENGINEERING_GUIDE.md.swp` remains untracked and untouched.
