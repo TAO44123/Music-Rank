@@ -72,6 +72,7 @@ describe('TabNav', () => {
     const { client, router } = renderRoute({
       path: '/u/listener_1',
       fetch: (path) => {
+        if (path === '/api/auth/session') return jsonResponse({ user: null });
         if (path === '/api/users/listener_1') return jsonResponse({ username: 'listener_1', displayName: 'Listener One', lists: { topList: 'PRIVATE', singingList: 'PRIVATE' } });
         throw new Error(`Unexpected request: ${path}`);
       }

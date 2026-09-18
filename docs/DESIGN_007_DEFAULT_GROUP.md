@@ -1,9 +1,9 @@
 ---
 design_id: DESIGN-007
 title: Default Group and Invitation Onboarding
-status: Implemented and verified; local commits 7053051 and 83ab826
+status: Merged via PR 11; owner-profile follow-up implemented and verified; GitHub delivery authorized
 created: 2026-09-17
-updated: 2026-09-17
+updated: 2026-09-18
 related:
   - PLAN_007_DEFAULT_GROUP.md
   - AUTHENTICATION_DESIGN.md
@@ -19,11 +19,16 @@ Introduce one shared default group where members can discover each other's
 public Top 10 and Practice Library. A shared invitation URL carries visitors
 through registration or login and into the group.
 
-The user approved the behavior below and subsequently authorized implementation.
-The feature is implemented on `codex/default-group`, based on `83b24f3`,
-and saved locally as `7053051` plus refinement commit `83ab826`.
-The user authorized a local Git commit. GitHub push, merge, and deployment
-have not been requested or performed.
+The original implementation was developed on `codex/default-group` from
+`83b24f3`, saved as `7053051` and refinement commit `83ab826`, and merged through
+PR #11 at `98ec06e`. The current working tree is on `main` at `a871406`.
+
+The user authorized the owner-profile refinement on 2026-09-18. It is
+implemented and verified, and the user subsequently authorized committing and
+pushing the follow-up to GitHub. It is included in the delivery containing
+this record; inspect the Git log for its exact commit. Before delivery,
+`git fetch origin` confirmed `main` and `origin/main` at `a871406`. Deployment
+has not been requested or checked. See PLAN-007 for verification.
 
 The user confirmed `Default Group` as the formal display name and `Groups` as
 a new primary-navigation destination on both the desktop top bar and the
@@ -44,10 +49,10 @@ mobile bottom bar. Product decisions for this planning scope are resolved.
 - The group page exposes its complete member list to authenticated members.
 - A logged-in nonmember sees that they have not joined any groups, with no
   join button and no member list.
-- Clicking a member opens their public personal-list view, with a route back
-  to the group.
-- A member without public lists remains visible in the member list. Their
-  profile view explains that they have not made any lists public.
+- Clicking another member opens their public personal-list view, with a route
+  back to the group. Clicking yourself opens your complete owner profile.
+- A member without public lists remains visible in the member list. Other
+  viewers see a no-public-lists explanation; the owner still sees both lists.
 
 Invitation-only admission is not a global rule: ordinary new registrations
 still join automatically. The user's possible future invitation-only rule is
@@ -103,10 +108,23 @@ The member list shows display name and username. Users with private lists
 remain members. Member payloads contain no credentials, session information,
 private list contents, or private notes.
 
-Currently `/u/:username` reports a missing public profile when both lists are
-private. The group-origin view must distinguish the known member's lack of
+For other viewers, `/u/:username` reports a missing public profile when both
+lists are private. The group-origin view must distinguish the known member's lack of
 public lists from a loading failure. Reuse the existing safe public-list
-projections; do not fetch private lists to construct the empty state.
+projections; do not fetch another member's private lists to construct the empty state.
+
+On 2026-09-18 the user authorized an owner profile view. A resolved session
+whose username matches the profile uses the existing authenticated `/api/me/*`
+endpoints to display both lists regardless of visibility, with Public / Private
+labels. This applies to direct visits and clicking yourself in the group.
+Private data remains in user-scoped protected caches and is cancelled/removed
+by existing authentication cleanup. Profile rendering still omits practice notes.
+
+The share URL remains `/u/:username`. Recipients see only public lists. Owners
+can choose `View public display` (`?view=public`) to use the same public endpoints
+as other visitors, then return to their complete profile even when neither list
+is public. This parameter only restricts presentation; it never grants access.
+List-sharing dialogs explain that recipients can only see public lists.
 
 ## 5. Page and Sharing Behavior
 
@@ -128,8 +146,8 @@ Ordinary sign-in from navigation must not be treated as an invitation.
 The user refined sharing after the local feature commit: both public-list
 sharing and group invitations now always open a centered in-app dialog with a
 dimmed backdrop. The dialog displays a read-only selectable URL and a Copy
-button beside it. The list hint is “Copy the link to share this list.”; the
-invitation hint is “Copy the link to invite friends to Default Group.”
+button beside it. The list hint is “Copy the link to share this list.
+Recipients can only see your public lists.”; the invitation hint is “Copy the link to invite friends to Default Group.”
 
 Opening the dialog does not copy anything. Copy uses the asynchronous clipboard
 API where available, then selection-based copying for HTTP or permission
@@ -148,7 +166,8 @@ the implementation sequence.
 - Do not add owners, roles, or a general-purpose invitation-token system for
   this fixed, open default-group invitation.
 - Routes: `/groups` for the group view and `/invite/default` for the
-  shared invitation. `/u/:username` remains the public profile path.
+  shared invitation. `/u/:username` remains the shared profile path, with
+  authenticated owner view and public-only views for others.
 - Serve invitation metadata without authentication, but require a real session
   for membership writes and a membership check for member-list reads.
 - Join through an authenticated POST with existing Origin validation. GETs,
@@ -172,7 +191,8 @@ to PUBLIC without updating existing visibility. Registration explicitly creates
 both public settings. Missing legacy settings remain private.
 Normal seed does not add existing accounts. A member-only profile endpoint
 returns safe identity and visibility flags, including for members with both
-lists private. Actual list contents still use the existing public endpoints.
+lists private. Other viewers use existing public list endpoints; the owner view
+uses existing session-protected personal list endpoints.
 
 ## 7. Existing Data and Test Setup
 
@@ -200,17 +220,20 @@ This does not authorize changes to the EC2 or production database.
    finishes on home; ordinary login does not add a nonmember.
 2. All three invitation authentication states finish on the group page without
    duplicate memberships; refresh and authentication-mode changes retain intent.
-3. Authenticated nonmembers see the approved empty state without a join button
+3. Owners see both lists in their own profile with accurate Public / Private
+   labels, directly and from the group. Public preview and all other viewers
+   remain subject to public visibility.
+4. Authenticated nonmembers see the approved empty state without a join button
    or member data; anonymous visitors cannot read the member list.
-4. Members can see all members and open their public lists, including the
+5. Members can see all members and open other members' public lists, including the
    no-public-lists case, then return to the group.
-5. Anonymous public-profile access still works. Private lists and all practice
+6. Anonymous public-profile access still works. Private lists and all practice
    notes remain inaccessible to other users.
-6. List and invitation sharing open the in-app link dialog, copy only on an
+7. List and invitation sharing open the in-app link dialog, copy only on an
    explicit button press, and handle absent/rejected clipboard APIs with
    selection-based copying or a clear manual-copy explanation.
-7. Logout and session expiration remove protected group data from the client.
-8. Existing rankings, Demo data, personal-list behavior, authentication, and
+8. Logout and session expiration remove protected group data from the client.
+9. Existing rankings, Demo data, personal-list behavior, authentication, and
    desktop/mobile layout remain intact.
 
 ## 9. Deferred Work

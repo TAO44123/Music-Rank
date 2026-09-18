@@ -15,7 +15,7 @@ describe('VisibilityControl', () => {
     render(<ThemeProvider theme={theme}><VisibilityControl label={label} visibility="PUBLIC" publicUrl="http://localhost/u/listener" onChange={vi.fn()} onShareComplete={onShareComplete} /></ThemeProvider>);
     fireEvent.click(screen.getByRole('button', { name: `Share ${label}` }));
     expect(screen.getByRole('dialog', { name: `Share ${label}` })).toBeVisible();
-    expect(screen.getByText('Copy the link to share this list.')).toBeVisible();
+    expect(screen.getByText('Copy the link to share this list. Recipients can only see your public lists.')).toBeVisible();
     expect(screen.getByRole('textbox', { name: 'List link' })).toHaveValue('http://localhost/u/listener');
     expect(share).not.toHaveBeenCalled();
     expect(writeText).not.toHaveBeenCalled();

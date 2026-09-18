@@ -56,6 +56,6 @@ export function VisibilityControl({ label, visibility, publicUrl, privateNotes, 
       </DialogContent>
       <DialogActions><Button onClick={() => setConfirming(false)}>Keep private</Button><Button variant="contained" onClick={publish}>Make public</Button></DialogActions>
     </Dialog>
-    <ShareLinkDialog open={sharing && visibility === 'PUBLIC'} onClose={() => setSharing(false)} title={`Share ${label}`} hint="Copy the link to share this list." url={publicUrl} linkLabel="List link" onCopied={() => onShareComplete('copied')} />
+    <ShareLinkDialog open={sharing && visibility === 'PUBLIC'} onClose={() => setSharing(false)} title={`Share ${label}`} hint="Copy the link to share this list. Recipients can only see your public lists." url={publicUrl} linkLabel="List link" onCopied={() => onShareComplete('copied')} />
   </>;
 }

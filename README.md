@@ -26,6 +26,8 @@ Create an account from the page header. Usernames contain 3–32 letters, number
 
 Open Groups to see members and share `/invite/default`. Invitation registration/login joins the group and lands there; ordinary registration finishes home and ordinary login does not add membership. Public-list sharing and invitations open a centered link dialog with an explicit Copy button and manual-copy fallback.
 
+Your own `/u/:username` profile shows both lists, including Private lists, with Public / Private labels; this also applies when clicking yourself in Groups. Use `View public display` to preview what others can see. The shared profile URL stays the same, and recipients can only see Public lists. Profile views do not display Practice Library notes.
+
 The seed is idempotent. You can run `npm run db:seed` again without duplicating the credential-free demo user, ranking, songs, or ranking entries. It does not overwrite personal lists or create a login account.
 
 ## Commands
@@ -80,7 +82,7 @@ All `/api/me` requests resolve an opaque database-backed session cookie in one m
 - [Current Session Handoff](docs/SESSION_HANDOFF.md): repository state and the approved focus, open decisions, implementation sequence, and acceptance checklist for the next development session.
 - [Engineering Guide](docs/ENGINEERING_GUIDE.md): current architecture, API reference, data model, testing strategy, operational notes, and maintenance rules.
 - [Default Group Design](docs/DESIGN_007_DEFAULT_GROUP.md): approved membership, invitations, public-list discovery, and deferred group management.
-- [Default Group Implementation Plan](docs/PLAN_007_DEFAULT_GROUP.md): implementation and validation records, including sharing and PUBLIC-default refinements.
+- [Default Group Implementation Plan](docs/PLAN_007_DEFAULT_GROUP.md): implementation and validation records, including owner profiles, sharing, and PUBLIC-default refinements.
 - [Authentication Design](docs/AUTHENTICATION_DESIGN.md): approved login, session, public-list, security, and future SSO boundaries.
 - [Chinese Product Specification](docs/PROJECT_SPEC_ZH.md): approved Version 1 product specification in Chinese.
 - [English Product Specification](docs/PROJECT_SPEC_EN.md): approved Version 1 product specification in English.

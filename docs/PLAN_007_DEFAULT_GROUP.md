@@ -1,9 +1,9 @@
 ---
 plan_id: PLAN-007
 title: Default Group Implementation Plan
-status: Implemented and verified; local Git commit only
+status: Merged via PR 11; owner-profile follow-up implemented and verified; GitHub delivery authorized
 created: 2026-09-17
-updated: 2026-09-17
+updated: 2026-09-18
 implements: DESIGN_007_DEFAULT_GROUP.md
 related:
   - SESSION_HANDOFF.md
@@ -22,13 +22,17 @@ handoff before implementation; preserve all existing changes.
 Planning baseline: synchronized `main` at `83b24f3`. The database-guide commit
 `68d8071` and deployment PR #9 are integrated and pushed. The working tree was
 clean before planning documents were created. The user subsequently authorized
-implementation; the feature is saved locally as `7053051`, with sharing and
-PUBLIC-default refinements saved as `83ab826`.
+implementation; feature commit `7053051` and sharing/PUBLIC-default refinement
+`83ab826` were merged with documentation commit `83793a9` through PR #11
+at `98ec06e`.
 
 Implementation branch: `codex/default-group`, from `83b24f3`. Planning changes
 were preserved, including an unrelated untracked editor swap file.
-The user authorized both local commits. Push, PR, merge, and production
-operations have not been authorized for this feature.
+The owner-profile follow-up started on clean `main` at `a871406` and is now
+implemented and verified. The user subsequently authorized committing and
+pushing this follow-up to GitHub; it is included in the delivery containing
+this record. No production operation was requested, and deployment status
+was not verified. Dated local-only records below describe earlier sessions.
 
 The group name (`Default Group`) and navigation placement (`Groups` in the
 desktop top bar and mobile bottom bar) have been confirmed. The user authorized
@@ -130,9 +134,9 @@ invitation intent.
   members; loading/error states must not look like an empty member list.
 - [x] For logged-in nonmembers, show not-in-any-groups copy, no member list,
   and no join button. Normal login must not join AAA.
-- [x] Link each member to their public personal lists and provide return-to-group
-  navigation. Validate internal navigation context; do not accept external URLs.
-- [x] Show a clear no-public-lists message for known members with both lists
+- [x] Link other members to their public lists and the current user to their
+  complete owner profile; provide return-to-group navigation. Validate internal navigation context; do not accept external URLs.
+- [x] Show a clear no-public-lists message to other viewers of members with both lists
   private. Do not relabel a network failure as a privacy empty state.
 - [x] Implement the user-refined shared in-app dialog for public lists and
   invitations, with explicit Copy, clipboard/selection-based copying, and a
@@ -141,7 +145,8 @@ invitation intent.
 - [x] Verify keyboard access, long usernames, member rows, and responsive
   navigation/content/Snackbar clearance from 320px upward.
 
-Phase gate: every member can discover only public list contents; manual-copy
+Phase gate: members discover only public contents of other members; owners
+can view both of their own lists with visibility labels and preview public display; manual-copy
 invitation sharing remains usable under HTTP; the approved navigation fits
 desktop and mobile.
 
@@ -319,3 +324,37 @@ configuration checklist. Do not fabricate validation results.
   are included. Pre-commit typecheck and full workspace tests passed (107 tests).
 - No GitHub push, PR, merge, or deployment. The editor swap file remains
   untracked and untouched.
+
+### 2026-09-18 — Owner profile follow-up
+
+- User authorized showing both lists in your own profile, directly and from
+  the group, with Public / Private labels. Sharing URLs remain unchanged.
+- Reuses authenticated personal endpoints and per-user protected query keys.
+  Owner requests consume cancellation signals. Other viewers/public preview
+  keep public-only endpoints, and profile rendering omits practice notes.
+- Adds `View public display` / `Back to my profile`, including both-private
+  empty preview, and explains recipient visibility in list-sharing dialogs.
+- Baseline: clean `main` at `a871406`; Default Group merged via PR #11 at
+  `98ec06e`. Earlier local-only delivery statements are historical.
+- Follow-up edits are uncommitted; no GitHub or deployment operation.
+- Verification: full typecheck passed; 116 workspace tests passed (API 26,
+  Web 72 across 17 files, config 8, database 10; contracts has no tests).
+  Production build and Playwright 6/6 passed. Populated owner private lists
+  were checked directly and via group keyboard navigation; both-private
+  preview/return and signed-out shared URL preserved privacy. Inspected
+  320px/1280px screenshots and checked overflow. Final diff checks passed.
+- Initial checks found route typing, an incomplete session fixture, and an
+  async list assertion; corrected before final passing checks. The initial
+  full-test attempt lacked sandbox PostgreSQL permission; the complete suite
+  passed with local DB access. Test-owned accounts were cleaned by E2E hooks.
+
+### 2026-09-18 — GitHub delivery authorized
+
+- User requested pushing the owner-profile fix, tests, and necessary documents
+  to GitHub. Target: `origin/main`; baseline `a871406`.
+- `git fetch origin` succeeded and confirmed no ahead/behind divergence before
+  delivery. Pre-commit full typecheck and all 116 workspace tests passed again.
+- Earlier production build, Playwright 6/6, and visual acceptance remain valid;
+  no application changes occurred after those checks, so they were not repeated.
+- This record is included with the implementation delivery; inspect live Git
+  for its exact commit and remote result. No PR or deployment requested.

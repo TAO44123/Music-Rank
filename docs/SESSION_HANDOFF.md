@@ -3,7 +3,7 @@
 > Last updated: 2026-09-18 (America/New_York)
 >
 > Active feature: `docs/DESIGN_007_DEFAULT_GROUP.md` and
-> `docs/PLAN_007_DEFAULT_GROUP.md` (implemented and verified; local Git commit only)
+> `docs/PLAN_007_DEFAULT_GROUP.md` (merged via PR #11; owner-profile follow-up implemented and verified)
 >
 > Delivered ranking feature authority: `docs/RANKING_CATALOG_EXPANSION_EXECUTION_PLAN.md`
 >
@@ -11,54 +11,66 @@
 
 ## 1. Current Status
 
-Default Group is implemented on
-`codex/default-group`, based on synchronized `main` / `origin/main` at `83b24f3`.
-The user authorized implementation after approving DESIGN-007 / PLAN-007.
-Formal display name: `Default Group`; `Groups` is in desktop top and mobile
-bottom navigation. The user authorized a local Git commit only.
-No GitHub push, PR, merge, or deployment was performed.
-An unrelated untracked `docs/.ENGINEERING_GUIDE.md.swp` was preserved.
+Default Group and its sharing/PUBLIC-default refinements were merged through
+PR #11 at `98ec06e`. Delivery baseline `main` is `a871406`, which also includes ranking
+import/publish documentation via PR #10. `git fetch origin` confirmed that
+`origin/main` matched before delivery. Use live Git status/log for the exact
+follow-up commit and latest remote state. Deployment has not been checked.
 
-New ordinary registrations join transactionally and finish home. Invitation
-registration/login joins if needed and finishes `/groups`; logged-in visitors
-join automatically and repeated joins keep one membership. Ordinary login
-never backfills membership. Nonmembers see no-groups copy with no join button.
-Members can discover public lists and return from profiles to the group;
-private-list members get an explicit no-public-lists state. PUBLIC still means
-anyone, including anonymous visitors; private lists and notes remain private.
-Creation/exit/removal/dissolution, roles, multiple groups, and richer visibility
-remain deferred.
+The 2026-09-18 owner-profile follow-up is implemented and verified in the
+delivery containing this record. The user authorized showing both lists when visiting
+your own `/u/:username`, directly or by clicking yourself in the group, with
+Public / Private labels. The owner uses existing session-protected `/api/me/*`
+endpoints and user-scoped personal caches. Other viewers still use public
+projections. Profile rendering omits practice notes in every view; owners can
+manage their notes in Practice Library.
 
-Migration `0005_bizarre_the_stranger.sql` creates groups/memberships and inserts
-the stable default group. Apply normal `npm run db:migrate` before running the
-new API. No configuration or dependency changes were needed. Demo seed does
-not backfill users. Initial local setup added `ttt` once and verified `aaa`
-was outside at that time; these usernames are never business logic or migration rules.
-Accepting the invitation as AAA will change its membership; do not reset it
-silently. Account/list/catalog data were preserved. EC2 was not modified.
+Share URLs remain `/u/:username`. Owners can select `View public display`
+(`?view=public`) and return with `Back to my profile`, even when both lists are
+private. Public preview uses public endpoints rather than owner data. The URL
+parameter cannot grant private access. List-sharing dialogs explain that
+recipients can only see public lists. Session resolution precedes selection of
+owner/public data; session lookup failures show an error. Existing logout and
+authentication-failure cleanup cancels/removes protected caches, and owner
+requests consume cancellation signals.
 
-The baseline feature is saved locally as `7053051`; sharing and public-default
-refinements are saved as `83ab826` (application code baseline). Public lists and invitations
-now use ShareLinkDialog
-with a dimmed background, visible URL, adjacent Copy button, and contextual hint.
-Opening never copies or invokes native sharing. Copy uses async clipboard or
-selection-based copying on HTTP; blocked copying retains manual instructions.
-Local refinement commit title: `feat: add share link dialogs and default lists to public`.
-No GitHub push or deployment. Refinement verification: Web typecheck passed,
-Web tests 63/63 across 16 files, production build passed, Playwright 6/6 passed.
-Actual clipboard contents were checked for both list links and invitations,
-including the HTTP-style selection-based fallback. Desktop/mobile dialogs
-were visually inspected; final diff/document checks passed.
+Formal group name: `Default Group`; `Groups` remains in desktop top and mobile
+bottom navigation. Ordinary new registration joins transactionally and finishes
+home. Invitation registration/login joins if needed and finishes `/groups`;
+logged-in invitation visitors join automatically and repeated joins remain
+idempotent. Ordinary login never backfills membership. Nonmembers see the empty
+group state without a join button. Other members with private lists show an
+explicit no-public-lists state. PUBLIC means anyone, including anonymous
+visitors. Management, roles, multiple groups, and richer visibility are deferred.
 
-New registration defaults now initialize both Top 10 and Practice Library as
-PUBLIC. Migration `0006_panoramic_machine_man.sql` changes only the database
-column default and was applied locally. Existing stored visibility and
-memberships are unchanged; missing legacy settings and all notes remain
-private. This refinement is saved in `83ab826`. Full typecheck and 107/107
-tests passed
-(API 26, Web 63, config 8, database 10); production build and Playwright 6/6
-passed. Migration snapshot and final diff/document checks passed. Details
-are recorded in PLAN-007.
+Migrations `0005_bizarre_the_stranger.sql` and
+`0006_panoramic_machine_man.sql` were applied locally in the implementation
+session. They create/initialize the default group and set the list-setting
+column default to PUBLIC respectively. Registration initializes both lists
+PUBLIC; existing stored settings are preserved and missing legacy settings
+remain PRIVATE. The owner-profile follow-up requires no new migration,
+configuration, dependency, or production operation.
+
+Latest application verification: full typecheck passed; 116 workspace tests
+passed (API 26, Web 72 in 17 files, config 8, database 10; contracts has no
+tests); production build and Playwright 6/6 passed. Browser acceptance checked
+populated private lists in direct/group owner views, accurate labels,
+both-private public preview/return, and signed-out access to the identical URL
+without private lists. Inspected 320px/1280px screenshots and checked overflow.
+Test-owned accounts were cleaned by E2E hooks. Initial sandbox database access
+failed with EPERM; the complete suite passed with local PostgreSQL access.
+The subsequent documentation-only refresh checked links, fences, and diff
+without rerunning application tests. After the user requested GitHub delivery,
+full typecheck and all 116 workspace tests passed again before commit.
+
+The user authorized committing and pushing this owner-profile follow-up to
+`origin/main`. It includes the implementation, regression tests, and necessary
+documents. No PR or deployment was requested. Preserve any subsequent user
+edits; inspect live status instead of assuming the worktree is unchanged. TTT was initially joined and AAA initially outside;
+AAA may since have accepted an invitation. Do not repeat setup or reset either
+account. No ranking import or publication change is part of this follow-up.
+
+The following ranking history remains relevant to preserving delivered data.
 
 The authentication and list-sharing iteration, compact visibility controls,
 DESIGN-002 routing, DESIGN-006 responsive panels, the PR #4 account-label
@@ -156,17 +168,19 @@ were not rerun because no application, configuration, or database code changed.
 
 ## 2. Repository State
 
-- Current branch: `codex/default-group`; application code baseline `83ab826`.
-  The subsequent local documentation commit is titled
-  `docs: refresh group feature handoff and engineering guide`; inspect the live
-  Git log for its exact HEAD hash.
-- Local commits: `7053051` (Default Group and invitations) and `83ab826`
-  (shared link dialogs and PUBLIC defaults). Neither was pushed to GitHub.
-- Local `main` and cached `origin/main` both resolve to `83b24f3`. This refresh
-  inspected local refs only; it did not fetch GitHub or verify its live state.
-- At refresh start, no tracked edits remained; the only untracked item was
-  `docs/.ENGINEERING_GUIDE.md.swp`. This documentation refresh is saved in the subsequent local documentation
-  commit. No GitHub push was performed. Preserve the swap file and all user changes.
+- Delivery target: `main`; parent baseline `a871406`. `git fetch origin`
+  confirmed matching `origin/main` before delivery. Inspect live HEAD, remote
+  refs, and status for the exact delivery commit and any subsequent changes.
+- Default Group commits `7053051` and `83ab826`, plus documentation commit
+  `83793a9`, are integrated through PR #11 (`98ec06e`). The original
+  implementation branch was `codex/default-group`, based on `83b24f3`.
+- This delivery covers owner/public profile selection, explicit
+  visibility labels, public preview/return, share-recipient copy, cancellable
+  owner queries, frontend/E2E regression coverage, and documentation.
+  `apps/web/src/routes/profile.test.tsx` belongs to this delivery.
+- The unrelated `docs/.ENGINEERING_GUIDE.md.swp` was preserved in earlier
+  sessions; it is absent from the current status listing. Do not assume its
+  continued presence or recreate it. Preserve any user changes found live.
 - The earlier migration guide `68d8071` and deployment PR #9 (`d26f727`,
   `e4a2034`) were integrated and pushed before this feature branch was created.
   The 80s feature branch remains available in the cached remote refs at
@@ -340,35 +354,25 @@ jsdom's unimplemented `window.scrollTo()` notices during Web tests.
 
 ## 6. Remaining Work
 
-### Default group — delivered implementation and current verification
+### Default Group — merged baseline and owner-profile delivery
 
-- Read DESIGN-007 / PLAN-007 for behavior and implementation evidence.
-- Added shared contracts, migration SQL/snapshot/journal, registration membership,
-  Origin-protected real-session invitation join, protected directory/profile
-  APIs, routes, navigation, query keys, auth continuation, and shared link dialogs.
-- Baseline `7053051` existing/clean migrations passed; repeat migration/seed initializes one
-  group without backfill. A deliberate final-session-insert failure confirmed
-  rollback of account, membership, credentials, private settings, and session.
-- Latest verification for `83ab826`: full typecheck passed; 107 workspace
-  tests passed (API 26/26, Web 63/63 in 16 files, config 8/8, database 10/10).
-  Contracts has no source tests. Earlier rollback/clean-database acceptance
-  below was performed for `7053051`, before the PUBLIC-default refinement.
-- Latest production build and Playwright passed 6/6 with existing warnings.
-  Baseline clean temporary-database E2E acceptance also passed 6/6, including
-  keyboard activation and 320–900px layout checks. Group screenshots were inspected.
-- Test-created accounts/memberships were cleaned and temporary databases/scripts
-  removed. Initial setup check: TTT had one membership; AAA none. Their live
-  membership was not rechecked or reset during this documentation refresh. Final diff and
-  document checks passed. Earlier test-selector/timing/fixture failures were
-  corrected before these final passing results.
-- Local formal rankings are unchanged: published 80s 100 / Mainland 100 /
-  Cantonese 72; Demo retained unpublished with 30 entries.
-- Tests use owned fixtures; local TTT/AAA are reserved for user acceptance.
-- Delivered locally as `7053051` and `83ab826`; no product decisions remain
-  pending for this scope. GitHub push/PR/merge/deployment need user direction.
-- Optional future work: group creation, exit, member removal, dissolution, roles,
-  multiple groups, group-only visibility, and user-created lists; none is part
-  of the delivered release. Read DESIGN-007 for the agreed deferred scope.
+- Baseline Default Group, sharing dialogs, and PUBLIC registration defaults
+  are merged via PR #11. DESIGN-007 / PLAN-007 define the approved behavior.
+- Owner-profile follow-up is implemented and verified; the user authorized
+  committing and pushing it to `origin/main`. No unresolved product decision
+  remains. PR/deployment and further feature work were not requested.
+- Latest verification is 116 workspace tests plus typecheck/build and six E2E
+  cases, all passing; see section 1 and PLAN-007 for coverage and limitations.
+- Earlier `7053051` clean/existing migration, repeat seed, and deliberate
+  registration rollback acceptance remain historical evidence. No migration
+  behavior changed in the owner-profile follow-up, so those checks were not
+  repeated. Earlier `83ab826` verification had 107 workspace tests.
+- TTT/AAA are reserved for user acceptance. Automated tests use owned fixtures;
+  do not reinitialize or reset the live acceptance accounts.
+- Preserve published rankings with 100/100/72 entries and the unpublished
+  30-entry Demo; no further imports or publication changes are authorized.
+- Group creation, exit/removal/dissolution, roles, multiple groups, group-only
+  visibility, and user-created lists remain outside the delivered scope.
 
 ### Historical integration baseline verification (before Default Group)
 
@@ -514,19 +518,34 @@ clean temporary database. Record exact test counts and any skipped check.
 ## 10. Copy-Paste Prompt for the Next Follow-up
 
 ```text
-Continue from codex/default-group, application code baseline 83ab826 (parent
-7053051), with a subsequent local documentation commit; inspect live HEAD,
-based on main 83b24f3. Read docs/SESSION_HANDOFF.md, docs/DESIGN_007_DEFAULT_GROUP.md,
-and docs/PLAN_007_DEFAULT_GROUP.md, then inspect and preserve the working tree
-including the unrelated docs/.ENGINEERING_GUIDE.md.swp editor swap file.
-The feature and refinements are committed locally: fixed default-group
-invitations, centered share dialogs, and both lists initially PUBLIC for new
-accounts. Existing visibility is preserved; missing legacy settings and notes
-remain private. Migrations through 0006 were applied locally. Latest validation:
-full typecheck/build, 107 workspace tests, and six E2E cases passed. Use PLAN-007
-for historical and latest verification outcomes.
-Do not rerun local TTT/AAA setup or reset AAA after it accepts the invitation.
-The user requested a local commit only. No GitHub push/PR/merge/deployment.
+Continue from main with the owner-profile delivery based on a871406. Inspect
+live HEAD/log/status/diffs before editing to resolve the delivery commit and
+remote state; preserve all subsequent user changes. The delivery includes
+apps/web/src/routes/profile.test.tsx.
+Read docs/SESSION_HANDOFF.md, docs/DESIGN_007_DEFAULT_GROUP.md, and
+docs/PLAN_007_DEFAULT_GROUP.md. Default Group and sharing/PUBLIC-default
+refinements are already merged via PR #11 at 98ec06e; original commits are
+7053051, 83ab826, and 83793a9. A pre-delivery git fetch confirmed matching origin/main at a871406.
+No deployment state was verified this session.
+
+The owner-profile follow-up is implemented and verified: your own profile
+shows both lists regardless of visibility with Public / Private labels,
+directly and from the group. It uses existing session-protected /api/me/*
+endpoints and personal/user-scoped caches. Other viewers/public preview use
+public endpoints. Practice notes are not rendered in profile views. Share URL
+remains /u/:username. View public display adds ?view=public and can return to
+owner view even when both lists are private; the parameter never grants access.
+List-sharing copy explains that recipients see only public lists.
+
+Latest application checks passed: full typecheck, 116 workspace tests
+(API 26, Web 72, config 8, database 10), production build, six E2E cases,
+and visual acceptance at 320px/1280px. The subsequent documentation-only
+refresh did not rerun application tests; pre-commit typecheck and 116 tests
+passed again after delivery was requested. Migrations through 0006 were applied
+locally before this follow-up; it requires no new migration/configuration.
+The user authorized committing and pushing this follow-up to origin/main.
+No PR or deployment was requested.
+Do not rerun local TTT/AAA setup or reset AAA after invitation acceptance.
 
 Keep the simplified scope: one default group; ordinary new registration joins
 automatically and lands on home; invitation authentication joins if needed and

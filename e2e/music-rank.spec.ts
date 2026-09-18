@@ -73,7 +73,7 @@ test('registers, authenticates, publishes, and anonymously reads personal lists'
   await page.getByRole('button', { name: 'Share Top 10', exact: true }).click();
   await expect(page.getByRole('dialog', { name: 'Share Top 10' })).toBeVisible();
   await expect.poll(() => page.getByRole('dialog', { name: 'Share Top 10' }).evaluate((element) => getComputedStyle(element.parentElement!).opacity)).toBe('1');
-  await expect(page.getByText('Copy the link to share this list.')).toBeVisible();
+  await expect(page.getByText('Copy the link to share this list. Recipients can only see your public lists.')).toBeVisible();
   await expect(page.getByRole('textbox', { name: 'List link' })).toHaveValue(`http://127.0.0.1:3101/u/${username}`);
   await page.screenshot({ path: 'test-results/share-list-desktop.png' });
   await page.getByRole('button', { name: 'Copy', exact: true }).click();

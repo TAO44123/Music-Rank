@@ -8,7 +8,7 @@
 | 目标读者 | 负责开发、测试、排障和后续维护的工程师 |
 | 当前产品版本 | Version 1 + 认证扩展 + 响应式导航 + 多榜单目录 + Default Group 与邀请，本地多用户应用 |
 | 最后更新日期 | 2026-09-18 (America/New_York) |
-| 最后核对的代码提交 | `83ab826` on `codex/default-group` (parent `7053051`); this refresh changes documentation only |
+| 最后核对的代码提交 | Owner-profile delivery on `main`, based on `a871406`; inspect Git log for the delivery commit |
 | 事实来源 | 当前仓库代码、配置、迁移和自动化测试 |
 
 这份文档描述系统现在如何工作。首次在本机配置和运行项目时，先执行 [LOCAL_FIRST_RUN_GUIDE.md](LOCAL_FIRST_RUN_GUIDE.md)；PROJECT_SPEC_ZH.md、PROJECT_SPEC_EN.md 与 IMPLEMENTATION_HANDOFF.md 保留 Version 1 历史基线，当前已批准扩展以 [AUTHENTICATION_DESIGN.md](AUTHENTICATION_DESIGN.md)、[RANKING_CATALOG_DESIGN.md](RANKING_CATALOG_DESIGN.md) 和 [SESSION_HANDOFF.md](SESSION_HANDOFF.md) 为准。若文档与代码不一致，应先核对代码和测试，再更新本文档。
@@ -850,7 +850,7 @@ Unsafe 请求必须携带与 APP_ORIGIN 完全匹配的 Origin，显式 cross-si
 | `/practice` | Practice Library | 有 | 是 |
 | `/groups` | Default Group member directory or nonmember empty state | Yes | Yes |
 | `/invite/default` | Anonymous invitation introduction or authenticated automatic join | Yes | No |
-| `/u/$username` | 公开资料页 | 无 | 否 |
+| `/u/$username` | 本人完整资料页 / 其他访客公开资料页 | 有（先解析 Session） | 否 |
 
 `__root` holds Session, the auth dialog, Snackbar, and shared mutations through
 AppShellProvider. The invitation page owns its join mutation. Public profiles
@@ -860,8 +860,14 @@ and a Back to group link, while ordinary public profiles return to ranking.
 `/personal`, `/practice`, and `/groups` use
 `ensureQueryData(sessionQueryOptions())` in beforeLoad; anonymous deep links
 redirect home with `signin`. Guards and components share the same query options.
-Ordinary public profiles do not wait for session. Group-origin profile reads
-wait for session and use the member endpoint when authenticated; anonymous
+Profiles wait for session resolution before choosing owner or public data.
+The matching owner reads both lists/settings from authenticated `/api/me/*`
+endpoints with user-scoped personal query keys and cancellation signals,
+regardless of visibility. Public / Private labels describe each list.
+`?view=public` selects public-only preview with a return-to-owner button;
+share URLs remain unchanged and recipients see only public lists.
+Group-origin profiles of other members use the protected member endpoint
+when authenticated and outside public preview; anonymous
 visitors still use the existing public API.
 
 beforeLoad 只在导航时执行，因此 Session 在页面内失效时需要显式 `router.invalidate()` 让守卫重新求值；这一步放在 loseAuthentication 里。主动登出走另一条路径：先导航回 `/` 再清除 Session，否则守卫会把刚选择登出的用户立刻重定向并要求登录。
@@ -962,7 +968,7 @@ DESIGN-002 起，用户可见文案统一使用 Practice Library：Tab 名称、
 - 每个个人榜单卡片使用独立 VisibilityStatus 和 VisibilityControl。标题下方的小标签明确显示 Public 或 Private；操作区的闭合锁表示 Private，打开锁表示 Public。
 - 点击闭合锁切换到 Public 前必须确认；点击打开锁可直接恢复 Private。
 - Public list share buttons open ShareLinkDialog for `/u/:username`, with contextual instructions and an explicit Copy button. Group invitations use the same dialog for `/invite/default`.
-- `/u/:username` 只请求服务端已批准的公开 Projection。
+- `/u/:username` 的本人视角通过 session 保护的 `/api/me/*` 读取全部歌单并标明 Public / Private；其他访客和 `?view=public` 预览只读取公开 Projection。
 - Practice Library 公开页显示状态但不支持编辑，也不接收 note 字段。
 
 ### 12.7 响应式布局
@@ -1036,12 +1042,15 @@ npm run typecheck 会先构建 contracts 和 database，再执行所有 workspac
 
 ### 14.2 前端组件测试
 
-The current Web suite has 16 files and 63 tests. It covers the existing ranking,
+The current Web suite has 17 files and 72 tests. It covers the existing ranking,
 list/auth/privacy/navigation behavior plus groups, invitation refresh and mode
 switching, failed authentication/cancellation, join retry, private-profile empty
 states, protected-cache cleanup on logout/expiry/account switching, and sharing
 with explicit button-triggered copying, native sharing never invoked, and
-absent/rejected clipboard APIs handled without false success.
+absent/rejected clipboard APIs handled without false success. Owner-profile
+coverage checks direct/group visits, Public / Private labels, both-private
+preview/return, ignored invalid view parameters, other/anonymous viewers,
+account switching, and expired-session cleanup.
 
 Vitest 保持文件级并行。`apps/web/vite.config.ts` 把单测试超时设为 10 秒；首页排名加载断言另用 5 秒 Testing Library 等待窗口。该设置来自合并后对负载敏感超时的复现：默认限制下完整套件可能失败，而测试文件单独或串行运行可以通过。调整并行度、测试运行器或查询初始化时，应连续运行完整 Web 套件至少三次确认稳定性，不要只验证单个测试文件。
 
@@ -1075,6 +1084,8 @@ dry-run 无写入、幂等导入、可空 decade/region、事务回滚、原子�
 
 - **必须量文字的字形盒，不能量容器。** 用 `document.createRange()` 逐个 text node 取 `getClientRects()`。文字容器会铺满整行，即使里面的字已经钻到按钮底下，容器矩形看上去仍然是干净的，量容器会得到假阴性。
 - **必须等列表行渲染出来再量。** `page.goto` 返回时 SPA 还没渲染任何 `li`，此时量到的是用户看不到的中间态：行数为 0 会让碰撞断言空过，横向溢出也会给出与最终布局无关的数值。用例因此先等首行可见，再做全部测量，并额外断言"量到的行数和文字盒数量大于 0"，让"什么都没量到"无法伪装成通过。
+
+`e2e/groups.spec.ts` 的其余 3 条用例覆盖普通注册/登录与邀请加入、邀请注册后浏览其他成员公开歌单、以及已有非成员通过邀请登录。本人 profile 回归在普通注册用例中添加真实歌曲，将两个列表设为 Private，再通过键盘从群组进入本人 profile，检查完整歌曲和 Private 标签、公开预览与返回、直接访问、退出后同 URL 不泄露私有歌单，以及 320px/1280px 布局。
 
 playwright.config.ts 使用端口 3101、production 形态 Express 服务和 reuseExistingServer: false。启动前执行 build、Migration 和公共 Seed，并把 APP_ORIGIN 指向 3101。测试注册带时间戳的唯一用户，结束后级联删除该账户；不影响 demo 用户。
 
@@ -1277,6 +1288,7 @@ E2E 不复用已有服务器；3101 被占用时应先定位占用者。
 
 | 日期 | 代码基线 | 内容 |
 | --- | --- | --- |
+| 2026-09-18 | 当前工作树 on `main` at `a871406` | 本人 profile 通过受 Session 保护的 personal 查询展示全部歌单和 Public / Private 标签；增加公开预览/返回与分享接收者提示，分享 URL 不变。typecheck、116 workspace tests（API 26 / Web 72 / config 8 / database 10）、build、Playwright 6/6 与 320px/1280px 视觉验收通过。用户随后授权提交并推送到 origin/main；提交前再次通过 typecheck 和 116 项测试，fetch 确认远端与基线一致。本次后续文档整理检查链接、fences 和 diff；未重新部署。Default Group 原功能已通过 PR #11 合入。 |
 | 2026-09-17 | Documentation refresh against `83ab826` | Updates current branch/commit, delivered group scope, four-item navigation, sharing/defaults, migration chain and latest verification. Document links/fences and diff checked; no application changes or tests rerun. Refresh saved in a subsequent local documentation commit; no GitHub push. |
 | 2026-09-17 | Local commit `83ab826` | New registrations initialize both personal lists PUBLIC. Forward migration 0006 only changes the column default; existing visibility/membership and private notes are preserved. Full typecheck/build passed; API 26, Web 63, config 8, database 10, Playwright 6/6 passed. Local Git commit only; no GitHub push/deployment. |
 | 2026-09-17 | Local commit `83ab826` | Sharing refinement: lists and invitations always open ShareLinkDialog with dimmed backdrop, URL, contextual hint, and explicit Copy. HTTP/rejected clipboard uses selection-based copying or manual instructions. Web typecheck/build passed; Web 63/63 and Playwright 6/6 with real clipboard reads and desktop/mobile visual QA. Local Git commit only; no GitHub push/deployment. |

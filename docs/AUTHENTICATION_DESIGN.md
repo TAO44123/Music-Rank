@@ -144,7 +144,8 @@ Private and nonexistent public resources intentionally share a `404` response.
 ## 8. Frontend Behavior
 
 - `/` remains the public ranking page.
-- `/u/:username` displays only the user's public lists.
+- `/u/:username` displays both lists to their authenticated owner, with Public / Private labels; all other viewers see only public lists. The owner uses existing session-protected `/api/me/*` endpoints and user-scoped caches.
+- Owners can preview public display using `?view=public`; this never grants private access. Share URLs remain `/u/:username`, and sharing explains that recipients see only public lists.
 - Anonymous visitors see a sign-in invitation instead of personal panels.
 - Login and registration use an accessible dialog.
 - Each personal card has a visibility selector. Publishing requires confirmation.
@@ -158,6 +159,9 @@ Private and nonexistent public resources intentionally share a `404` response.
 - Logout, expiration, and revoked tokens cannot access `/api/me/*`.
 - User A cannot read or mutate User B's private resources.
 - New registrations default both lists public; existing private settings and demo data remain private. Missing legacy settings stay private.
+- Owners see both lists with accurate visibility labels in direct and group-origin profiles; all other viewers and public preview remain public-only.
+- Owner profile data uses user-scoped protected caches and disappears on logout, session loss, or account switching.
+- Profile views omit practice notes, including the owner view; note management remains in Practice Library.
 - Public Top 10 order is preserved.
 - Public Singing Lists never include the `note` property.
 - Anonymous public ranking behavior remains unchanged.

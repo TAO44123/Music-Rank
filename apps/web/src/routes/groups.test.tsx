@@ -10,6 +10,7 @@ afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
 const group = { id: 'd0000000-0000-4000-8000-000000000001', name: 'Default Group', slug: 'default' };
 const user = { id: 'user-1', username: 'listener_1', displayName: 'Listener One' };
+const otherMember = { id: 'user-2', username: 'listener_2', displayName: 'Listener Two' };
 const response = (body: unknown, status = 200) => Promise.resolve(new Response(status === 204 ? null : JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } }));
 const ranking = { id: 'ranking-1', title: 'Ranking', slug: 'test-ranking', displayOrder: 1, decade: null, region: null, sourceType: 'DEMO', hasSource: false };
 
@@ -51,20 +52,20 @@ describe('Default Group', () => {
     const { fetchMock, router } = mount('/groups', (path) => {
       if (path === '/api/auth/session') return response({ user });
       if (path === '/api/me/groups') return response([group]);
-      if (path === `/api/me/groups/${group.id}/members`) return response([user]);
-      if (path === `/api/me/groups/${group.id}/members/${user.username}`) return response({ ...user, lists: { topList: 'PRIVATE', singingList: 'PRIVATE' } });
+      if (path === `/api/me/groups/${group.id}/members`) return response([otherMember]);
+      if (path === `/api/me/groups/${group.id}/members/${otherMember.username}`) return response({ ...otherMember, lists: { topList: 'PRIVATE', singingList: 'PRIVATE' } });
       return home(path);
     });
     const list = await screen.findByRole('list', { name: 'Group members' });
-    fireEvent.click(within(list).getByText('Listener One'));
+    fireEvent.click(within(list).getByText('Listener Two'));
     expect(await screen.findByText('This member has not made any lists public yet.')).toBeVisible();
-    expect(router.state.location.pathname).toBe(`/u/${user.username}`);
+    expect(router.state.location.pathname).toBe(`/u/${otherMember.username}`);
     expect(screen.getByRole('link', { name: 'Back to group' })).toHaveAttribute('href', '/groups');
     expect(fetchMock.mock.calls.some(([path]) => /\/api\/users\/.*\/(top-list|singing-list)/.test(String(path)))).toBe(false);
   });
 
   it('does not describe a failed member profile request as no public lists', async () => {
-    mount(`/u/${user.username}?group=${group.id}`, (path) => {
+    mount(`/u/${otherMember.username}?group=${group.id}`, (path) => {
       if (path === '/api/auth/session') return response({ user });
       if (path.includes('/members/')) return response({ code: 'SERVER_ERROR' }, 500);
       return home(path);

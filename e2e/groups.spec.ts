@@ -52,6 +52,12 @@ test('ordinary registration joins, ordinary login does not backfill, and logged-
   await page.goto('/invite/default');
   await expect(page).toHaveURL(/\/groups$/);
   expect(await db.select().from(groupMemberships).where(eq(groupMemberships.userId, user.id))).toHaveLength(1);
+  const songs = await (await page.request.get('/api/songs')).json();
+  const song = songs.find((entry: { id: string }) => entry.id === '1c2a849c-0aef-4cac-a307-45674508f01c');
+  expect(song).toBeDefined();
+  const origin = { Origin: 'http://127.0.0.1:3101' };
+  expect((await page.request.post('/api/me/top-list/items', { headers: origin, data: { songId: song.id } })).status()).toBe(201);
+  expect((await page.request.put(`/api/me/singing-list/items/${song.id}`, { headers: origin, data: { status: 'PRACTICING', note: 'Owner private note' } })).status()).toBe(200);
   for (const list of ['top-list', 'singing-list']) {
     expect((await page.request.patch(`/api/me/lists/${list}/visibility`, {
       headers: { Origin: 'http://127.0.0.1:3101' }, data: { visibility: 'PRIVATE' }
@@ -60,9 +66,32 @@ test('ordinary registration joins, ordinary login does not backfill, and logged-
   const memberLink = page.getByRole('list', { name: 'Group members' }).getByRole('link').filter({ hasText: username });
   await memberLink.focus();
   await page.keyboard.press('Enter');
-  await expect(page.getByText('This member has not made any lists public yet.')).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Top 10' })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Practice Library' })).toBeVisible();
+  await expect(page.getByLabel('Top 10 visibility: private')).toBeVisible();
+  await expect(page.getByLabel('Practice Library visibility: private')).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Top 10' }).getByText(song.title)).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Practice Library' }).getByText(song.title)).toBeVisible();
+  for (const width of [320, 1280]) {
+    await page.setViewportSize({ width, height: 900 });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
+    await page.screenshot({ path: `test-results/owner-profile-${width}.png`, fullPage: true });
+  }
+  await page.getByRole('button', { name: 'View public display' }).click();
+  await expect(page.getByText('Public profile not found', { exact: true })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Top 10' })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Back to my profile' }).click();
+  await expect(page.getByRole('region', { name: 'Top 10' })).toBeVisible();
   await page.getByRole('link', { name: 'Back to group' }).click();
   await expect(page).toHaveURL(/\/groups$/);
+  await page.goto(`/u/${username}`);
+  await expect(page.getByRole('region', { name: 'Top 10' }).getByText(song.title)).toBeVisible();
+  // The identical shared URL never grants a signed-out visitor private access.
+  await page.context().clearCookies();
+  await page.reload();
+  await expect(page.getByText('Public profile not found', { exact: true })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Top 10' })).toHaveCount(0);
+  await expect(page.getByRole('region', { name: 'Practice Library' })).toHaveCount(0);
 });
 
 test('invitation registration preserves intent and displays only another member’s public lists', async ({ page, request }) => {

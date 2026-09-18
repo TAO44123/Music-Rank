@@ -50,21 +50,21 @@ export const rankingQueryOptions = (slug: string, query: string, artist: string,
 
 export const topListQueryOptions = (user: AuthUser | null) => queryOptions({
   queryKey: user ? queryKeys.topList(user.id) : queryKeys.signedOut('top-list'),
-  queryFn: () => request<TopListEntry[]>('/api/me/top-list'),
+  queryFn: ({ signal }) => request<TopListEntry[]>('/api/me/top-list', { signal }),
   enabled: Boolean(user),
   retry: false
 });
 
 export const singingListQueryOptions = (user: AuthUser | null, filter: SingingStatus | 'ALL') => queryOptions({
   queryKey: user ? queryKeys.singingList(user.id, filter) : queryKeys.signedOut('singing-list', filter),
-  queryFn: () => request<SingingListEntry[]>(filter === 'ALL' ? '/api/me/singing-list' : `/api/me/singing-list?status=${filter}`),
+  queryFn: ({ signal }) => request<SingingListEntry[]>(filter === 'ALL' ? '/api/me/singing-list' : `/api/me/singing-list?status=${filter}`, { signal }),
   enabled: Boolean(user),
   retry: false
 });
 
 export const listSettingsQueryOptions = (user: AuthUser | null) => queryOptions({
   queryKey: user ? queryKeys.listSettings(user.id) : queryKeys.signedOut('list-settings'),
-  queryFn: () => request<ListSettings>('/api/me/list-settings'),
+  queryFn: ({ signal }) => request<ListSettings>('/api/me/list-settings', { signal }),
   enabled: Boolean(user),
   retry: false
 });
