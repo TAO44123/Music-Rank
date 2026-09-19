@@ -6,6 +6,7 @@ import { ApiError, request, type AddSongToListInput, type ExistingSong, type Sin
 import { SingingListPanel } from '../components/SingingListPanel';
 import { ExistingSongConfirmationDialog, UnlistedSongDialog, UnlistedSongPrompt } from '../components/UnlistedSongDialog';
 import { VisibilityControl, VisibilityStatus } from '../components/VisibilityControl';
+import { useListReaction } from '../hooks/useListReaction';
 import { listSettingsQueryOptions, sessionQueryOptions, singingListQueryOptions } from '../queries';
 import { useAppShell } from '../shell/AppShellContext';
 import { Route as rootRoute } from './__root';
@@ -28,6 +29,7 @@ function PracticeLibraryPage() {
   const settingsQuery = useQuery(listSettingsQueryOptions(user));
   const settings = settingsQuery.data ?? { topList: 'PRIVATE' as const, singingList: 'PRIVATE' as const };
   const publicUrl = user ? `${window.location.origin}/u/${user.username}` : '';
+  const reactions = useListReaction(user?.username ?? 'signed-out');
   const shareNotice = (method: 'shared' | 'copied') => notify('success', method === 'shared' ? 'Public profile shared' : 'Public profile link copied');
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [existingSong, setExistingSong] = useState<ExistingSong | null>(null);
@@ -67,6 +69,8 @@ function PracticeLibraryPage() {
       onFilterChange={setFilter}
       onSave={(songId, status, note) => mutate(`/api/me/singing-list/items/${songId}`, { method: 'PUT', body: JSON.stringify({ status, note }) })}
       onRemove={(songId) => mutate(`/api/me/singing-list/items/${songId}`, { method: 'DELETE' })}
+      onToggleReaction={(songId, viewerHasReacted) => reactions.toggleReaction('singing-list', songId, viewerHasReacted)}
+      isReactionPending={(songId) => reactions.isPending('singing-list', songId)}
       promptAction={<UnlistedSongPrompt onClick={() => { setFormError(null); setIsAddOpen(true); }} />}
       statusLabel={<VisibilityStatus label="Practice Library" visibility={settings.singingList} />}
       headerAction={<VisibilityControl label="Practice Library" visibility={settings.singingList} publicUrl={publicUrl} privateNotes disabled={isVisibilityPending} onChange={(visibility) => setVisibility('singing-list', visibility)} onShareComplete={shareNotice} />}

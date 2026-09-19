@@ -1,9 +1,12 @@
 # Music Rank — Session Handoff
 
-> Last updated: 2026-09-18 (America/New_York)
+> Last updated: 2026-09-19 (America/New_York)
 >
-> Active feature: `docs/DESIGN_008_USERNAME_ONLY_TRANSITION.md`
-> (implemented and verified; GitHub delivery authorized)
+> Active delivered feature: `docs/DESIGN_009_LIST_REACTIONS.md`
+> (implemented and locally verified; GitHub delivery authorized)
+>
+> Previous delivered feature: `docs/DESIGN_008_USERNAME_ONLY_TRANSITION.md`
+> (`main` and cached `origin/main` at `3110600` before DESIGN-009 documentation)
 >
 > Delivered group/profile authority: `docs/DESIGN_007_DEFAULT_GROUP.md` and
 > `docs/PLAN_007_DEFAULT_GROUP.md`
@@ -13,6 +16,52 @@
 > Task 1 design: `docs/RANKING_CATALOG_DESIGN.md`
 
 ## 1. Current Status
+
+### Personal-list reactions — implemented and locally verified
+
+The user approved DESIGN-009 on 2026-09-19 after a discussion-only product
+phase. Top 10 entries use an icon-only thumbs-up Like; Practice Library entries
+use a locally adapted outlined/filled party-popper Cheer. A positive exact
+count appears inside the button, while zero is not painted. Tooltips, accessible
+names, selected icon states, and local Snackbars communicate the action.
+
+The latest UI refinement keeps Like and Cheer on the same row as the song at
+mobile widths. Other management controls may move below. Cheer sits immediately
+to the left of the practice-status label on wider rows; notes use a separate row
+and never run underneath the reaction control.
+
+After this refinement, Web typecheck and the related component/route tests
+passed. The responsive Playwright scenario also passed at 320, 375, 414, 600,
+and 900 px widths.
+
+Reactions target one concrete owner's list entry, not the global song. One
+account may toggle one reaction per entry, including the owner. Anonymous
+visitors can see counts on Public entries but must authenticate and then select
+the icon again; authentication returns to the same profile and never replays the
+attempt automatically. Public entries accept reactions from authenticated
+users. Private entries retain existing reactions but only the owner can see or
+change their own reaction. Removing an entry deletes its reactions; reordering,
+Practice status/note edits, and visibility changes preserve them.
+
+The database retains reactor identity and creation time for possible future
+work, but the current feature exposes only aggregate count and current-viewer
+state. No API or UI roster, notification, popularity sorting, aggregation,
+ranking-entry reaction, or group-visibility behavior is included. Future Group
+visibility rules remain explicitly undecided.
+
+The user subsequently said “开始实施吧”. The current working tree based on clean
+`main` at `3110600` now contains migration `0007`, the reaction tables and
+contracts, optional-viewer read projections, four authenticated idempotent
+write endpoints, shared frontend controls/hooks, cache partitioning and
+invalidation, and regression/E2E coverage. Migration `0007` was applied to the
+normal local database. `npm run typecheck`, all 128 workspace tests (API 34,
+Web 76 in 18 files, Config 8, Database 10), the production build exercised by
+Playwright, and Playwright 7/7 passed. No configuration or dependency changed.
+The full 8-migration chain also passed from empty in an isolated database; that
+temporary database was removed. No commit, push, or deployment was requested
+or performed during implementation. The user subsequently authorized committing
+the complete feature and pushing it to `origin/main`; no deployment was
+requested.
 
 ### Username-only intermediate release — local implementation
 
@@ -214,10 +263,14 @@ were not rerun because no application, configuration, or database code changed.
 
 ## 2. Repository State
 
-- DESIGN-008 delivery on `main` is based on `be0efd9` and includes implementation,
-  tests, and documentation. Pre-delivery `git fetch origin` confirmed matching
-  `origin/main`. The user authorized commit/push; use live Git log/status for
-  the delivery commit and final remote state. No deployment was requested.
+- DESIGN-009 implementation is in the current working tree on clean baseline
+  `main` at `3110600`, which matched cached `origin/main` before work began. It
+  includes code, migration, tests, E2E, design/engineering/migration docs, and
+  this handoff. The user authorized commit and push to `origin/main`; no
+  deployment was requested. Inspect live status/log/remote refs for the final
+  delivery commit.
+- DESIGN-008 is delivered in `3110600` on `main` and `origin/main`, including
+  implementation, tests, and documentation. No deployment was requested.
 - Historical owner-profile delivery target: `main`; parent baseline `a871406`. `git fetch origin`
   confirmed matching `origin/main` before delivery. Inspect live HEAD, remote
   refs, and status for the exact delivery commit and any subsequent changes.
@@ -249,11 +302,12 @@ were not rerun because no application, configuration, or database code changed.
   into `main` on 2026-09-15.
 - Preserve every working-tree change. Do not reset, discard, or overwrite it.
 - Use `git status --short --branch` and the live diff for the exact file list.
-- Migrations through `0006_panoramic_machine_man.sql` have been applied to the
+- Migrations through `0007_greedy_miek.sql` have been applied to the
   normal local database. `0003` renames the pilot slug, makes decade/region
   nullable, and removes published decade/region uniqueness; `0004` adds
   nullable submitter attribution for shared songs. `0005` creates Default Group
-  and memberships; `0006` changes only the list-setting column default to PUBLIC.
+  and memberships; `0006` changes only the list-setting column default to PUBLIC;
+  `0007` adds the two per-entry reaction tables and cascading foreign keys.
 - PostgreSQL uses 5432; Playwright uses 3101 temporarily. Do not terminate
   unknown development services.
 - A 2026-09-17 read-only database check found the 80s Chinese ranking published
@@ -404,6 +458,17 @@ jsdom's unimplemented `window.scrollTo()` notices during Web tests.
 
 ## 6. Remaining Work
 
+### DESIGN-009 personal-list reactions — implementation complete
+
+- Implementation and local acceptance are complete; see section 1 and
+  `docs/DESIGN_009_LIST_REACTIONS.md` for the authoritative behavior and record.
+- Preserve migration `0007`, entry-specific identity, Public/owner authorization,
+  viewer-scoped public cache keys, and deliberate post-auth retry behavior.
+- Keep reactor identity and creation time database-only; expose no people list
+  through the current API or UI without a separately approved design.
+- Keep Group-level visibility semantics deferred until the user explicitly
+  requests and defines that feature.
+
 ### Username-only transition — verified local implementation
 
 - DESIGN-008 implementation and acceptance are complete; see section 1 for
@@ -525,10 +590,10 @@ outside this feature scope.
 
 ## 7. Instructions for the Next Session
 
-1. Read this document and
-   the documents for the current task completely. For the default-group work,
-   read DESIGN-007 and PLAN-007; the ranking execution plan remains the authority
-   for preserving delivered ranking behavior.
+1. Read this document and the documents for the current task completely. For
+   personal-list reactions, read DESIGN-009 and preserve its implemented
+   boundaries. For the default-group work, read DESIGN-007 and PLAN-007; the ranking execution
+   plan remains the authority for preserving delivered ranking behavior.
 2. Inspect `git status --short --branch`, recent commits, staged changes, and the
    full working-tree diff before editing.
 3. Preserve all three imported rankings and their current publication state;
@@ -579,7 +644,25 @@ clean temporary database. Record exact test counts and any skipped check.
 ## 10. Copy-Paste Prompt for the Next Follow-up
 
 ```text
-Current task: DESIGN_008_USERNAME_ONLY_TRANSITION.md is implemented locally;
+Current feature: DESIGN_009_LIST_REACTIONS.md is implemented and locally
+verified in the working tree based on main at 3110600. Migration 0007 adds
+entry-specific Top 10 Like and Practice Library Cheer tables. Reads expose
+aggregate count/current-viewer state; four authenticated idempotent write
+endpoints enforce Public/owner permissions. All supported editing/profile
+surfaces render the shared icon control. Anonymous authentication returns to
+the profile but never replays the action. Reactor IDs/timestamps remain
+database-only; roster, notifications, popularity, aggregation, ranking
+reactions, and Group semantics remain out of scope. Cheer uses the locally
+adapted outlined/filled party-popper icon. At mobile widths Like/Cheer stays on
+the song row; Cheer is immediately before the practice-status label, and notes
+use a separate row. Typecheck, 128 workspace tests, production build, and
+Playwright 7/7 passed for the implementation; after the UI refinement, Web
+typecheck, related tests, and the responsive scenario at 320/375/414/600/900 px
+also passed. The migration was applied to the normal local DB; all 8 migrations
+also passed in a clean temporary DB, which was removed. The user authorized
+commit and push to origin/main; no deployment was requested.
+
+Latest delivered feature: DESIGN_008_USERNAME_ONLY_TRANSITION.md is implemented;
 read its final validation record before continuing. The user
 confirmed username-only login for existing accounts, registration prompts for
 unknown usernames, and separate explicit username-only registration. Password
@@ -589,8 +672,9 @@ this is explicitly accepted solely for the intermediate release. The user
 authorized implementation and then commit/push to origin/main. No deployment
 was requested. No migration is needed.
 
-DESIGN-008 delivery is based on main at be0efd9 and includes implementation,
-tests, and documents. Inspect live Git log/status for the delivery commit.
+DESIGN-008 delivery is commit 3110600 on main and cached origin/main before the
+DESIGN-009 design and implementation working tree. Inspect live Git log/status
+for subsequent work.
 Read DESIGN-008 and preserve any working-tree changes. The owner-profile fix
 was committed and pushed in be0efd9. Earlier delivery was based on a871406. Inspect
 live HEAD/log/status/diffs before editing to resolve the delivery commit and
@@ -615,9 +699,9 @@ Latest DESIGN-008 checks passed: full typecheck, 123 workspace tests
 (API 32, Web 73, config 8, database 10), production build, seven E2E cases,
 and login visual acceptance at 320px/1280px. The earlier owner-profile
 documentation refresh did not rerun application tests; its pre-commit typecheck and 116 tests
-passed again after that delivery was requested. Migrations through 0006 were
-applied locally before the owner-profile follow-up. DESIGN-008 requires no new
-migration/configuration. Both the earlier owner-profile follow-up and DESIGN-008
+passed again after that delivery was requested. Migrations through 0007 are
+applied locally now; `0007` belongs to DESIGN-009, while DESIGN-008 requires no
+new migration/configuration. Both the earlier owner-profile follow-up and DESIGN-008
 were authorized for commit and push to origin/main.
 No PR or deployment was requested.
 Do not rerun local TTT/AAA setup or reset AAA after invitation acceptance.

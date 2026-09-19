@@ -6,12 +6,12 @@
 | --- | --- |
 | 文档性质 | 持续维护的工程实现说明 |
 | 目标读者 | 负责开发、测试、排障和后续维护的工程师 |
-| 当前产品版本 | Version 1 + 认证扩展 + 响应式导航 + 多榜单目录 + Default Group 与邀请，本地多用户应用 |
-| 最后更新日期 | 2026-09-18 (America/New_York) |
-| 最后核对的代码提交 | DESIGN-008 delivery on `main`, based on `be0efd9`; inspect Git log for the delivery commit |
+| 当前产品版本 | Version 1 + 认证扩展 + 响应式导航 + 多榜单目录 + Default Group 与邀请 + 个人歌单反应，本地多用户应用 |
+| 最后更新日期 | 2026-09-19 (America/New_York) |
+| 最后核对的代码提交 | 当前工作树 based on `3110600` on `main`; DESIGN-009 implemented and locally verified |
 | 事实来源 | 当前仓库代码、配置、迁移和自动化测试 |
 
-这份文档描述系统现在如何工作。首次在本机配置和运行项目时，先执行 [LOCAL_FIRST_RUN_GUIDE.md](LOCAL_FIRST_RUN_GUIDE.md)；PROJECT_SPEC_ZH.md、PROJECT_SPEC_EN.md 与 IMPLEMENTATION_HANDOFF.md 保留 Version 1 历史基线，当前已批准扩展以 [AUTHENTICATION_DESIGN.md](AUTHENTICATION_DESIGN.md)、[RANKING_CATALOG_DESIGN.md](RANKING_CATALOG_DESIGN.md) 和 [SESSION_HANDOFF.md](SESSION_HANDOFF.md) 为准。若文档与代码不一致，应先核对代码和测试，再更新本文档。
+这份文档描述系统现在如何工作。首次在本机配置和运行项目时，先执行 [LOCAL_FIRST_RUN_GUIDE.md](LOCAL_FIRST_RUN_GUIDE.md)；PROJECT_SPEC_ZH.md、PROJECT_SPEC_EN.md 与 IMPLEMENTATION_HANDOFF.md 保留 Version 1 历史基线，当前已批准扩展以 [AUTHENTICATION_DESIGN.md](AUTHENTICATION_DESIGN.md)、[RANKING_CATALOG_DESIGN.md](RANKING_CATALOG_DESIGN.md)、[DESIGN-009](DESIGN_009_LIST_REACTIONS.md) 和 [SESSION_HANDOFF.md](SESSION_HANDOFF.md) 为准。若文档与代码不一致，应先核对代码和测试，再更新本文档。
 
 ### 1.1 维护规则
 
@@ -44,6 +44,18 @@ top navigation and mobile bottom navigation. PUBLIC still means anyone,
 including anonymous visitors; private lists and notes remain private.
 Management, multiple groups, and group-only visibility remain future work.
 
+### 1.3 Personal-list reactions
+
+The user approved [DESIGN-009](DESIGN_009_LIST_REACTIONS.md) and authorized its
+implementation on 2026-09-19. Top 10 entries now use thumbs-up Likes and
+Practice Library entries use locally adapted outlined/filled party-popper
+Cheers. Counts and current-viewer state appear on editing, owner,
+public-preview, public, and group-origin profile surfaces. The server enforces
+Public/owner authorization, reaction rows survive visibility and list-item
+edits, and list-entry deletion cascades them. Reactor identity and creation time
+are stored for possible future work but no roster API or UI is exposed.
+Group-only visibility semantics remain deferred.
+
 ## 2. 系统概览
 
 Music Rank 是一个全栈多用户应用。公开目录按来源无关的 slug 展示三个已导入真实榜单，年代和地区为可选展示元数据；Demo 榜单保留但未发布。用户可以维护 Top 10 和带演唱状态与私密备注的 Practice Library，并通过 Default Group 发现成员的公开列表。
@@ -75,6 +87,7 @@ flowchart LR
 - 本地数据库迁移、幂等种子、组件测试、API 集成测试和 Playwright E2E。
 - 用户注册、登录、七天持久 Session 和退出撤销。
 - 新注册默认公开且可独立设为私密的 Top 10 与 Practice Library；公开 Practice Library 不包含备注。
+- Top 10 的逐项 Like 与 Practice Library 的逐项 Cheer；公开数量可匿名读取，写入需要登录，Private 项只有 owner 可操作。
 - TanStack Router manages four primary destinations, slug ranking routes, protected personal/group routes, fixed invitations, and public profiles.
 - 排名搜索、歌手、年份和客户端页码写入并校验 URL Search 参数；歌手与年份 Facet 只来自当前榜单。
 - macOS、Linux、PowerShell 和 cmd.exe 均可使用的 production-shaped 启动命令。
@@ -399,7 +412,20 @@ normalized_title 与 normalized_artist 组成唯一索引。当前 Seed 使用 t
 
 同一用户和歌曲只能有一条记录。写入使用 upsert，冲突时更新 status、note 和 updated_at。列表按 updated_at 倒序返回。
 
-### 7.11 Migration 与 Seed
+### 7.11 top_list_entry_reactions 与 singing_list_entry_reactions
+
+两张表分别关联 `user_top_list_entries.id` 和
+`singing_list_entries.id`，字段都是 `entry_id`、`user_id`、`created_at`。
+`(entry_id, user_id)` 复合主键保证每个账号对一个具体列表项最多一条
+反应；`user_id` 另有索引，供未来账户/名单相关操作使用。
+
+列表项和 reacting user 外键都使用 `ON DELETE CASCADE`。因此删除列表项
+会原子清除全部反应，重新加入同一歌曲会产生新 entry 并从零开始；未来删除
+账号也会清除该账号留下的反应。列表重排、Practice 状态/备注更新和
+Public/Private 切换都不更换 entry，不会清除反应。反应类型由所在表隐含：
+Top 10 只能是 Like，Practice Library 只能是 Cheer。
+
+### 7.12 Migration 与 Seed
 
 Schema 源文件是 packages/database/src/schema.ts。修改后先生成迁移，再人工检查 SQL，最后应用迁移。不要手工修改已经在共享环境执行过的历史迁移。
 
@@ -418,7 +444,7 @@ Schema 源文件是 packages/database/src/schema.ts。修改后先生成迁移�
 
 DEMO_USER_ID 只控制 demo fixture，不再参与普通请求的当前用户解析。
 
-### 7.12 Ranking manifest import
+### 7.13 Ranking manifest import
 
 `packages/database/manifests/80s-chinese-top-100.json`,
 `packages/database/manifests/90s-mainland-top-100.json`, and
@@ -447,7 +473,7 @@ release-year values verbatim from the user-provided JSON; it has no
 canonicalization overrides. The source URL is display metadata only and was not
 visited or used to validate the replacement.
 
-### 7.13 Groups and memberships
+### 7.14 Groups and memberships
 
 `groups` has a UUID primary key, unique slug, display name, and created/updated
 timestamps. `group_memberships` has composite primary key `(group_id,user_id)`,
@@ -491,6 +517,8 @@ No production database operation was performed.
 | GET | /api/users/:username | 200 | 获取至少包含一个公开榜单的用户资料 |
 | GET | /api/users/:username/top-list | 200 | 获取公开 Top 10 |
 | GET | /api/users/:username/singing-list | 200 | 获取不含备注的公开 Singing List |
+| PUT / DELETE | /api/users/:username/top-list/items/:songId/reaction | 200 | 添加或移除当前账号对 Top 10 项的 Like |
+| PUT / DELETE | /api/users/:username/singing-list/items/:songId/reaction | 200 | 添加或移除当前账号对 Practice Library 项的 Cheer |
 
 ## 9. API 数据类型
 
@@ -523,11 +551,13 @@ RankingDetail 在 Ranking 基础上增加 sourceUrl（string 或 null）、songC
 
 ### 9.3 TopListEntry
 
-包含 Song 全部字段和 position。position 是 1 到 10 的 integer，响应按 position 升序排列。
+包含 Song 全部字段、position、非负整数 `reactionCount` 和 boolean
+`viewerHasReacted`。position 是 1 到 10 的 integer，响应按 position 升序排列。
 
 ### 9.4 SingingListEntry
 
-包含 Song 全部字段，以及非空 singing_status 类型的 status 和 string 或 null 类型的 note。
+包含 Song 全部字段、非空 singing_status 类型的 status、string 或 null
+类型的 note，以及 `reactionCount` / `viewerHasReacted`。
 
 ### 9.5 Auth 与公开类型
 
@@ -535,7 +565,8 @@ RankingDetail 在 Ranking 基础上增加 sourceUrl（string 或 null）、songC
 - AuthSession：`{ user: AuthUser | null }`。
 - ListSettings：`{ topList: PRIVATE | PUBLIC, singingList: PRIVATE | PUBLIC }`。
 - PublicProfile：username、displayName 和 ListSettings。
-- PublicSingingListEntry：Song 与 status；刻意不定义 note。
+- PublicSingingListEntry：Song、status 与 reaction summary；刻意不定义 note。
+- ListReactionSummary：`{ reactionCount: nonnegative integer, viewerHasReacted: boolean }`。
 
 ## 10. API 详细参考
 
@@ -776,6 +807,28 @@ Invalid group UUID/username returns `400 INVALID_REQUEST`, missing session
 `404 GROUP_NOT_FOUND`, and missing group member `404 GROUP_MEMBER_NOT_FOUND`.
 Join failures are recoverable without destroying a valid authenticated session.
 
+### 10.14 Personal-list reaction APIs
+
+The public Top 10 and Singing List GET endpoints resolve an optional Session.
+Every returned entry contains the aggregate `reactionCount`; an authenticated
+viewer also receives their personalized `viewerHasReacted` state. Anonymous
+responses use `false`. These responses remain `Cache-Control: no-store` and no
+response exposes reactor identity or timestamps.
+
+The four reaction writes require a real Session and accepted Origin. `PUT`
+means ensure the current account has reacted; `DELETE` means ensure it has not,
+so duplicate requests are idempotent. Both return `ListReactionSummary`.
+Non-owners may write only while the target list is Public. Owners may write on
+their own Public or Private list. Each transaction locks the non-owner's list
+setting and then the target list entry before insert/delete, and the composite
+primary key is the final duplicate-write guard.
+
+Invalid username/song UUID returns `400 INVALID_REQUEST`; missing Session
+returns `401 AUTH_REQUIRED`. Deleted entries, unknown owners, Private targets
+for non-owners, and any target that became inaccessible after rendering all
+return `404 LIST_ITEM_NOT_AVAILABLE` with `This list item is no longer
+available.`. The deliberately uniform response does not reveal Private entries.
+
 ## 11. API 通用约定
 
 ### 11.1 请求和响应
@@ -814,6 +867,7 @@ Join failures are recoverable without destroying a valid authenticated session.
 | 404 | SONG_NOT_FOUND | 写入目标歌曲不存在 |
 | 404 | TOP_LIST_ITEM_NOT_FOUND | 删除不存在的 Top 10 项 |
 | 404 | SINGING_LIST_ITEM_NOT_FOUND | 删除不存在的演唱项目 |
+| 404 | LIST_ITEM_NOT_AVAILABLE | 反应目标不存在、已删除或当前 viewer 无权访问 |
 | 409 | TOP_LIST_DUPLICATE | 重复添加 Top 10 歌曲 |
 | 409 | TOP_LIST_CAPACITY_REACHED | Top 10 已满 |
 | 409 | USERNAME_TAKEN | 注册用户名冲突 |
@@ -826,7 +880,7 @@ Join failures are recoverable without destroying a valid authenticated session.
 
 Unsafe 请求必须携带与 APP_ORIGIN 完全匹配的 Origin，显式 cross-site Fetch Metadata 也会被拒绝。注册和登录使用内存速率限制；多实例或公网部署前必须替换为共享限流存储，并补充 TLS、反向代理信任、安全响应头和运维秘密管理。
 
-公开接口只在对应 user_list_settings 为 PUBLIC 时返回数据；Private 和不存在统一返回 404。公开 Singing List Projection 不包含 note。
+公开接口只在对应 user_list_settings 为 PUBLIC 时返回数据；Private 和不存在统一返回 404。公开 Singing List Projection 不包含 note。反应写入在事务内重新检查 owner、当前可见性和目标 entry；非 owner 只能写 Public 项，owner 可写自己的 Private 项。API 只返回汇总数量和当前 viewer 状态，不返回数据库保留的 reacting user 或 created_at。
 
 ### 11.5 并发和幂等性
 
@@ -834,6 +888,9 @@ Unsafe 请求必须携带与 APP_ORIGIN 完全匹配的 Origin，显式 cross-si
 - PUT Singing List 使用 upsert，对同一 userId/songId 可重复调用，但会更新 updated_at。
 - POST Top 10 对重复歌曲返回 409，不是幂等成功。
 - DELETE 不存在的个人列表项返回 404。
+- Reaction PUT/DELETE 是目标状态设置而不是盲目 toggle；重复 PUT 或 DELETE
+  返回同一已确认状态。复合主键防止并发重复，entry/user cascade 保证删除
+  列表项或账号时没有孤儿反应。
 - Top 10 添加先读后写；数据库唯一约束是并发冲突的最终保护，未识别的约束错误当前会成为 500。
 
 ## 12. 前端工程说明
@@ -872,7 +929,7 @@ visitors still use the existing public API.
 
 beforeLoad 只在导航时执行，因此 Session 在页面内失效时需要显式 `router.invalidate()` 让守卫重新求值；这一步放在 loseAuthentication 里。主动登出走另一条路径：先导航回 `/` 再清除 Session，否则守卫会把刚选择登出的用户立刻重定向并要求登录。
 
-登录、退出和认证失效会取消、清空并删除 `personal` 前缀缓存，避免跨用户复用。未登录时禁用的个人 Query 使用独立 `signed-out` 前缀，不能继续占用 `personal` 命名空间，否则 Query Observer 可能在退出后的重渲染中重新创建刚被删除的私人缓存项。写入成功后失效当前用户的 Top 10 和 Practice Library Query，并用 Snackbar 展示结果。
+登录、退出和认证失效会取消、清空并删除 `personal` 前缀缓存，避免跨用户复用。未登录时禁用的个人 Query 使用独立 `signed-out` 前缀，不能继续占用 `personal` 命名空间，否则 Query Observer 可能在退出后的重渲染中重新创建刚被删除的私人缓存项。公开列表的 reaction selected state 也与 viewer 有关，所以列表 Query Key 以 viewer userId 或 `anonymous` 结尾；不能让前一账号的 `viewerHasReacted` 被另一账号复用。写入成功后 reaction hook 失效 owner 的公开列表前缀，以及当前 owner 的个人列表缓存，并用 Snackbar 展示结果。
 
 榜单页的搜索词、歌手、年份和页码保存在 URL Search 参数（`q`、`artist`、`year`、`page`），用 zod 校验，每个字段各自 `.catch(undefined)`，因此单个非法值只降级自身而不会丢弃其余筛选。筛选变更使用 `replace: true`，避免每敲一个字符压一条历史记录。空值与第 1 页以 undefined 写入，从 URL 中移除。切换榜单时保留 q、清除榜单特定的 artist/year，并回到第 1 页。
 
@@ -889,7 +946,7 @@ beforeLoad 只在导航时执行，因此 Session 在页面内失效时需要显
 - personal + userId + groups (+ groupId + members)
 - personal + userId + group-profile + groupId + username
 - group-invitation + default (public introduction only)
-- public-profile + username + 可选列表类型
+- public-profile + username + 列表类型 + viewer userId 或 anonymous
 
 Invitation intent is the current `/invite/default` route, preserved across
 refresh, auth validation failures, and login/register switching. After session
@@ -943,25 +1000,43 @@ DESIGN-002 起，用户可见文案统一使用 Practice Library：Tab 名称、
 - 支持拖放、键盘排序，以及独立的上移/下移按钮。
 - 每次重排向 API 提交完整 orderedSongIds。
 - 标题下方通过 statusLabel 插槽显示当前 Public/Private 小标签；右侧只保留数量和紧凑操作按钮。
-- 小于 `sm` 时行拆成两段：第一段是名次、拖拽柄、歌名和歌手，第二段是上移/下移/移除三个按钮，缩进 28px 对齐文字。三个按钮约占 130px，不下沉会把 320px 下的文字列压到 100px 以内。
+- 每行操作区先显示 Like；反应控件以分隔线和排序/移除操作区分。
+- 小于 `sm` 时行拆成两段：第一段是名次、拖拽柄、歌名/歌手和行末 Like，第二段只有上移/下移/移除按钮，缩进 28px 对齐文字。
 - 拖拽柄在所有断点都留在标题旁边，它是这一行的抓取点而不是对这一行的操作。
 - 卡片内边距和标题栏方向随断点变化（`p: { xs: 1.75, sm: 2.5 }`、标题栏在 xs 竖排）。
 
-### 12.5 SingingListPanel
+### 12.6 SingingListPanel
 
 - 顶部状态 Chip 控制服务端筛选。
-- 折叠行显示状态色条、歌曲、歌手、可选备注预览、状态、编辑和删除。
+- 折叠行显示状态色条、歌曲、歌手、可选备注预览、Cheer、状态、编辑和删除；Cheer 始终在状态 Chip 左侧。
 - 编辑器使用本地 state 暂存 status 和 note。
 - Cancel 恢复服务端最近一次数据。
 - Save changes 通过 PUT upsert。
 - 备注输入使用 multiline standard TextField，HTML maxLength 为 300。
 - 状态和 Top 10 成员资格互相独立。
 - 与 TopListPanel 一样，标题下方显示可见性标签，数量和操作按钮保持在标题区右侧。
-- 行网格在小于 `sm` 时从 `4px minmax(0, 1fr) auto` 降为两列，状态 Chip 与编辑/删除按钮移到第二网格行并跨到文字列；状态色条用 `gridRow: '1 / -1'` 纵贯两行。
+- 行网格在小于 `sm` 时把歌名/歌手和 Cheer 保留在第一行；可选备注独占下一行，状态 Chip 与编辑/删除按钮再下沉一行。状态色条用 `gridRow: '1 / -1'` 纵贯全部内容。
 - 展开的编辑器在小于 `sm` 时去掉 `ml: 2` 缩进并收紧内边距。
 - 行列表带 `aria-label="My Practice Library"`，与另外两个面板的列表标签一致。
 
-### 12.6 认证与公开页
+### 12.7 ListReactionButton 与 useListReaction
+
+- `ListReactionButton` 固定由 list type 选择 thumbs-up Like 或本地
+  party-popper Cheer；未选用 outlined 图标，已选用 filled secondary 图标。
+  Cheer SVG 封装在 `PartyPopperIcon.tsx`，使用 `currentColor` 和完整
+  `140 145 520 520` viewBox，避免右侧彩纸被裁切。
+- 零数量只画图标；正数以精确整数画在同一按钮内。Tooltip 为 Like / Remove
+  like 或 Cheer / Remove cheer；accessible name 同时包含动作、歌曲名和数量，
+  `aria-pressed` 表示当前 viewer 状态。
+- owner 编辑页、owner profile、public preview、普通公开 profile 和
+  group-origin profile 共用同一个控件；Ranking/search 行不渲染它。
+- `useListReaction` 通过 `requireUser` 处理匿名点击。认证框关闭、失败或成功
+  都不自动重放原点击；profile 上注册/登录成功后留在同一 URL，用户必须再点。
+- 同一 entry 写入期间按钮禁用。成功提示 `Liked`、`Cheered`、`Like removed`
+  或 `Cheer removed`；`LIST_ITEM_NOT_AVAILABLE` 会刷新相关缓存并显示服务端
+  approved message，不做未确认的 optimistic count。
+
+### 12.8 认证与公开页
 
 - 顶栏在匿名状态显示 Sign in/Register，在登录状态显示账户菜单。
 - 登录注册共用 AuthDialog，均只有 username 输入；切换模式保留输入并清除错误，注册需主动提交，不自动创建账号。
@@ -970,8 +1045,9 @@ DESIGN-002 起，用户可见文案统一使用 Practice Library：Tab 名称、
 - Public list share buttons open ShareLinkDialog for `/u/:username`, with contextual instructions and an explicit Copy button. Group invitations use the same dialog for `/invite/default`.
 - `/u/:username` 的本人视角通过 session 保护的 `/api/me/*` 读取全部歌单并标明 Public / Private；其他访客和 `?view=public` 预览只读取公开 Projection。
 - Practice Library 公开页显示状态但不支持编辑，也不接收 note 字段。
+- 公开 profile 的 reaction count 对匿名访客可见；匿名选择图标只打开认证框。
 
-### 12.7 响应式布局
+### 12.9 响应式布局
 
 - 排名、个人列表和群组页面均为全宽单列。DESIGN-002 之前的 1.6fr / 0.85fr 两列布局已移除，个人列表改为独立路由。
 - TabNav 始终使用 MUI `Tabs` 的 `fullWidth` 变体；`sm` 断点通过 `flex: '0 0 auto'` 让整行收缩为自然宽度并左对齐。同一个 Tabs 实例贯穿所有断点，不做变体切换，避免 Tab 列表重新挂载。
@@ -984,14 +1060,14 @@ DESIGN-002 起，用户可见文案统一使用 Practice Library：Tab 名称、
 - TabNav 对匿名访客仍然过滤掉受守卫的三项，所以匿名访客在手机上看到四个目的地、在桌面上只看到一个。用户于 2026-09-15 接受该手机与桌面差异；2026-09-17 新增 Groups 后沿用同一匿名认证入口规则。
 - BottomNav 是 `position: fixed`，不占布局空间，因此 AppShellContext 给内容区加了 `pb: calc(56px + env(safe-area-inset-bottom))`，Snackbar 也在 xs 下相应上移，否则列表最后一行和通知都会压在底栏下面。
 - 断点行为只能由 Playwright 验证：jsdom 的 `getComputedStyle` 不把 emotion 注入的样式表计入 computed style，两个导航在单元测试里都表现为可见，而 `window.matchMedia` 在 jsdom 中未实现。
-- 三个列表面板（RankingPanel / TopListPanel / SingingListPanel）遵循同一条规则：小于 `sm` 时，一行放不下的操作控件下沉到文字下方并缩进对齐文字列；`sm` 及以上保持原有的左文右操作布局。细节见 12.3–12.5。
+- 三个列表面板在小于 `sm` 时会让管理操作下沉并缩进对齐文字列，但个人列表的 Like/Cheer 仍留在歌曲同一行；`sm` 及以上保持左文右操作布局。细节见 12.3–12.6。
 - 行文字一律换行，不做省略号截断。操作控件进入正常流之后没有再隐藏歌名的理由。
 - Practice Library 状态 Chip 允许换行。
 - 顶栏（Brand）高度和字号随断点变化：`minHeight: { xs: 56, sm: 66 }`、`fontSize: { xs: '1.25rem', sm: '1.45rem' }`；副标题在小于 `sm` 时隐藏。
 - 顶栏账户按钮必须限宽并省略号截断（`minWidth: 0` + `maxWidth: { xs: 150, sm: 320 }`）。用户名是任意长度且不可断行的文本，按钮作为 flex item 默认 `min-width: auto` 不会收缩，28 个字符的用户名就能把 320px 视口的 `scrollWidth` 顶到 331px。顶栏在每个页面都渲染，所以这一个元素会让**所有**页面横向滚动。截断只影响绘制的文本，可访问名称仍然是完整用户名。
 - 断点行为由 `e2e/responsive.spec.ts` 验证，不由组件测试验证：Vitest 跑在 jsdom 上，不求值 media query，`sx` 断点对它不可见。
 
-### 12.8 视觉与无障碍
+### 12.10 视觉与无障碍
 
 - 只提供亮色主题和 Warm Archive 配色。
 - 标题优先使用 Iowan Old Style / Palatino 系统衬线字体。
@@ -1003,6 +1079,7 @@ DESIGN-002 起，用户可见文案统一使用 Practice Library：Tab 名称、
 - 搜索结果数量使用 aria-live。
 - 登录对话框具有关联标题、原生表单提交和 autocomplete 提示。
 - Visibility Select 有可访问标签，公开确认说明公开字段范围。
+- Reaction 图标有 Tooltip、精确 count、`aria-pressed` 和包含动作/歌曲/数量的可访问名称。
 
 ## 13. 后端工程说明
 
@@ -1018,7 +1095,7 @@ auth.ts 负责按 username 查找账号、含不可认证占位凭据的原子�
 
 负责数据库 Projection、榜单和歌曲读取、歌曲存在性检查、Top 10 容量与去重、事务重排、删除后位置压缩，以及 Singing List 状态过滤和 upsert。路由层不应复制这些业务规则。
 
-services.ts 还负责列表可见性 upsert、缺失设置默认私密、公开资料门控，以及公开 Singing List 的无备注 Projection。
+services.ts 还负责列表可见性 upsert、缺失设置默认私密、公开资料门控、公开 Singing List 的无备注 Projection，以及带 viewer 状态的 reaction 聚合 Projection。Reaction 写入在事务中锁定授权和 entry，使用冲突忽略/精确删除实现幂等状态设置。
 
 ### 13.4 errors.ts
 
@@ -1042,7 +1119,7 @@ npm run typecheck 会先构建 contracts 和 database，再执行所有 workspac
 
 ### 14.2 前端组件测试
 
-The current Web suite has 17 files and 73 tests. It covers the existing ranking,
+The current Web suite has 18 files and 76 tests. It covers the existing ranking,
 list/auth/privacy/navigation behavior plus groups, invitation refresh and mode
 switching, failed authentication/cancellation, join retry, private-profile empty
 states, protected-cache cleanup on logout/expiry/account switching, and sharing
@@ -1050,7 +1127,10 @@ with explicit button-triggered copying, native sharing never invoked, and
 absent/rejected clipboard APIs handled without false success. Owner-profile
 coverage checks direct/group visits, Public / Private labels, both-private
 preview/return, ignored invalid view parameters, other/anonymous viewers,
-account switching, and expired-session cleanup.
+account switching, and expired-session cleanup. Reaction coverage verifies
+icon-only zero/positive states, accessible names, an anonymous profile click
+opening authentication, registration returning to that profile, and no
+automatic reaction replay.
 
 Vitest 保持文件级并行。`apps/web/vite.config.ts` 把单测试超时设为 10 秒；`apps/web/src/test/setup.ts` 将 Testing Library 异步等待默认设为 5 秒，与已有排名加载断言一致。该设置来自完整并行套件中不同页面加载/弹窗关闭超过默认 1 秒的复现；仅延长异步断言等待，不增加固定延迟或改变产品逻辑。调整并行度、测试运行器或查询初始化时，应连续运行完整 Web 套件至少三次确认稳定性，不要只验证单个测试文件。
 
@@ -1058,7 +1138,7 @@ Vitest 保持文件级并行。`apps/web/vite.config.ts` 把单测试超时设�
 
 四个 API 测试实例（两个注入用户、真实认证、限流）在整套测试期间各自监听独立的本机随机端口，并在 teardown 关闭。不要退回每请求创建/关闭服务的方式：快速注册移除 scrypt 等待后，临时端口复用与 HTTP 连接复用可能使请求收到另一实例的响应，表现为公开榜单偶发 401 或错误的成员权限状态。此改动只影响测试，不改变生产服务监听方式。
 
-There are 32 Supertest tests using real PostgreSQL, covering the existing
+There are 34 Supertest tests using real PostgreSQL, covering the existing
 ranking/list/auth/privacy rules and the group access matrix, read-only GETs,
 transactional registration membership, ordinary login without backfill,
 concurrent/idempotent joining, safe member/profile projections,
@@ -1067,7 +1147,11 @@ unusable placeholders, preserved legacy hashes/display names/private data,
 duplicate/concurrent registration, final-session-insert rollback, and private
 lists/notes remaining inaccessible to other members and anonymous visitors.
 Coverage also verifies both new-account PUBLIC defaults, the database column
-default, missing legacy settings staying PRIVATE, and private choices surviving login.
+default, missing legacy settings staying PRIVATE, and private choices surviving
+login. Reaction coverage checks anonymous/public personalized reads,
+idempotent writes, self-reaction, Private retention and owner-only writes,
+visibility restoration, reactor timestamp storage, edit/reorder preservation,
+cascade deletion, zero state after re-add, and stale-item errors.
 
 既有业务规则测试通过 createApp 注入固定测试用户；认证测试使用真实 Cookie Agent 和动态账户。beforeEach/afterAll 只删除测试用户名和固定测试用户。测试不应读写 demo 用户的个人列表。
 
@@ -1077,7 +1161,7 @@ dry-run 无写入、幂等导入、可空 decade/region、事务回滚、原子�
 
 ### 14.4 Playwright E2E
 
-当前 7 条用例。第 1 条是关键流程覆盖：`/` 进入 displayOrder 最前的 `/rankings/:slug`、匿名时桌面顶部导航只显示 Ranking、注册、退出、仅 username 登录后个人目的地出现、搜索写入 URL Search 参数、添加 Top 10 与 Practice Library、经导航跳转到 `/personal` 和 `/practice`、设置状态与私密备注、刷新后仍停在 `/practice`、验证两个列表初始 Public、分别切换 Private 再确认公开、复制分享链接、登出后落在同一默认榜单、匿名深链接被重定向并弹出登录框，以及匿名读取公开页时看不到备注。
+当前 7 条用例。第 1 条是关键流程覆盖：`/` 进入 displayOrder 最前的 `/rankings/:slug`、匿名时桌面顶部导航只显示 Ranking、注册、退出、仅 username 登录后个人目的地出现、搜索写入 URL Search 参数、添加 Top 10 与 Practice Library、经导航跳转到 `/personal` 和 `/practice`、owner Like/Cheer 及刷新保留、设置状态与私密备注、验证两个列表初始 Public、分别切换 Private 再确认公开、复制分享链接、登出后落在同一默认榜单、匿名深链接被重定向并弹出登录框，以及匿名读取公开页时看到 counts、没有 selected state、点击只打开登录框且看不到备注。
 
 第 2 条是响应式回归 `e2e/responsive.spec.ts`：注册用户后把种子里最宽的一行（`纤夫的爱 / 尹相杰、于文华 · 1993`）放进两个个人列表并写入一条长备注，然后在 320 / 375 / 414 / 600 / 900 五个视口下依次访问 `/`、`/personal`、`/practice`，逐项断言页面无横向溢出、且行内没有任何文字压在控件下面。
 
@@ -1090,7 +1174,7 @@ dry-run 无写入、幂等导入、可空 decade/region、事务回滚、原子�
 - **必须量文字的字形盒，不能量容器。** 用 `document.createRange()` 逐个 text node 取 `getClientRects()`。文字容器会铺满整行，即使里面的字已经钻到按钮底下，容器矩形看上去仍然是干净的，量容器会得到假阴性。
 - **必须等列表行渲染出来再量。** `page.goto` 返回时 SPA 还没渲染任何 `li`，此时量到的是用户看不到的中间态：行数为 0 会让碰撞断言空过，横向溢出也会给出与最终布局无关的数值。用例因此先等首行可见，再做全部测量，并额外断言"量到的行数和文字盒数量大于 0"，让"什么都没量到"无法伪装成通过。
 
-`e2e/groups.spec.ts` 的 4 条用例覆盖未知用户名提示主动注册、输入保留与模式错误清除、仅 username 请求体、重复注册后切回登录，以及普通注册/登录与邀请加入、邀请注册后浏览其他成员公开歌单、以及已有非成员通过邀请登录。本人 profile 回归在普通注册用例中添加真实歌曲，将两个列表设为 Private，再通过键盘从群组进入本人 profile，检查完整歌曲和 Private 标签、公开预览与返回、直接访问、退出后同 URL 不泄露私有歌单，以及 320px/1280px 布局。
+`e2e/groups.spec.ts` 的 4 条用例覆盖未知用户名提示主动注册、输入保留与模式错误清除、仅 username 请求体、重复注册后切回登录，以及普通注册/登录与邀请加入、邀请注册后浏览其他成员公开歌单、另一成员 Cheer 后匿名仍能看到 count、以及已有非成员通过邀请登录。本人 profile 回归在普通注册用例中添加真实歌曲，将两个列表设为 Private，再通过键盘从群组进入本人 profile，检查完整歌曲和 Private 标签、公开预览与返回、直接访问、退出后同 URL 不泄露私有歌单，以及 320px/1280px 布局。
 
 playwright.config.ts 使用端口 3101、production 形态 Express 服务和 reuseExistingServer: false。启动前执行 build、Migration 和公共 Seed，并把 APP_ORIGIN 指向 3101。测试注册带时间戳的唯一用户，结束后级联删除该账户；不影响 demo 用户。
 
@@ -1250,6 +1334,7 @@ E2E 不复用已有服务器；3101 被占用时应先定位占用者。
 | 项目 | 当前状态 | 建议 |
 | --- | --- | --- |
 | SSO 与账户恢复 | 当前为仅 username 过渡方案，无账号归属验证；未实现 SSO、邮箱验证或密码重置 | 按 AUTHENTICATION_DESIGN 的 issuer/sub 身份模型向前扩展 |
+| Reaction roster / Group visibility | Reactor identity and timestamps are stored, but no roster API/UI exists; Group-only visibility does not exist | Design authorization and privacy when either feature is actually requested |
 | ~~活动榜单选择~~ | 已解决：按稳定 slug 显式路由并按 displayOrder/title 排序 | — |
 | ~~Singing 成员判断~~ | 已解决（DESIGN-002）：状态筛选随 Practice Library 移到 `/practice`，榜单页固定以 `ALL` 读取完整成员集合 | — |
 | API 分页 | songs 与榜单详情没有服务端分页 | 数据规模扩大前设计统一分页 |
@@ -1276,6 +1361,8 @@ E2E 不复用已有服务器；3101 被占用时应先定位占用者。
 | SSO 未来使用 issuer + subject | 避免把可变 email 当作外部身份主键 |
 | 列表设置缺失时默认 Private | 迁移和异常状态下 fail closed，避免旧数据意外公开 |
 | 公开 Singing List 排除 note | 公开歌曲/状态而不泄露用户私人记录 |
+| Reactions use entry-specific tables | Counts belong to one owner's concrete list entry; cascade deletion resets re-added songs and stored user IDs keep future roster options open |
+| Reaction writes use idempotent PUT/DELETE | Retries converge on a known selected state instead of accidentally double-toggling |
 | Top 10 使用延迟唯一约束 | 允许事务内安全交换和压缩 position |
 | Singing List 使用 upsert | 新增和编辑共享写入路径 |
 | E2E 动态注册用户并使用专用端口 | 验证真实认证流程，结束后只删除自己创建的账户 |
@@ -1293,6 +1380,9 @@ E2E 不复用已有服务器；3101 被占用时应先定位占用者。
 
 | 日期 | 代码基线 | 内容 |
 | --- | --- | --- |
+| 2026-09-19 | DESIGN-009 UI refinement based on `3110600` | Cheer 改用本地适配的 outlined/filled party-popper SVG（`currentColor`、完整 viewBox），修正 reaction 垂直居中；Practice 行将 Cheer 放在状态左侧，移动端 Like/Cheer 与歌曲保持同一行，备注独占一行，其余管理控件按需下沉。Web typecheck、相关组件/路由测试及 320/375/414/600/900 px responsive Playwright 均通过；diff check 通过。用户随后授权 commit/push 到 `origin/main`；未请求 deployment。 |
+| 2026-09-19 | DESIGN-009 implementation based on `3110600` | 实现 DESIGN-009：新增 migration `0007` 及两张 entry-specific reaction 表；列表 Projection 返回 count/viewer state；新增四个幂等 PUT/DELETE 写端点与 Public/owner 授权；五类 profile/editing 显示面共用 Like/Cheer 图标、数量、Tooltip、Snackbar 和匿名认证继续；无 roster/notification/popularity/Group 扩展。typecheck、128 workspace tests（API 34 / Web 76 / config 8 / database 10）、production build 和 Playwright 7/7 通过；`0007` 已应用到本地 development DB，完整 8 个 migration 也在隔离空数据库通过并已清理。用户随后授权 commit/push 到 `origin/main`；未请求 deployment。 |
+| 2026-09-19 | Documentation working tree on `main` at `3110600` | 新增 DESIGN-009，记录 Top 10 Like 与 Practice Library Cheer 的目标身份、Public/Private 权限、删除/可见性生命周期、匿名认证继续、图标/数量/Tooltip/Snackbar、数据库保留反应者与时间但不提供名单，以及 Group 语义延期。仅更新设计、交接与文档索引；未授权或实施 schema、migration、API、UI、测试、配置或依赖变更。 |
 | 2026-09-18 | DESIGN-008 delivery on `main`, based on `be0efd9` | 实现 DESIGN-008：已有 username 直接登录，未知 username 提示主动注册，登录/注册只提交 username；新账号显示名默认 username，旧 hash 保留，新凭据存不可认证占位标记。其余 Session、group、profile、歌单和分享行为保持。typecheck、123 workspace tests（API 32 / Web 73 / config 8 / database 10）、production build、Playwright 7/7 及 320px/1280px 登录视觉验收通过。统一 Testing Library 5 秒异步等待后完整 Web 连续四次通过；API 测试改为独立持续监听端口后完整 API 连续两次通过。更新设计/认证/handoff 和文档链接/fences/diff；用户随后授权提交并推送到 origin/main，fetch 确认远端与基线一致；未部署，无 schema/migration/config/dependency 变更。 |
 | 2026-09-18 | 当前工作树 on `main` at `a871406` | 本人 profile 通过受 Session 保护的 personal 查询展示全部歌单和 Public / Private 标签；增加公开预览/返回与分享接收者提示，分享 URL 不变。typecheck、116 workspace tests（API 26 / Web 72 / config 8 / database 10）、build、Playwright 6/6 与 320px/1280px 视觉验收通过。用户随后授权提交并推送到 origin/main；提交前再次通过 typecheck 和 116 项测试，fetch 确认远端与基线一致。本次后续文档整理检查链接、fences 和 diff；未重新部署。Default Group 原功能已通过 PR #11 合入。 |
 | 2026-09-17 | Documentation refresh against `83ab826` | Updates current branch/commit, delivered group scope, four-item navigation, sharing/defaults, migration chain and latest verification. Document links/fences and diff checked; no application changes or tests rerun. Refresh saved in a subsequent local documentation commit; no GitHub push. |

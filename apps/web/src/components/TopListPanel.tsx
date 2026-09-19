@@ -7,22 +7,26 @@ import { SortableContext, arrayMove, sortableKeyboardCoordinates, useSortable, v
 import { Box, IconButton, List, ListItem, ListItemText, Paper, Stack, Typography } from '@mui/material';
 import type { ReactNode } from 'react';
 import type { TopListEntry } from '../api';
+import { ListReactionButton } from './ListReactionButton';
 
-type SortableItemProps = { entry: TopListEntry; index: number; count: number; onMove: (from: number, to: number) => void; onRemove: (songId: string) => void };
+type SortableItemProps = { entry: TopListEntry; index: number; count: number; onMove: (from: number, to: number) => void; onRemove: (songId: string) => void; onToggleReaction: (songId: string, viewerHasReacted: boolean) => void; isReactionPending: boolean };
 
-function SortableItem({ entry, index, count, onMove, onRemove }: SortableItemProps) {
+function SortableItem({ entry, index, count, onMove, onRemove, onToggleReaction, isReactionPending }: SortableItemProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: entry.id });
   // The three trailing controls need about 130px. Below `sm` that leaves under
   // 100px for the title, so they move to a second line and the text gets the
   // full width. The drag handle stays beside the title at every width.
   return <ListItem ref={setNodeRef} divider disableGutters sx={{ display: 'block', px: 0, py: 1, opacity: isDragging ? 0.6 : 1, transform: transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined, transition }}>
-    <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'stretch', sm: 'center' }, gap: { xs: 0.25, sm: 0 } }}>
+    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'minmax(0, 1fr) auto', sm: 'minmax(0, 1fr) auto auto' }, alignItems: 'center', columnGap: 0.35, rowGap: 0.25 }}>
       <Box sx={{ display: 'flex', alignItems: 'center', flex: 1, minWidth: 0 }}>
         <Typography component="span" color="primary.main" fontWeight={800} sx={{ width: 28, flexShrink: 0 }}>{entry.position}</Typography>
         <IconButton aria-label={`Drag ${entry.title}`} {...attributes} {...listeners} size="small" sx={{ mr: 0.75, flexShrink: 0, cursor: 'grab', border: 0, '&:hover': { bgcolor: 'action.hover' } }}><DragIndicatorIcon fontSize="small" /></IconButton>
         <ListItemText primary={entry.title} secondary={entry.artist} primaryTypographyProps={{ fontWeight: 700 }} sx={{ my: 0, minWidth: 0 }} />
       </Box>
-      <Stack direction="row" spacing={0.35} sx={{ flexShrink: 0, pl: { xs: '28px', sm: 0 }, justifyContent: { xs: 'flex-start', sm: 'flex-end' } }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', pr: { xs: 0, sm: 0.5 }, mr: { xs: 0, sm: 0.15 }, borderRight: { xs: 0, sm: 1 }, borderColor: 'divider' }}>
+        <ListReactionButton kind="LIKE" songTitle={entry.title} reactionCount={entry.reactionCount} viewerHasReacted={entry.viewerHasReacted} disabled={isReactionPending} onToggle={() => onToggleReaction(entry.id, entry.viewerHasReacted)} />
+      </Box>
+      <Stack direction="row" spacing={0.35} alignItems="center" sx={{ gridColumn: { xs: '1 / 3', sm: 3 }, gridRow: { xs: 2, sm: 1 }, flexShrink: 0, pl: { xs: '28px', sm: 0 }, justifyContent: { xs: 'flex-start', sm: 'flex-end' } }}>
         <IconButton aria-label={`Move ${entry.title} up`} disabled={index === 0} onClick={() => onMove(index, index - 1)}><KeyboardArrowUpIcon /></IconButton>
         <IconButton aria-label={`Move ${entry.title} down`} disabled={index === count - 1} onClick={() => onMove(index, index + 1)}><KeyboardArrowDownIcon /></IconButton>
         <IconButton aria-label={`Remove ${entry.title} from My Top 10`} color="primary" onClick={() => onRemove(entry.id)}><RemoveCircleOutlineIcon /></IconButton>
@@ -31,7 +35,7 @@ function SortableItem({ entry, index, count, onMove, onRemove }: SortableItemPro
   </ListItem>;
 }
 
-export function TopListPanel({ entries, onReorder, onRemove, headerAction, promptAction, statusLabel }: { entries: TopListEntry[]; onReorder: (ids: string[]) => void; onRemove: (songId: string) => void; headerAction?: ReactNode; promptAction?: ReactNode; statusLabel?: ReactNode }) {
+export function TopListPanel({ entries, onReorder, onRemove, onToggleReaction, isReactionPending, headerAction, promptAction, statusLabel }: { entries: TopListEntry[]; onReorder: (ids: string[]) => void; onRemove: (songId: string) => void; onToggleReaction: (songId: string, viewerHasReacted: boolean) => void; isReactionPending: (songId: string) => boolean; headerAction?: ReactNode; promptAction?: ReactNode; statusLabel?: ReactNode }) {
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
   const handleDragEnd = ({ active, over }: DragEndEvent) => {
     if (!over || active.id === over.id) return;
@@ -42,6 +46,6 @@ export function TopListPanel({ entries, onReorder, onRemove, headerAction, promp
   const move = (from: number, to: number) => onReorder(arrayMove(entries, from, to).map((entry) => entry.id));
   return <Paper component="section" sx={{ p: { xs: 1.75, sm: 2.5 } }} aria-labelledby="top-list-heading">
     <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'flex-start', sm: 'center' }} gap={1.5}><Box><Typography variant="overline" color="secondary.main" fontWeight={800}>Personal ranking</Typography><Typography id="top-list-heading" variant="h2" fontSize="1.45rem">My Top 10</Typography>{promptAction && <Box mt={0.5}>{promptAction}</Box>}{statusLabel && <Box mt={0.5}>{statusLabel}</Box>}</Box><Stack direction="row" alignItems="center" gap={1}><Typography color="text.secondary" fontWeight={700}>{entries.length}/10</Typography>{headerAction}</Stack></Stack>
-    {entries.length === 0 ? <Typography color="text.secondary" py={3}>Add songs from the ranking to start your list.</Typography> : <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}><SortableContext items={entries.map((entry) => entry.id)} strategy={verticalListSortingStrategy}><List disablePadding aria-label="My Top 10">{entries.map((entry, index) => <SortableItem key={entry.id} entry={entry} index={index} count={entries.length} onMove={move} onRemove={onRemove} />)}</List></SortableContext></DndContext>}
+    {entries.length === 0 ? <Typography color="text.secondary" py={3}>Add songs from the ranking to start your list.</Typography> : <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}><SortableContext items={entries.map((entry) => entry.id)} strategy={verticalListSortingStrategy}><List disablePadding aria-label="My Top 10">{entries.map((entry, index) => <SortableItem key={entry.id} entry={entry} index={index} count={entries.length} onMove={move} onRemove={onRemove} onToggleReaction={onToggleReaction} isReactionPending={isReactionPending(entry.id)} />)}</List></SortableContext></DndContext>}
   </Paper>;
 }

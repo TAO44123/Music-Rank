@@ -86,6 +86,7 @@ All `/api/me` requests resolve an opaque database-backed session cookie in one m
 - [Default Group Design](docs/DESIGN_007_DEFAULT_GROUP.md): approved membership, invitations, public-list discovery, and deferred group management.
 - [Default Group Implementation Plan](docs/PLAN_007_DEFAULT_GROUP.md): implementation and validation records, including owner profiles, sharing, and PUBLIC-default refinements.
 - [Username-only Transitional Design](docs/DESIGN_008_USERNAME_ONLY_TRANSITION.md): implemented intermediate-release behavior, retained password storage, and accepted account-access limitations.
+- [Personal List Item Reactions Design](docs/DESIGN_009_LIST_REACTIONS.md): implemented Like/Cheer behavior, permissions, lifecycle, privacy, and acceptance record for personal-list entries.
 - [Authentication Design](docs/AUTHENTICATION_DESIGN.md): approved login, session, public-list, security, and future SSO boundaries.
 - [Chinese Product Specification](docs/PROJECT_SPEC_ZH.md): approved Version 1 product specification in Chinese.
 - [English Product Specification](docs/PROJECT_SPEC_EN.md): approved Version 1 product specification in English.
@@ -93,3 +94,9 @@ All `/api/me` requests resolve an opaque database-backed session cookie in one m
 ## Scope
 
 Authentication, public/private personal lists, and Default Group invitations/member discovery are approved extensions to the original Version 1 specification. The current scope still excludes group management, multiple groups, group-only visibility, implemented SSO providers, password recovery, email verification, account deletion, anonymous user discovery/follows, audio or lyrics, video ingestion, OCR, AI extraction, and admin tooling. See [AUTHENTICATION_DESIGN.md](docs/AUTHENTICATION_DESIGN.md) for the approved extension and [PROJECT_SPEC_EN.md](docs/PROJECT_SPEC_EN.md) for the original baseline.
+
+Personal-list reactions are implemented: Top 10 entries use thumbs-up Likes and
+Practice Library entries use custom outlined/filled party-popper Cheers. Public
+counts are visible to anonymous visitors; authenticated users can toggle
+reactions under the visibility rules in DESIGN-009. Reactor identities remain
+database-only.

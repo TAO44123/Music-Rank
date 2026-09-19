@@ -27,6 +27,7 @@
 | `0004_abnormal_butterfly.sql` | 加入用户补录歌曲的可空提交者归属和索引 |
 | `0005_bizarre_the_stranger.sql` | Creates groups/memberships and initializes Default Group; no existing-user backfill |
 | `0006_panoramic_machine_man.sql` | Changes new list-setting default to PUBLIC; no existing visibility updates |
+| `0007_greedy_miek.sql` | Adds per-entry Top 10 Like and Practice Library Cheer tables with cascading entry/user foreign keys |
 
 操作时遵守以下边界：
 
@@ -107,6 +108,18 @@ Registration explicitly initializes both lists as PUBLIC. It does not update
 existing visibility, publish old lists, or change memberships. Missing legacy
 settings still resolve to PRIVATE; Practice Library notes remain private.
 Apply the normal migration command before starting the updated API.
+
+### 3.3 Personal-list reactions
+
+`0007_greedy_miek.sql` creates `top_list_entry_reactions` and
+`singing_list_entry_reactions`. Each table uses `(entry_id, user_id)` as its
+primary key, stores `created_at`, and indexes `user_id`. Deleting a list entry or
+reacting user cascades to the corresponding reaction rows. The migration does
+not rewrite personal lists, list visibility, songs, ranking data, or existing
+users, and every existing entry begins with a zero reaction count.
+
+Apply the normal migration command before starting the updated API. Do not add
+reaction seed data: counts are user activity, not catalog fixtures.
 
 ## 4. 本地 development：完整复制粘贴流程
 

@@ -1,15 +1,16 @@
-import type { RankingDecade as ContractRankingDecade, RankingRegionPath } from '@music-rank/contracts';
+import type { ListReactionSummary, RankingDecade as ContractRankingDecade, RankingRegionPath } from '@music-rank/contracts';
 export type { GroupSummary, GroupMember } from '@music-rank/contracts';
+export type { ListReactionSummary } from '@music-rank/contracts';
 
 export type Song = { id: string; title: string; artist: string; releaseYear: number | null };
 export type RankingDecade = ContractRankingDecade;
 export type RankingRegion = RankingRegionPath;
 export type Ranking = { id: string; title: string; slug: string; era: string | null; decadeStart: number | null; decade: RankingDecade | null; region: RankingRegion | null; displayOrder: number; sourceType: string; description: string | null; hasSource: boolean };
 export type RankingDetail = Ranking & { sourceUrl: string | null; songCount: number; facets: { artists: string[]; releaseYears: number[] }; entries: Array<Song & { rank: number }> };
-export type TopListEntry = Song & { position: number };
+export type TopListEntry = Song & ListReactionSummary & { position: number };
 export type SingingStatus = 'CAN_SING' | 'REGULARLY_SING' | 'PRACTICING' | 'WANT_TO_LEARN';
-export type SingingListEntry = Song & { status: SingingStatus; note: string | null };
-export type PublicSingingListEntry = Song & { status: SingingStatus };
+export type SingingListEntry = Song & ListReactionSummary & { status: SingingStatus; note: string | null };
+export type PublicSingingListEntry = Song & ListReactionSummary & { status: SingingStatus };
 export type AuthUser = { id: string; username: string; displayName: string };
 export type AuthSession = { user: AuthUser | null };
 export type ListVisibility = 'PRIVATE' | 'PUBLIC';

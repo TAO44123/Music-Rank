@@ -71,9 +71,12 @@ export function AppShellProvider({ children, chrome = true }: { children: ReactN
       client.setQueryData<AuthSession>(queryKeys.session, { user: authenticatedUser });
       setAuthDialog((current) => ({ ...current, open: false }));
       setNotice({ severity: 'success', message: `Welcome, ${authenticatedUser.displayName}` });
-      // The invitation page owns its join continuation. Ordinary registration
-      // lands on home, while ordinary login retains the current destination.
-      if (mode === 'register' && router.state.location.pathname !== '/invite/default') {
+      // The invitation page owns its join continuation. Registration opened
+      // from a public profile stays there so the visitor can deliberately retry
+      // the reaction that prompted authentication; the reaction is never
+      // replayed automatically. Other ordinary registrations land on home.
+      const pathname = router.state.location.pathname;
+      if (mode === 'register' && pathname !== '/invite/default' && !pathname.startsWith('/u/')) {
         await router.navigate({ to: '/', search: {} });
       }
     }

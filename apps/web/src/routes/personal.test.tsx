@@ -67,7 +67,7 @@ describe('/personal', () => {
             message: 'This song already exists. Confirm that you want to use it.',
             existingSong: { id: 'shared-song', title: 'Shared Song', artist: 'Shared Artist' }
           }, 409);
-          topEntries = [{ id: 'shared-song', title: 'Shared Song', artist: 'Shared Artist', releaseYear: null, position: 1 }];
+          topEntries = [{ id: 'shared-song', title: 'Shared Song', artist: 'Shared Artist', releaseYear: null, position: 1, reactionCount: 0, viewerHasReacted: false }];
           return jsonResponse(topEntries, 201);
         }
         throw new Error(`Unexpected request: ${path}`);

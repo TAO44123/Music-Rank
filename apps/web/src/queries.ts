@@ -14,8 +14,8 @@ export const queryKeys = {
   singingList: (userId: string, status: string) => ['personal', userId, 'singing-list', status] as const,
   listSettings: (userId: string) => ['personal', userId, 'list-settings'] as const,
   publicProfile: (username: string) => ['public-profile', username] as const,
-  publicTopList: (username: string) => ['public-profile', username, 'top-list'] as const,
-  publicSingingList: (username: string) => ['public-profile', username, 'singing-list'] as const
+  publicTopList: (username: string, viewerId?: string) => viewerId ? ['public-profile', username, 'top-list', viewerId] as const : ['public-profile', username, 'top-list'] as const,
+  publicSingingList: (username: string, viewerId?: string) => viewerId ? ['public-profile', username, 'singing-list', viewerId] as const : ['public-profile', username, 'singing-list'] as const
 };
 
 export function getRankingPath(slug: string, query: string, artist: string, releaseYear: number | 'ALL') {
@@ -103,16 +103,16 @@ export const groupMemberProfileQueryOptions = (user: AuthUser | null, groupId: s
   retry: false
 });
 
-export const publicTopListQueryOptions = (username: string, enabled: boolean) => queryOptions({
-  queryKey: queryKeys.publicTopList(username),
-  queryFn: () => request<TopListEntry[]>(`/api/users/${encodeURIComponent(username)}/top-list`),
+export const publicTopListQueryOptions = (username: string, viewer: AuthUser | null, enabled: boolean) => queryOptions({
+  queryKey: queryKeys.publicTopList(username, viewer?.id ?? 'anonymous'),
+  queryFn: ({ signal }) => request<TopListEntry[]>(`/api/users/${encodeURIComponent(username)}/top-list`, { signal }),
   enabled,
   retry: false
 });
 
-export const publicSingingListQueryOptions = (username: string, enabled: boolean) => queryOptions({
-  queryKey: queryKeys.publicSingingList(username),
-  queryFn: () => request<PublicSingingListEntry[]>(`/api/users/${encodeURIComponent(username)}/singing-list`),
+export const publicSingingListQueryOptions = (username: string, viewer: AuthUser | null, enabled: boolean) => queryOptions({
+  queryKey: queryKeys.publicSingingList(username, viewer?.id ?? 'anonymous'),
+  queryFn: ({ signal }) => request<PublicSingingListEntry[]>(`/api/users/${encodeURIComponent(username)}/singing-list`, { signal }),
   enabled,
   retry: false
 });

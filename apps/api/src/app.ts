@@ -41,6 +41,8 @@ import {
   removeSingingListItem,
   removeTopListItem,
   reorderTopList,
+  setSingingListReaction,
+  setTopListReaction,
   updateListVisibility,
   upsertSingingListItem
 } from './services.js';
@@ -139,13 +141,29 @@ export function createApp({ currentUserId, allowedOrigin = config.server.appOrig
     const username = usernameSchema.parse(request.params.username);
     response.json(await getPublicProfile(username));
   }));
-  app.get('/api/users/:username/top-list', asyncRoute(async (request, response) => {
+  app.get('/api/users/:username/top-list', createOptionalCurrentUserResolver(sessionCookie.name), asyncRoute(async (request, response) => {
     const username = usernameSchema.parse(request.params.username);
-    response.json(await getPublicTopList(username));
+    response.json(await getPublicTopList(username, response.locals.authUser?.id));
   }));
-  app.get('/api/users/:username/singing-list', asyncRoute(async (request, response) => {
+  app.get('/api/users/:username/singing-list', createOptionalCurrentUserResolver(sessionCookie.name), asyncRoute(async (request, response) => {
     const username = usernameSchema.parse(request.params.username);
-    response.json(await getPublicSingingList(username));
+    response.json(await getPublicSingingList(username, response.locals.authUser?.id));
+  }));
+  app.put('/api/users/:username/top-list/items/:songId/reaction', createCurrentUserResolver(sessionCookie.name, currentUserId), asyncRoute(async (request, response) => {
+    response.setHeader('Cache-Control', 'private, no-store');
+    response.json(await setTopListReaction(response.locals.userId, usernameSchema.parse(request.params.username), songIdSchema.parse(request.params.songId), true));
+  }));
+  app.delete('/api/users/:username/top-list/items/:songId/reaction', createCurrentUserResolver(sessionCookie.name, currentUserId), asyncRoute(async (request, response) => {
+    response.setHeader('Cache-Control', 'private, no-store');
+    response.json(await setTopListReaction(response.locals.userId, usernameSchema.parse(request.params.username), songIdSchema.parse(request.params.songId), false));
+  }));
+  app.put('/api/users/:username/singing-list/items/:songId/reaction', createCurrentUserResolver(sessionCookie.name, currentUserId), asyncRoute(async (request, response) => {
+    response.setHeader('Cache-Control', 'private, no-store');
+    response.json(await setSingingListReaction(response.locals.userId, usernameSchema.parse(request.params.username), songIdSchema.parse(request.params.songId), true));
+  }));
+  app.delete('/api/users/:username/singing-list/items/:songId/reaction', createCurrentUserResolver(sessionCookie.name, currentUserId), asyncRoute(async (request, response) => {
+    response.setHeader('Cache-Control', 'private, no-store');
+    response.json(await setSingingListReaction(response.locals.userId, usernameSchema.parse(request.params.username), songIdSchema.parse(request.params.songId), false));
   }));
 
   app.use('/api/me', createCurrentUserResolver(sessionCookie.name, currentUserId));

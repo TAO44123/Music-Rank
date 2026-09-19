@@ -6,6 +6,7 @@ import { ApiError, request, type AddSongToListInput, type ExistingSong, type Top
 import { TopListPanel } from '../components/TopListPanel';
 import { ExistingSongConfirmationDialog, UnlistedSongDialog, UnlistedSongPrompt } from '../components/UnlistedSongDialog';
 import { VisibilityControl, VisibilityStatus } from '../components/VisibilityControl';
+import { useListReaction } from '../hooks/useListReaction';
 import { listSettingsQueryOptions, queryKeys, sessionQueryOptions, topListQueryOptions } from '../queries';
 import { useAppShell } from '../shell/AppShellContext';
 import { Route as rootRoute } from './__root';
@@ -27,6 +28,7 @@ function PersonalRankingPage() {
   const settingsQuery = useQuery(listSettingsQueryOptions(user));
   const settings = settingsQuery.data ?? { topList: 'PRIVATE' as const, singingList: 'PRIVATE' as const };
   const publicUrl = user ? `${window.location.origin}/u/${user.username}` : '';
+  const reactions = useListReaction(user?.username ?? 'signed-out');
   const shareNotice = (method: 'shared' | 'copied') => notify('success', method === 'shared' ? 'Public profile shared' : 'Public profile link copied');
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [existingSong, setExistingSong] = useState<ExistingSong | null>(null);
@@ -64,6 +66,8 @@ function PersonalRankingPage() {
       entries={topQuery.data ?? []}
       onReorder={(orderedSongIds) => mutate('/api/me/top-list/order', { method: 'PATCH', body: JSON.stringify({ orderedSongIds }) })}
       onRemove={(songId) => mutate(`/api/me/top-list/items/${songId}`, { method: 'DELETE' })}
+      onToggleReaction={(songId, viewerHasReacted) => reactions.toggleReaction('top-list', songId, viewerHasReacted)}
+      isReactionPending={(songId) => reactions.isPending('top-list', songId)}
       promptAction={<UnlistedSongPrompt disabled={topQuery.data?.length === 10} onClick={() => { setFormError(null); setIsAddOpen(true); }} />}
       statusLabel={<VisibilityStatus label="Top 10" visibility={settings.topList} />}
       headerAction={<VisibilityControl label="Top 10" visibility={settings.topList} publicUrl={publicUrl} disabled={isVisibilityPending} onChange={(visibility) => setVisibility('top-list', visibility)} onShareComplete={shareNotice} />}

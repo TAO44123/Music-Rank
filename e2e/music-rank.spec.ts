@@ -60,6 +60,10 @@ test('registers, authenticates, publishes, and anonymously reads personal lists'
   await page.getByLabel('Artist').fill('E2E Submitter');
   await page.getByRole('button', { name: 'Add song' }).click();
   await expect(page.getByRole('region', { name: 'My Top 10' }).getByText(personalSubmissionTitle)).toBeVisible();
+  const topEntry = page.getByRole('region', { name: 'My Top 10' }).getByRole('listitem').filter({ hasText: '涛声依旧' });
+  await topEntry.getByRole('button', { name: 'Like for 涛声依旧. 0 likes.' }).click();
+  await expect(page.getByRole('alert')).toHaveText('Liked');
+  await expect(topEntry.getByRole('button', { name: 'Remove like for 涛声依旧. 1 like.' })).toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByLabel('Top 10 visibility: public')).toBeVisible();
   await page.getByRole('button', { name: 'Top 10 is public. Make private' }).click();
   await page.getByRole('button', { name: 'Top 10 is private. Make public' }).click();
@@ -84,13 +88,16 @@ test('registers, authenticates, publishes, and anonymously reads personal lists'
   await page.getByLabel('Artist').fill('E2E Submitter');
   await page.getByRole('button', { name: 'Add song' }).click();
   await expect(page.getByRole('region', { name: 'My Practice Library' }).getByText(practiceSubmissionTitle)).toBeVisible();
+  const practiceEntry = page.getByRole('region', { name: 'My Practice Library' }).getByRole('listitem').filter({ hasText: '涛声依旧' });
   await page.getByRole('button', { name: 'Edit 涛声依旧' }).click();
   await page.getByLabel('Singing status').getByRole('button', { name: 'Practicing' }).click();
   await page.getByLabel('Note').fill('This remains private.');
   await page.getByRole('button', { name: 'Save changes' }).click();
+  await practiceEntry.getByRole('button', { name: 'Cheer for 涛声依旧. 0 cheers.' }).click();
+  await expect(page.getByRole('alert')).toHaveText('Cheered');
+  await expect(practiceEntry.getByRole('button', { name: 'Remove cheer for 涛声依旧. 1 cheer.' })).toHaveAttribute('aria-pressed', 'true');
   await page.reload();
   await expect(page).toHaveURL(/\/practice$/);
-  const practiceEntry = page.getByRole('region', { name: 'My Practice Library' }).getByRole('listitem').filter({ hasText: '涛声依旧' });
   await expect(practiceEntry.getByText('Practicing', { exact: true })).toBeVisible();
   await expect(page.getByLabel('Practice Library visibility: public')).toBeVisible();
   await page.getByRole('button', { name: 'Practice Library is public. Make private' }).click();
@@ -128,6 +135,12 @@ test('registers, authenticates, publishes, and anonymously reads personal lists'
   await expect(page.getByRole('region', { name: 'Practice Library' }).getByText('Practicing')).toBeVisible();
   await expect(page.getByRole('region', { name: 'Practice Library' }).getByText(practiceSubmissionTitle)).toBeVisible();
   await expect(page.getByText('This remains private.')).not.toBeVisible();
+  await expect(page.getByRole('button', { name: 'Like for 涛声依旧. 1 like.' })).toHaveAttribute('aria-pressed', 'false');
+  await expect(page.getByRole('button', { name: 'Cheer for 涛声依旧. 1 cheer.' })).toHaveAttribute('aria-pressed', 'false');
+  await page.getByRole('button', { name: 'Like for 涛声依旧. 1 like.' }).click();
+  await expect(page.getByRole('dialog', { name: 'Sign in to Music Rank' })).toBeVisible();
+  await page.getByRole('button', { name: 'Cancel' }).click();
+  await expect(page.getByRole('button', { name: 'Like for 涛声依旧. 1 like.' })).toHaveAttribute('aria-pressed', 'false');
 
   await page.goto(`${rankingPath}?q=${encodeURIComponent(personalSubmissionTitle)}`);
   await expect(page.getByText('No songs found')).toBeVisible();

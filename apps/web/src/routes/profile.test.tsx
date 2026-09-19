@@ -11,8 +11,8 @@ afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 const user = { id: 'owner-1', username: 'owner', displayName: 'Owner' };
 const group = 'd0000000-0000-4000-8000-000000000001';
 const settings = { topList: 'PRIVATE', singingList: 'PUBLIC' };
-const top = [{ id: 'song-1', title: 'Private top song', artist: 'Artist', releaseYear: 1990, position: 1 }];
-const practice = [{ id: 'song-2', title: 'Practice song', artist: 'Artist', releaseYear: 1991, status: 'PRACTICING', note: 'Private note' }];
+const top = [{ id: 'song-1', title: 'Private top song', artist: 'Artist', releaseYear: 1990, position: 1, reactionCount: 0, viewerHasReacted: false }];
+const practice = [{ id: 'song-2', title: 'Practice song', artist: 'Artist', releaseYear: 1991, status: 'PRACTICING', note: 'Private note', reactionCount: 2, viewerHasReacted: false }];
 const json = (body: unknown, status = 200) => Promise.resolve(new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } }));
 
 function mount(path: string, handler: (path: string, init?: RequestInit) => Promise<Response>) {
@@ -78,6 +78,25 @@ describe('Profile owner view', () => {
     expect(screen.queryByRole('region', { name: 'Top 10' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'View public display' })).not.toBeInTheDocument();
     expect(fetchMock.mock.calls.some(([path]) => String(path).startsWith('/api/me/'))).toBe(false);
+  });
+
+  it('prompts an anonymous reactor to register, stays on the profile, and never replays the Cheer', async () => {
+    const viewer = { id: 'viewer-2', username: 'viewer', displayName: 'Viewer' };
+    const { fetchMock, router } = mount('/u/owner', (path, init) => {
+      if (path === '/api/auth/session') return json({ user: null });
+      if (path === '/api/users/owner') return json({ ...user, lists: settings });
+      if (path === '/api/users/owner/singing-list') return json(practice.map(({ note: _note, ...entry }) => entry));
+      if (path === '/api/auth/register' && init?.method === 'POST') return json({ user: viewer }, 201);
+      throw new Error(`Unexpected request: ${path}`);
+    });
+    fireEvent.click(await screen.findByRole('button', { name: 'Cheer for Practice song. 2 cheers.' }));
+    expect(await screen.findByRole('dialog', { name: 'Sign in to Music Rank' })).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Need an account? Register' }));
+    fireEvent.change(screen.getByRole('textbox', { name: /^Username/ }), { target: { value: 'viewer' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Create account' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(router.state.location.pathname).toBe('/u/owner');
+    expect(fetchMock.mock.calls.some(([path]) => String(path).includes('/reaction'))).toBe(false);
   });
 
   it('hides owner contents immediately when the session changes to another user or signed out', async () => {

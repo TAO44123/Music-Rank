@@ -4,14 +4,17 @@ import { Box, Button, Chip, Collapse, IconButton, List, ListItem, Paper, Stack, 
 import { useEffect, useState, type ReactNode } from 'react';
 import type { SingingListEntry, SingingStatus } from '../api';
 import { singingStatuses, statusLabels } from '../status';
+import { ListReactionButton } from './ListReactionButton';
 
 type SingingItemProps = {
   entry: SingingListEntry;
   onSave: (songId: string, status: SingingStatus, note: string) => void;
   onRemove: (songId: string) => void;
+  onToggleReaction: (songId: string, viewerHasReacted: boolean) => void;
+  isReactionPending: boolean;
 };
 
-function SingingItem({ entry, onSave, onRemove }: SingingItemProps) {
+function SingingItem({ entry, onSave, onRemove, onToggleReaction, isReactionPending }: SingingItemProps) {
   const theme = useTheme();
   const [isEditing, setIsEditing] = useState(false);
   const [note, setNote] = useState(entry.note ?? '');
@@ -35,14 +38,14 @@ function SingingItem({ entry, onSave, onRemove }: SingingItemProps) {
   };
 
   return <ListItem divider disableGutters sx={{ display: 'block', py: 1.5 }}>
-    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '4px minmax(0, 1fr)', sm: '4px minmax(0, 1fr) auto' }, columnGap: 1.25, rowGap: 0.75, alignItems: 'center' }}>
+    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '4px minmax(0, 1fr) auto', sm: '4px minmax(0, 1fr) auto auto' }, columnGap: { xs: 1.25, sm: 0.4 }, rowGap: 0.75, alignItems: 'center' }}>
       <Box aria-hidden="true" sx={{ width: 4, height: 44, borderRadius: 4, bgcolor: statusColor, gridRow: { xs: '1 / -1', sm: 'auto' }, alignSelf: 'center' }} />
-      <Box sx={{ minWidth: 0 }}>
+      <Box sx={{ minWidth: 0, ml: { xs: 0, sm: 0.85 } }}>
         <Typography fontWeight={800} lineHeight={1.25}>{entry.title}</Typography>
         <Typography variant="body2" color="text.secondary">{entry.artist}</Typography>
-        {entry.note && <Typography variant="body2" color="text.secondary" sx={{ mt: 0.65, fontFamily: theme.typography.h2.fontFamily, fontStyle: 'italic', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{entry.note}</Typography>}
       </Box>
-      <Stack direction="row" spacing={0.4} alignItems="center" sx={{ gridColumn: { xs: 2, sm: 'auto' }, justifyContent: { xs: 'flex-start', sm: 'flex-end' } }}>
+      <ListReactionButton kind="CHEER" songTitle={entry.title} reactionCount={entry.reactionCount} viewerHasReacted={entry.viewerHasReacted} disabled={isReactionPending} onToggle={() => onToggleReaction(entry.id, entry.viewerHasReacted)} />
+      <Stack direction="row" spacing={0.4} alignItems="center" sx={{ gridColumn: { xs: '2 / 4', sm: 4 }, gridRow: { xs: entry.note ? 3 : 2, sm: 1 }, justifyContent: { xs: 'flex-start', sm: 'flex-end' } }}>
         <Chip label={statusLabels[entry.status]} size="small" variant="outlined" sx={{ color: statusColor, borderColor: statusColor, fontWeight: 700 }} />
         <Tooltip title={`Edit ${entry.title}`}>
           <IconButton aria-label={`Edit ${entry.title}`} aria-expanded={isEditing} aria-controls={`singing-editor-${entry.id}`} size="small" color="primary" onClick={() => setIsEditing((value) => !value)} sx={{ border: 0 }}><EditOutlinedIcon fontSize="small" /></IconButton>
@@ -51,6 +54,7 @@ function SingingItem({ entry, onSave, onRemove }: SingingItemProps) {
           <IconButton aria-label={`Remove ${entry.title} from My Practice Library`} size="small" color="primary" onClick={() => onRemove(entry.id)} sx={{ border: 0 }}><DeleteOutlineIcon fontSize="small" /></IconButton>
         </Tooltip>
       </Stack>
+      {entry.note && <Typography variant="body2" color="text.secondary" sx={{ gridColumn: { xs: '2 / 4', sm: 2 }, gridRow: 2, ml: { xs: 0, sm: 0.85 }, fontFamily: theme.typography.h2.fontFamily, fontStyle: 'italic', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{entry.note}</Typography>}
     </Box>
     <Collapse in={isEditing} unmountOnExit>
       <Box id={`singing-editor-${entry.id}`} sx={{ mt: 1.5, ml: { xs: 0, sm: 2 }, p: { xs: 1.25, sm: 1.75 }, borderLeft: 3, borderColor: theme.palette.statusColors[status], borderRadius: '0 10px 10px 0', bgcolor: '#F6F0E5' }}>
@@ -78,12 +82,14 @@ type SingingListPanelProps = {
   onFilterChange: (filter: SingingStatus | 'ALL') => void;
   onSave: (songId: string, status: SingingStatus, note: string) => void;
   onRemove: (songId: string) => void;
+  onToggleReaction: (songId: string, viewerHasReacted: boolean) => void;
+  isReactionPending: (songId: string) => boolean;
   headerAction?: ReactNode;
   promptAction?: ReactNode;
   statusLabel?: ReactNode;
 };
 
-export function SingingListPanel({ entries, filter, onFilterChange, onSave, onRemove, headerAction, promptAction, statusLabel }: SingingListPanelProps) {
+export function SingingListPanel({ entries, filter, onFilterChange, onSave, onRemove, onToggleReaction, isReactionPending, headerAction, promptAction, statusLabel }: SingingListPanelProps) {
   const theme = useTheme();
 
   return <Paper component="section" sx={{ p: { xs: 1.75, sm: 2.5 } }} aria-labelledby="singing-list-heading">
@@ -104,6 +110,6 @@ export function SingingListPanel({ entries, filter, onFilterChange, onSave, onRe
         return <Chip key={status} label={statusLabels[status]} size="small" clickable onClick={() => onFilterChange(status)} aria-pressed={selected} variant={selected ? 'filled' : 'outlined'} sx={{ color: selected ? '#FFFCF6' : statusColor, bgcolor: selected ? statusColor : 'transparent', borderColor: statusColor, fontWeight: 700, '&:hover': { bgcolor: selected ? statusColor : '#F2E6D5' } }} />;
       })}
     </Stack>
-    {entries.length === 0 ? <Box py={3}><Typography color="text.secondary">No songs in this view. Add one from the ranking.</Typography></Box> : <List disablePadding aria-label="My Practice Library">{entries.map((entry) => <SingingItem key={entry.id} entry={entry} onSave={onSave} onRemove={onRemove} />)}</List>}
+    {entries.length === 0 ? <Box py={3}><Typography color="text.secondary">No songs in this view. Add one from the ranking.</Typography></Box> : <List disablePadding aria-label="My Practice Library">{entries.map((entry) => <SingingItem key={entry.id} entry={entry} onSave={onSave} onRemove={onRemove} onToggleReaction={onToggleReaction} isReactionPending={isReactionPending(entry.id)} />)}</List>}
   </Paper>;
 }

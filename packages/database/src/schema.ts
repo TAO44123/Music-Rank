@@ -145,3 +145,21 @@ export const singingListEntries = pgTable('singing_list_entries', {
 }, (table) => [
   uniqueIndex('singing_list_entries_user_song_unique').on(table.userId, table.songId)
 ]);
+
+export const topListEntryReactions = pgTable('top_list_entry_reactions', {
+  entryId: uuid('entry_id').notNull().references(() => userTopListEntries.id, { onDelete: 'cascade' }),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull()
+}, (table) => [
+  primaryKey({ columns: [table.entryId, table.userId], name: 'top_list_entry_reactions_entry_user_pk' }),
+  index('top_list_entry_reactions_user_id_index').on(table.userId)
+]);
+
+export const singingListEntryReactions = pgTable('singing_list_entry_reactions', {
+  entryId: uuid('entry_id').notNull().references(() => singingListEntries.id, { onDelete: 'cascade' }),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull()
+}, (table) => [
+  primaryKey({ columns: [table.entryId, table.userId], name: 'singing_list_entry_reactions_entry_user_pk' }),
+  index('singing_list_entry_reactions_user_id_index').on(table.userId)
+]);

@@ -60,7 +60,7 @@ describe('/practice', () => {
         if (path === '/api/me/singing-list') return jsonResponse(entries);
         if (path === '/api/me/list-settings') return jsonResponse({ topList: 'PRIVATE', singingList: 'PRIVATE' });
         if (path === '/api/me/singing-list/items' && init?.method === 'POST') {
-          entries = [{ id: 'submitted-song', title: 'New Practice Song', artist: 'New Artist', releaseYear: null, status: 'WANT_TO_LEARN', note: null }];
+          entries = [{ id: 'submitted-song', title: 'New Practice Song', artist: 'New Artist', releaseYear: null, status: 'WANT_TO_LEARN', note: null, reactionCount: 0, viewerHasReacted: false }];
           return jsonResponse(entries, 201);
         }
         throw new Error(`Unexpected request: ${path}`);

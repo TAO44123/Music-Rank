@@ -6,6 +6,12 @@ export const listTypes = ['TOP_LIST', 'SINGING_LIST'] as const;
 export const listTypeSchema = z.enum(listTypes);
 export const listVisibilities = ['PRIVATE', 'PUBLIC'] as const;
 export const listVisibilitySchema = z.enum(listVisibilities);
+export const reactionKinds = ['LIKE', 'CHEER'] as const;
+export const reactionKindSchema = z.enum(reactionKinds);
+export const listReactionSummarySchema = z.object({
+  reactionCount: z.number().int().nonnegative(),
+  viewerHasReacted: z.boolean()
+});
 
 export const usernameSchema = z.string()
   .trim()
@@ -85,6 +91,8 @@ export type RankingDecade = z.infer<typeof rankingDecadeSchema>;
 export type RankingRegionPath = z.infer<typeof rankingRegionPathSchema>;
 export type ListType = z.infer<typeof listTypeSchema>;
 export type ListVisibility = z.infer<typeof listVisibilitySchema>;
+export type ReactionKind = z.infer<typeof reactionKindSchema>;
+export type ListReactionSummary = z.infer<typeof listReactionSummarySchema>;
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
 export type UpdateListVisibilityInput = z.infer<typeof updateListVisibilitySchema>;

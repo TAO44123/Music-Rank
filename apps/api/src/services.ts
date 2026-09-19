@@ -1,7 +1,7 @@
 import { and, asc, desc, eq, ilike, or, sql } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
-import { db, normalizeSongValue, rankingEntries, rankings, singingListEntries, songs, userListSettings, users, userTopListEntries } from '@music-rank/database';
-import type { AddSingingListItemInput, AddTopListItemInput, ListType, ListVisibility, RankingDecade, RankingRegionPath, SingingStatus } from '@music-rank/contracts';
+import { db, normalizeSongValue, rankingEntries, rankings, singingListEntries, singingListEntryReactions, songs, topListEntryReactions, userListSettings, users, userTopListEntries } from '@music-rank/database';
+import type { AddSingingListItemInput, AddTopListItemInput, ListReactionSummary, ListType, ListVisibility, RankingDecade, RankingRegionPath, SingingStatus } from '@music-rank/contracts';
 import { AppError } from './errors.js';
 
 const songProjection = {
@@ -154,12 +154,32 @@ async function resolveSongForList(
   throw new Error('Song insert conflict did not resolve to a song');
 }
 
-export async function getTopList(userId: string) {
-  return db.select({ position: userTopListEntries.position, ...songProjection })
+type ListReadDatabase = Pick<typeof db, 'select'>;
+
+const topReactionProjection = (viewerUserId?: string) => ({
+  reactionCount: sql<number>`(select count(*)::int from ${topListEntryReactions} where ${topListEntryReactions.entryId} = ${userTopListEntries.id})`,
+  viewerHasReacted: viewerUserId
+    ? sql<boolean>`exists(select 1 from ${topListEntryReactions} where ${topListEntryReactions.entryId} = ${userTopListEntries.id} and ${topListEntryReactions.userId} = ${viewerUserId})`
+    : sql<boolean>`false`
+});
+
+const singingReactionProjection = (viewerUserId?: string) => ({
+  reactionCount: sql<number>`(select count(*)::int from ${singingListEntryReactions} where ${singingListEntryReactions.entryId} = ${singingListEntries.id})`,
+  viewerHasReacted: viewerUserId
+    ? sql<boolean>`exists(select 1 from ${singingListEntryReactions} where ${singingListEntryReactions.entryId} = ${singingListEntries.id} and ${singingListEntryReactions.userId} = ${viewerUserId})`
+    : sql<boolean>`false`
+});
+
+function selectTopList(database: ListReadDatabase, ownerUserId: string, viewerUserId?: string) {
+  return database.select({ position: userTopListEntries.position, ...songProjection, ...topReactionProjection(viewerUserId) })
     .from(userTopListEntries)
     .innerJoin(songs, eq(userTopListEntries.songId, songs.id))
-    .where(eq(userTopListEntries.userId, userId))
+    .where(eq(userTopListEntries.userId, ownerUserId))
     .orderBy(asc(userTopListEntries.position));
+}
+
+export async function getTopList(userId: string) {
+  return selectTopList(db, userId, userId);
 }
 
 export async function addTopListItem(userId: string, input: AddTopListItemInput) {
@@ -179,11 +199,7 @@ export async function addTopListItem(userId: string, input: AddTopListItemInput)
       songId,
       position: existing.length + 1
     });
-    return transaction.select({ position: userTopListEntries.position, ...songProjection })
-      .from(userTopListEntries)
-      .innerJoin(songs, eq(userTopListEntries.songId, songs.id))
-      .where(eq(userTopListEntries.userId, userId))
-      .orderBy(asc(userTopListEntries.position));
+    return selectTopList(transaction, userId, userId);
   });
 }
 
@@ -200,11 +216,7 @@ export async function reorderTopList(userId: string, orderedSongIds: string[]) {
         .set({ position: index + 1, updatedAt: new Date() })
         .where(and(eq(userTopListEntries.userId, userId), eq(userTopListEntries.songId, songId)));
     }
-    return transaction.select({ position: userTopListEntries.position, ...songProjection })
-      .from(userTopListEntries)
-      .innerJoin(songs, eq(userTopListEntries.songId, songs.id))
-      .where(eq(userTopListEntries.userId, userId))
-      .orderBy(asc(userTopListEntries.position));
+    return selectTopList(transaction, userId, userId);
   });
 }
 
@@ -223,18 +235,25 @@ export async function removeTopListItem(userId: string, songId: string) {
       await transaction.update(userTopListEntries).set({ position: index + 1, updatedAt: new Date() })
         .where(and(eq(userTopListEntries.userId, userId), eq(userTopListEntries.songId, entry.songId)));
     }
-    return transaction.select({ position: userTopListEntries.position, ...songProjection })
-      .from(userTopListEntries).innerJoin(songs, eq(userTopListEntries.songId, songs.id))
-      .where(eq(userTopListEntries.userId, userId)).orderBy(asc(userTopListEntries.position));
+    return selectTopList(transaction, userId, userId);
   });
 }
 
-export async function getSingingList(userId: string, status?: SingingStatus) {
-  return db.select({ status: singingListEntries.status, note: singingListEntries.note, ...songProjection })
+function selectSingingList(database: ListReadDatabase, ownerUserId: string, viewerUserId?: string, status?: SingingStatus, includeNotes = true) {
+  return database.select({
+    status: singingListEntries.status,
+    ...(includeNotes ? { note: singingListEntries.note } : {}),
+    ...songProjection,
+    ...singingReactionProjection(viewerUserId)
+  })
     .from(singingListEntries)
     .innerJoin(songs, eq(singingListEntries.songId, songs.id))
-    .where(and(eq(singingListEntries.userId, userId), status ? eq(singingListEntries.status, status) : undefined))
+    .where(and(eq(singingListEntries.userId, ownerUserId), status ? eq(singingListEntries.status, status) : undefined))
     .orderBy(desc(singingListEntries.updatedAt));
+}
+
+export async function getSingingList(userId: string, status?: SingingStatus) {
+  return selectSingingList(db, userId, userId, status);
 }
 
 export async function upsertSingingListItem(userId: string, songId: string, status: SingingStatus, note?: string | null) {
@@ -302,6 +321,81 @@ async function getUserByUsername(username: string) {
   return user?.username ? { id: user.id, username: user.username, displayName: user.displayName } : null;
 }
 
+type ReactionDatabase = Pick<typeof db, 'select' | 'insert' | 'delete'>;
+
+function listItemNotAvailable(): AppError {
+  return new AppError(404, 'LIST_ITEM_NOT_AVAILABLE', 'This list item is no longer available.');
+}
+
+async function requireReactionOwner(database: ReactionDatabase, actorUserId: string, username: string, listType: ListType) {
+  const [owner] = await database.select({ id: users.id })
+    .from(users)
+    .where(eq(users.username, username))
+    .limit(1);
+  if (!owner) throw listItemNotAvailable();
+  if (owner.id !== actorUserId) {
+    const [setting] = await database.select({ visibility: userListSettings.visibility })
+      .from(userListSettings)
+      .where(and(eq(userListSettings.userId, owner.id), eq(userListSettings.listType, listType)))
+      .limit(1)
+      .for('update');
+    if (setting?.visibility !== 'PUBLIC') throw listItemNotAvailable();
+  }
+  return owner;
+}
+
+export async function setTopListReaction(actorUserId: string, username: string, songId: string, reacted: boolean): Promise<ListReactionSummary> {
+  return db.transaction(async (transaction) => {
+    const owner = await requireReactionOwner(transaction, actorUserId, username, 'TOP_LIST');
+    const [entry] = await transaction.select({ id: userTopListEntries.id })
+      .from(userTopListEntries)
+      .where(and(eq(userTopListEntries.userId, owner.id), eq(userTopListEntries.songId, songId)))
+      .limit(1)
+      .for('update');
+    if (!entry) throw listItemNotAvailable();
+
+    if (reacted) {
+      await transaction.insert(topListEntryReactions).values({ entryId: entry.id, userId: actorUserId }).onConflictDoNothing();
+    } else {
+      await transaction.delete(topListEntryReactions)
+        .where(and(eq(topListEntryReactions.entryId, entry.id), eq(topListEntryReactions.userId, actorUserId)));
+    }
+
+    const [summary] = await transaction.select(topReactionProjection(actorUserId))
+      .from(userTopListEntries)
+      .where(eq(userTopListEntries.id, entry.id))
+      .limit(1);
+    if (!summary) throw listItemNotAvailable();
+    return summary;
+  });
+}
+
+export async function setSingingListReaction(actorUserId: string, username: string, songId: string, reacted: boolean): Promise<ListReactionSummary> {
+  return db.transaction(async (transaction) => {
+    const owner = await requireReactionOwner(transaction, actorUserId, username, 'SINGING_LIST');
+    const [entry] = await transaction.select({ id: singingListEntries.id })
+      .from(singingListEntries)
+      .where(and(eq(singingListEntries.userId, owner.id), eq(singingListEntries.songId, songId)))
+      .limit(1)
+      .for('update');
+    if (!entry) throw listItemNotAvailable();
+
+    if (reacted) {
+      await transaction.insert(singingListEntryReactions).values({ entryId: entry.id, userId: actorUserId }).onConflictDoNothing();
+    } else {
+      await transaction.delete(singingListEntryReactions)
+        .where(and(eq(singingListEntryReactions.entryId, entry.id), eq(singingListEntryReactions.userId, actorUserId)));
+    }
+
+    const [summary] = await transaction.select(singingReactionProjection(actorUserId))
+      .from(singingListEntries)
+      .where(eq(singingListEntries.id, entry.id))
+      .limit(1);
+    if (!summary) throw listItemNotAvailable();
+    return summary;
+  });
+}
+
 async function requirePublicList(username: string, listType: ListType) {
   const user = await getUserByUsername(username);
   if (!user) throw new AppError(404, 'PUBLIC_LIST_NOT_FOUND', 'Public list not found');
@@ -325,16 +419,12 @@ export async function getPublicProfile(username: string) {
   return { username: user.username, displayName: user.displayName, lists: settings };
 }
 
-export async function getPublicTopList(username: string) {
+export async function getPublicTopList(username: string, viewerUserId?: string) {
   const user = await requirePublicList(username, 'TOP_LIST');
-  return getTopList(user.id);
+  return selectTopList(db, user.id, viewerUserId);
 }
 
-export async function getPublicSingingList(username: string) {
+export async function getPublicSingingList(username: string, viewerUserId?: string) {
   const user = await requirePublicList(username, 'SINGING_LIST');
-  return db.select({ status: singingListEntries.status, ...songProjection })
-    .from(singingListEntries)
-    .innerJoin(songs, eq(singingListEntries.songId, songs.id))
-    .where(eq(singingListEntries.userId, user.id))
-    .orderBy(desc(singingListEntries.updatedAt));
+  return selectSingingList(db, user.id, viewerUserId, undefined, false);
 }

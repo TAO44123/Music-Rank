@@ -166,6 +166,9 @@ test('invitation registration preserves intent and displays only another memberâ
   await expect(page.getByRole('region', { name: 'Practice Library' }).getByText(song.title)).toBeVisible();
   await expect(page.getByRole('region', { name: 'Top 10' })).toHaveCount(0);
   await expect(page.getByText('E2E group private note')).toHaveCount(0);
+  await page.getByRole('button', { name: `Cheer for ${song.title}. 0 cheers.` }).click();
+  await expect(page.getByRole('alert')).toHaveText('Cheered');
+  await expect(page.getByRole('button', { name: `Remove cheer for ${song.title}. 1 cheer.` })).toHaveAttribute('aria-pressed', 'true');
   await page.getByRole('link', { name: 'Back to group' }).click();
   await expect(page.getByRole('list', { name: 'Group members' })).toBeVisible();
   await page.screenshot({ path: 'test-results/default-group-desktop.png', fullPage: true });
@@ -204,6 +207,7 @@ test('invitation registration preserves intent and displays only another memberâ
   await page.goto(`/u/${owner}`);
   await expect(page.getByRole('region', { name: 'Practice Library' }).getByText(song.title)).toBeVisible();
   await expect(page.getByText('E2E group private note')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: `Cheer for ${song.title}. 1 cheer.` })).toHaveAttribute('aria-pressed', 'false');
 });
 
 test('an existing logged-out nonmember joins after invitation login', async ({ page, request }) => {

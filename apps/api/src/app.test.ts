@@ -2,7 +2,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vites
 import { createServer } from 'node:http';
 import request from 'supertest';
 import { and, eq, inArray } from 'drizzle-orm';
-import { authSessions, closeDatabase, db, defaultGroupId, demoUserId, groupMemberships, passwordCredentials, rankingEntries, rankings, singingListEntries, songs, users, userListSettings, userTopListEntries } from '@music-rank/database';
+import { authSessions, closeDatabase, db, defaultGroupId, demoUserId, groupMemberships, passwordCredentials, rankingEntries, rankings, singingListEntries, singingListEntryReactions, songs, topListEntryReactions, users, userListSettings, userTopListEntries } from '@music-rank/database';
 import { createApp } from './app.js';
 import { hashPassword, hashSessionToken, transitionalPasswordPlaceholder, verifyPassword } from './auth.js';
 
@@ -352,6 +352,73 @@ describe('Authentication and public lists', () => {
 
     await alice.patch('/api/me/lists/singing-list/visibility').set('Origin', allowedOrigin).send({ visibility: 'PRIVATE' }).expect(200);
     await request(authApp).get('/api/users/auth_alice/singing-list').expect(404);
+  });
+
+  it('toggles per-entry Likes with public, private-owner, and deletion lifecycle rules', async () => {
+    const alice = request.agent(authApp);
+    const bob = request.agent(authApp);
+    await register(alice, 'auth_alice').expect(201);
+    const { body: bobRegistration } = await register(bob, 'auth_bob').expect(201);
+    await alice.post('/api/me/top-list/items').set('Origin', allowedOrigin).send({ songId: songIds[0] }).expect(201);
+
+    await request(authApp).get('/api/users/auth_alice/top-list').expect(200).expect(({ body }) => {
+      expect(body[0]).toMatchObject({ reactionCount: 0, viewerHasReacted: false });
+    });
+    await request(authApp).put(`/api/users/auth_alice/top-list/items/${songIds[0]}/reaction`)
+      .set('Origin', allowedOrigin).expect(401);
+    await bob.put(`/api/users/auth_alice/top-list/items/${songIds[0]}/reaction`)
+      .set('Origin', allowedOrigin).expect(200).expect({ reactionCount: 1, viewerHasReacted: true });
+    await bob.put(`/api/users/auth_alice/top-list/items/${songIds[0]}/reaction`)
+      .set('Origin', allowedOrigin).expect(200).expect({ reactionCount: 1, viewerHasReacted: true });
+    await request(authApp).get('/api/users/auth_alice/top-list').expect(200)
+      .expect(({ body }) => expect(body[0]).toMatchObject({ reactionCount: 1, viewerHasReacted: false }));
+    await bob.get('/api/users/auth_alice/top-list').expect(200)
+      .expect(({ body }) => expect(body[0]).toMatchObject({ reactionCount: 1, viewerHasReacted: true }));
+
+    const [storedReaction] = await db.select().from(topListEntryReactions)
+      .where(eq(topListEntryReactions.userId, bobRegistration.user.id));
+    expect(storedReaction).toMatchObject({ userId: bobRegistration.user.id, createdAt: expect.any(Date) });
+
+    await alice.patch('/api/me/lists/top-list/visibility').set('Origin', allowedOrigin).send({ visibility: 'PRIVATE' }).expect(200);
+    await bob.delete(`/api/users/auth_alice/top-list/items/${songIds[0]}/reaction`)
+      .set('Origin', allowedOrigin).expect(404).expect(({ body }) => expect(body.code).toBe('LIST_ITEM_NOT_AVAILABLE'));
+    await alice.get('/api/me/top-list').expect(200)
+      .expect(({ body }) => expect(body[0]).toMatchObject({ reactionCount: 1, viewerHasReacted: false }));
+    await alice.put(`/api/users/auth_alice/top-list/items/${songIds[0]}/reaction`)
+      .set('Origin', allowedOrigin).expect(200).expect({ reactionCount: 2, viewerHasReacted: true });
+    await alice.delete(`/api/users/auth_alice/top-list/items/${songIds[0]}/reaction`)
+      .set('Origin', allowedOrigin).expect(200).expect({ reactionCount: 1, viewerHasReacted: false });
+    await request(authApp).get('/api/users/auth_alice/top-list').expect(404);
+
+    await alice.patch('/api/me/lists/top-list/visibility').set('Origin', allowedOrigin).send({ visibility: 'PUBLIC' }).expect(200);
+    await bob.get('/api/users/auth_alice/top-list').expect(200)
+      .expect(({ body }) => expect(body[0]).toMatchObject({ reactionCount: 1, viewerHasReacted: true }));
+    await alice.delete(`/api/me/top-list/items/${songIds[0]}`).set('Origin', allowedOrigin).expect(200);
+    expect(await db.select().from(topListEntryReactions).where(eq(topListEntryReactions.userId, bobRegistration.user.id))).toHaveLength(0);
+    await alice.post('/api/me/top-list/items').set('Origin', allowedOrigin).send({ songId: songIds[0] }).expect(201)
+      .expect(({ body }) => expect(body[0]).toMatchObject({ reactionCount: 0, viewerHasReacted: false }));
+  });
+
+  it('keeps Cheers across Practice edits and removes them with the list entry', async () => {
+    const alice = request.agent(authApp);
+    const bob = request.agent(authApp);
+    await register(alice, 'auth_alice').expect(201);
+    const { body: bobRegistration } = await register(bob, 'auth_bob').expect(201);
+    await alice.put(`/api/me/singing-list/items/${songIds[0]}`).set('Origin', allowedOrigin)
+      .send({ status: 'WANT_TO_LEARN', note: null }).expect(200);
+    await bob.put(`/api/users/auth_alice/singing-list/items/${songIds[0]}/reaction`)
+      .set('Origin', allowedOrigin).expect(200).expect({ reactionCount: 1, viewerHasReacted: true });
+    await alice.put(`/api/me/singing-list/items/${songIds[0]}`).set('Origin', allowedOrigin)
+      .send({ status: 'PRACTICING', note: 'Keep the reaction.' }).expect(200)
+      .expect(({ body }) => expect(body[0]).toMatchObject({ reactionCount: 1, viewerHasReacted: false }));
+    await request(authApp).get('/api/users/auth_alice/singing-list').expect(200).expect(({ body }) => {
+      expect(body[0]).toMatchObject({ reactionCount: 1, viewerHasReacted: false, status: 'PRACTICING' });
+      expect(body[0]).not.toHaveProperty('note');
+    });
+    await alice.delete(`/api/me/singing-list/items/${songIds[0]}`).set('Origin', allowedOrigin).expect(204);
+    expect(await db.select().from(singingListEntryReactions).where(eq(singingListEntryReactions.userId, bobRegistration.user.id))).toHaveLength(0);
+    await bob.delete(`/api/users/auth_alice/singing-list/items/${songIds[0]}/reaction`)
+      .set('Origin', allowedOrigin).expect(404).expect(({ body }) => expect(body.code).toBe('LIST_ITEM_NOT_AVAILABLE'));
   });
 
   it('rate limits repeated authentication attempts', async () => {

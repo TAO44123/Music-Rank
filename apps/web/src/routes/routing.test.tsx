@@ -37,7 +37,7 @@ describe('client routing', () => {
       fetch: (path) => {
         if (path === '/api/auth/session') return jsonResponse({ user: null });
         if (path === '/api/users/listener_1') return jsonResponse({ username: 'listener_1', displayName: 'Listener One', lists: { topList: 'PUBLIC', singingList: 'PRIVATE' } });
-        if (path === '/api/users/listener_1/top-list') return jsonResponse([{ id: 'song-1', title: '涛声依旧', artist: '毛宁', releaseYear: 1993, position: 1 }]);
+        if (path === '/api/users/listener_1/top-list') return jsonResponse([{ id: 'song-1', title: '涛声依旧', artist: '毛宁', releaseYear: 1993, position: 1, reactionCount: 0, viewerHasReacted: false }]);
         throw new Error(`Unexpected request: ${path}`);
       }
     });
