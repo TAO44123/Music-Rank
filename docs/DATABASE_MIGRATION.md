@@ -1,8 +1,8 @@
 # 数据库迁移与正式榜单同步手册
 
-本手册用于把 Music Rank 的数据库结构、Demo 前置数据和三个正式榜单同步到一个目标 PostgreSQL 数据库。目标读者是开发者、部署人员和 AI agent；所有命令都从仓库根目录执行。
+本手册用于把 Music Rank 的数据库结构、Demo 前置数据和六个正式榜单同步到一个目标 PostgreSQL 数据库。目标读者是开发者、部署人员和 AI agent；所有命令都从仓库根目录执行。
 
-> 这里的“数据库迁移”包含两层含义：`db:migrate` 只应用 Drizzle 结构迁移；正式榜单歌曲内容由 manifest importer 单独写入。只执行 `db:migrate` 和 `db:seed` 不会得到三个正式榜单。新增 80s 榜单没有改变 Schema，因此没有新增 migration SQL。
+> 这里的“数据库迁移”包含两层含义：`db:migrate` 只应用 Drizzle 结构迁移；正式榜单歌曲内容由 manifest importer 单独写入。只执行 `db:migrate` 和 `db:seed` 不会得到六个正式榜单。新增榜单没有改变 Schema，因此没有新增 migration SQL。
 
 ## 1. 权威来源与安全边界
 
@@ -13,8 +13,11 @@
 - 80s 华语榜内容：[`packages/database/manifests/80s-chinese-top-100.json`](../packages/database/manifests/80s-chinese-top-100.json)
 - 大陆榜内容：[`packages/database/manifests/90s-mainland-top-100.json`](../packages/database/manifests/90s-mainland-top-100.json)
 - 粤语榜内容：[`packages/database/manifests/90s-cantonese-top-70.json`](../packages/database/manifests/90s-cantonese-top-70.json)
+- 80s 欧美榜内容：[`packages/database/manifests/80s-western-music-top-100.json`](../packages/database/manifests/80s-western-music-top-100.json)
+- 90s 欧美榜内容：[`packages/database/manifests/90s-western-music-top-100.json`](../packages/database/manifests/90s-western-music-top-100.json)
+- 华语红歌榜内容：[`packages/database/manifests/chinese-red-songs-top-70.json`](../packages/database/manifests/chinese-red-songs-top-70.json)
 
-三个 manifest 是榜单标题、歌手、名次、发行年份和来源元数据的唯一权威。不要把 272 条榜单记录复制到 SQL 或另一份文档；需要审计内容时直接读取并检查这三个 JSON 文件。
+六个 manifest 是榜单标题、歌手、名次、发行年份和来源元数据的唯一权威。不要把榜单记录复制到 SQL 或另一份文档；需要审计内容时直接读取并检查这些 JSON 文件。
 
 当前已跟踪的 Schema migration 链如下。已经应用过的文件不得修改：
 
@@ -38,15 +41,20 @@
 5. staging/production 操作前必须备份数据库，并确认 `APP_ENV` 与目标连接串。
 6. `--replace` 会删除并重建目标榜单及其条目。AI agent 不得因为普通 import 冲突就自动执行 `--replace`；必须先检查 manifest diff、备份数据库并取得明确授权。
 
-## 2. 本次同步的三个正式榜单
+## 2. 当前同步的六个正式榜单
 
 | 榜单 | 稳定 slug | 权威 manifest | 当前条目 | 名次范围 | 区域 | `displayOrder` | 来源类型 |
 | --- | --- | --- | ---: | --- | --- | ---: | --- |
 | 80s Chinese Songs Top 100 | `80s-chinese-top-100` | `80s-chinese-top-100.json` | 100 | 1–100 | `null` | 3 | `COMMUNITY` |
 | 90s Mainland China Top 100 | `90s-mainland-top-100` | `90s-mainland-top-100.json` | 100 | 1–100 | `MAINLAND` | 4 | `COMMUNITY` |
 | 90s Cantonese Songs Top 70 | `90s-cantonese-top-70` | `90s-cantonese-top-70.json` | 72 | 1–72 | `null` | 5 | `COMMUNITY` |
+| 80s English Music Top 100 | `80s-western-music-top-100` | `80s-western-music-top-100.json` | 100 | 1–100 | `null` | 6 | `COMMUNITY` |
+| 90s English Music Top 100 | `90s-western-music-top-100` | `90s-western-music-top-100.json` | 100 | 1–100 | `null` | 7 | `COMMUNITY` |
+| Chinese Red Songs Top 70 | `chinese-red-songs-top-70` | `chinese-red-songs-top-70.json` | 74 | 1–74 | `null` | 8 | `COMMUNITY` |
 
 注意：粤语榜的历史标题和文件名保留 `Top 70`，但当前已批准的 manifest 实际有 **72 条**连续名次。迁移和验收都以 manifest 的 72 条为准，不要擅自截断成 70 条。
+
+华语红歌榜同样保留用户提供的 `Top 70` 名称，但源文件实际有 **74 条**连续名次；全部保留，不截断。源文件中的 10 个 `releaseYear: "N/A"` 转为 `null`，`artist: "N/A"` 作为用户提供的文本原样保存。
 
 80s 榜完全以用户提供的 JSON 为准。第 85 名的 `releaseYear` 是 1979；这是已批准的源值，导入时不得为了匹配榜单年代而改写。
 
@@ -58,7 +66,7 @@
 - `releaseYear`：发行年份或 `null`；
 - `sourceTimestampSeconds`：可选的来源时间点。
 
-三个榜单的来源链接、来源标题和提取说明也保存在各自 manifest 中。导入器不会访问外部链接重新抓取或校验内容。
+六个榜单的来源链接、来源标题和提取说明也保存在各自 manifest 中。导入器不会访问外部链接重新抓取或校验内容。两个欧美榜按用户指示保存同一个 YouTube URL，不做外部验证。
 
 完成同步后的期望发布状态：
 
@@ -67,6 +75,9 @@
 | `80s-chinese-top-100` | 100 | `true` | 正式 80s 华语榜 |
 | `90s-mainland-top-100` | 100 | `true` | 正式大陆榜 |
 | `90s-cantonese-top-70` | 72 | `true` | 正式粤语榜 |
+| `80s-western-music-top-100` | 100 | `true` | 正式 80s 欧美榜 |
+| `90s-western-music-top-100` | 100 | `true` | 正式 90s 欧美榜 |
+| `chinese-red-songs-top-70` | 74 | `true` | 正式华语红歌榜 |
 | `90s-demo-ranking` | 30 | `false` | Demo 保留但不公开，不得删除 |
 
 ## 3. 四类数据库命令不能混用
@@ -78,7 +89,7 @@
 | 正式榜单导入 | `import:ranking` | 校验 manifest，并以事务方式创建或复用正式榜单、歌曲和条目；首次导入保持未发布 |
 | 正式榜单发布 | `publish:ranking` | 检查条目完整性，发布目标榜单，同时撤下但保留 Demo |
 
-`db:seed` 不会导入三个正式榜单，也不会创建或覆盖普通用户的 Top 10、Practice Library、用户名、密码、Session 或公开设置。
+`db:seed` 不会导入六个正式榜单，也不会创建或覆盖普通用户的 Top 10、Practice Library、用户名、密码、Session 或公开设置。
 
 ### 3.1 Default Group initialization
 
@@ -144,28 +155,36 @@ npm run db:seed
 
 必须执行 Seed，因为发布器要求 `90s-demo-ranking` 存在。Seed 是幂等的；如果 Demo 已经被正式榜单撤下，重复 Seed 会保留它当前的未发布状态。
 
-### 4.3 对三个正式榜单执行只读预检
+### 4.3 对六个正式榜单执行只读预检
 
 ```bash
 npm run import:ranking --workspace @music-rank/database -- --dry-run manifests/80s-chinese-top-100.json
 npm run import:ranking --workspace @music-rank/database -- --dry-run manifests/90s-mainland-top-100.json
 npm run import:ranking --workspace @music-rank/database -- --dry-run manifests/90s-cantonese-top-70.json
+npm run import:ranking --workspace @music-rank/database -- --dry-run manifests/80s-western-music-top-100.json
+npm run import:ranking --workspace @music-rank/database -- --dry-run manifests/90s-western-music-top-100.json
+npm run import:ranking --workspace @music-rank/database -- --dry-run manifests/chinese-red-songs-top-70.json
 ```
 
 首次同步时，预期摘要分别显示：
 
 - 80s 华语榜：`rankingCreated: true`、`entriesCreated: 100`；在只有当前 Demo Seed 的数据库中会创建 98 首歌曲，并精确复用、升级 2 首 Demo 歌曲；
 - 大陆榜：`rankingCreated: true`、`entriesCreated: 100`；歌曲会根据标准化标题和歌手被创建或复用；
-- 粤语榜：`rankingCreated: true`、`entriesCreated: 72`；歌曲同样可能与已有记录复用。
+- 粤语榜：`rankingCreated: true`、`entriesCreated: 72`；歌曲同样可能与已有记录复用；
+- 两个欧美榜：各 `rankingCreated: true`、`entriesCreated: 100`；当前 development 数据库首次导入各创建 100 首歌曲；
+- 华语红歌榜：`rankingCreated: true`、`entriesCreated: 74`；当前 development 数据库首次导入创建 73 首并精确复用 1 首已有歌曲。
 
 已经同步过的数据库通常会显示 `rankingCreated: false`，并复用全部榜单条目。Dry run 不写数据库；任何 metadata、名次或歌曲冲突都会中止。
 
-### 4.4 导入三个榜单
+### 4.4 导入六个榜单
 
 ```bash
 npm run import:ranking --workspace @music-rank/database -- manifests/80s-chinese-top-100.json
 npm run import:ranking --workspace @music-rank/database -- manifests/90s-mainland-top-100.json
 npm run import:ranking --workspace @music-rank/database -- manifests/90s-cantonese-top-70.json
+npm run import:ranking --workspace @music-rank/database -- manifests/80s-western-music-top-100.json
+npm run import:ranking --workspace @music-rank/database -- manifests/90s-western-music-top-100.json
+npm run import:ranking --workspace @music-rank/database -- manifests/chinese-red-songs-top-70.json
 ```
 
 导入器在单个数据库事务中工作：后续条目失败时，本次导入产生的前序写入会一并回滚。首次导入的正式榜单默认 `is_published = false`。
@@ -174,12 +193,15 @@ npm run import:ranking --workspace @music-rank/database -- manifests/90s-cantone
 
 80s 榜会原位升级 Demo 中的《昨夜星辰》和《弯弯的月亮》，把年份分别改为 1984 和 1989，并复用同一 `songs` 行。不会复制歌曲，也不会删除 Demo 榜单条目。之后再次运行 Seed 不会把年份或 `VERIFIED` 状态改回 Demo 值。
 
-### 4.5 发布三个榜单
+### 4.5 发布六个榜单
 
 ```bash
 npm run publish:ranking --workspace @music-rank/database -- 80s-chinese-top-100
 npm run publish:ranking --workspace @music-rank/database -- 90s-mainland-top-100
 npm run publish:ranking --workspace @music-rank/database -- 90s-cantonese-top-70
+npm run publish:ranking --workspace @music-rank/database -- 80s-western-music-top-100
+npm run publish:ranking --workspace @music-rank/database -- 90s-western-music-top-100
+npm run publish:ranking --workspace @music-rank/database -- chinese-red-songs-top-70
 ```
 
 发布器会验证目标榜单存在、至少有一条记录且名次从 1 连续排列。发布与撤下 Demo 在同一个事务中完成；不会删除 Demo、Demo 条目或 Demo 歌曲，也不会撤下另一个正式榜单。
@@ -200,7 +222,7 @@ npm run dev
 
 非 development 环境必须显式设置 `APP_ENV`；否则数据库命令会读取 development 配置。
 
-以下示例覆盖当前三个正式榜单。新增 manifest 后,**以 `packages/database/manifests/` 下的实际文件为准**;遍历整个目录的写法见 [`DEPLOYMENT.md`](../DEPLOYMENT.md) 第 3.1 节。发布范围仍须按产品决定逐个确认。
+以下示例覆盖当前六个正式榜单。新增 manifest 后,**以 `packages/database/manifests/` 下的实际文件为准**;遍历整个目录的写法见 [`DEPLOYMENT.md`](../DEPLOYMENT.md) 第 3.1 节。发布范围仍须按产品决定逐个确认。
 
 macOS / Linux 的 production 示例：
 
@@ -211,12 +233,21 @@ npm run db:seed
 npm run import:ranking --workspace @music-rank/database -- --dry-run manifests/80s-chinese-top-100.json
 npm run import:ranking --workspace @music-rank/database -- --dry-run manifests/90s-mainland-top-100.json
 npm run import:ranking --workspace @music-rank/database -- --dry-run manifests/90s-cantonese-top-70.json
+npm run import:ranking --workspace @music-rank/database -- --dry-run manifests/80s-western-music-top-100.json
+npm run import:ranking --workspace @music-rank/database -- --dry-run manifests/90s-western-music-top-100.json
+npm run import:ranking --workspace @music-rank/database -- --dry-run manifests/chinese-red-songs-top-70.json
 npm run import:ranking --workspace @music-rank/database -- manifests/80s-chinese-top-100.json
 npm run import:ranking --workspace @music-rank/database -- manifests/90s-mainland-top-100.json
 npm run import:ranking --workspace @music-rank/database -- manifests/90s-cantonese-top-70.json
+npm run import:ranking --workspace @music-rank/database -- manifests/80s-western-music-top-100.json
+npm run import:ranking --workspace @music-rank/database -- manifests/90s-western-music-top-100.json
+npm run import:ranking --workspace @music-rank/database -- manifests/chinese-red-songs-top-70.json
 npm run publish:ranking --workspace @music-rank/database -- 80s-chinese-top-100
 npm run publish:ranking --workspace @music-rank/database -- 90s-mainland-top-100
 npm run publish:ranking --workspace @music-rank/database -- 90s-cantonese-top-70
+npm run publish:ranking --workspace @music-rank/database -- 80s-western-music-top-100
+npm run publish:ranking --workspace @music-rank/database -- 90s-western-music-top-100
+npm run publish:ranking --workspace @music-rank/database -- chinese-red-songs-top-70
 unset APP_ENV
 ```
 
@@ -229,12 +260,21 @@ npm run db:seed
 npm run import:ranking --workspace @music-rank/database -- --dry-run manifests/80s-chinese-top-100.json
 npm run import:ranking --workspace @music-rank/database -- --dry-run manifests/90s-mainland-top-100.json
 npm run import:ranking --workspace @music-rank/database -- --dry-run manifests/90s-cantonese-top-70.json
+npm run import:ranking --workspace @music-rank/database -- --dry-run manifests/80s-western-music-top-100.json
+npm run import:ranking --workspace @music-rank/database -- --dry-run manifests/90s-western-music-top-100.json
+npm run import:ranking --workspace @music-rank/database -- --dry-run manifests/chinese-red-songs-top-70.json
 npm run import:ranking --workspace @music-rank/database -- manifests/80s-chinese-top-100.json
 npm run import:ranking --workspace @music-rank/database -- manifests/90s-mainland-top-100.json
 npm run import:ranking --workspace @music-rank/database -- manifests/90s-cantonese-top-70.json
+npm run import:ranking --workspace @music-rank/database -- manifests/80s-western-music-top-100.json
+npm run import:ranking --workspace @music-rank/database -- manifests/90s-western-music-top-100.json
+npm run import:ranking --workspace @music-rank/database -- manifests/chinese-red-songs-top-70.json
 npm run publish:ranking --workspace @music-rank/database -- 80s-chinese-top-100
 npm run publish:ranking --workspace @music-rank/database -- 90s-mainland-top-100
 npm run publish:ranking --workspace @music-rank/database -- 90s-cantonese-top-70
+npm run publish:ranking --workspace @music-rank/database -- 80s-western-music-top-100
+npm run publish:ranking --workspace @music-rank/database -- 90s-western-music-top-100
+npm run publish:ranking --workspace @music-rank/database -- chinese-red-songs-top-70
 Remove-Item Env:APP_ENV
 ```
 
@@ -262,6 +302,9 @@ WHERE r.slug IN (
   '80s-chinese-top-100',
   '90s-mainland-top-100',
   '90s-cantonese-top-70',
+  '80s-western-music-top-100',
+  '90s-western-music-top-100',
+  'chinese-red-songs-top-70',
   '90s-demo-ranking'
 )
 GROUP BY r.id, r.slug, r.is_published
@@ -276,6 +319,9 @@ ORDER BY r.slug;
 | `80s-chinese-top-100` | true | 100 | 1 | 100 | 100 | 100 |
 | `90s-mainland-top-100` | true | 100 | 1 | 100 | 100 | 100 |
 | `90s-cantonese-top-70` | true | 72 | 1 | 72 | 72 | 72 |
+| `80s-western-music-top-100` | true | 100 | 1 | 100 | 100 | 100 |
+| `90s-western-music-top-100` | true | 100 | 1 | 100 | 100 | 100 |
+| `chinese-red-songs-top-70` | true | 74 | 1 | 74 | 74 | 74 |
 | `90s-demo-ranking` | false | 30 | 1 | 30 | 30 | 30 |
 
 ### 6.2 API 验证
@@ -288,9 +334,14 @@ curl --fail --silent --show-error http://localhost:3001/api/rankings
 curl --fail --silent --show-error http://localhost:3001/api/rankings/80s-chinese-top-100
 curl --fail --silent --show-error http://localhost:3001/api/rankings/90s-mainland-top-100
 curl --fail --silent --show-error http://localhost:3001/api/rankings/90s-cantonese-top-70
+curl --fail --silent --show-error http://localhost:3001/api/rankings/80s-western-music-top-100
+curl --fail --silent --show-error http://localhost:3001/api/rankings/90s-western-music-top-100
+curl --fail --silent --show-error http://localhost:3001/api/rankings/chinese-red-songs-top-70
 ```
 
-`GET /api/rankings` 应按显示顺序返回三个正式 slug，不应返回未发布的 `90s-demo-ranking`。三个详情接口的 `songCount` 应分别为 100、100 和 72。
+`GET /api/rankings` 应按显示顺序返回六个正式 slug，不应返回未发布的 `90s-demo-ranking`。六个详情接口的 `songCount` 应分别为 100、100、72、100、100 和 74。
+
+2026-09-19 的本地 development 同步已通过上述数据库与真实 HTTP 验证：六个正式榜单公开、Demo 未公开，三个新增详情接口返回 100/100/74 首及 manifest 中的原样来源网址。随后两个英文歌榜通过受控替换将展示标题更新为 `80s English Music Top 100` 和 `90s English Music Top 100`，稳定 slug 不变，歌曲全部复用且发布状态恢复。typecheck、128 项 workspace 测试、production build 和 Playwright 7/7 也全部通过。
 
 ## 7. 已有榜单内容变更时
 
@@ -318,6 +369,24 @@ npm run import:ranking --workspace @music-rank/database -- --replace manifests/9
 
 ```bash
 npm run import:ranking --workspace @music-rank/database -- --replace manifests/90s-cantonese-top-70.json
+```
+
+80s 欧美榜替换命令：
+
+```bash
+npm run import:ranking --workspace @music-rank/database -- --replace manifests/80s-western-music-top-100.json
+```
+
+90s 欧美榜替换命令：
+
+```bash
+npm run import:ranking --workspace @music-rank/database -- --replace manifests/90s-western-music-top-100.json
+```
+
+华语红歌榜替换命令：
+
+```bash
+npm run import:ranking --workspace @music-rank/database -- --replace manifests/chinese-red-songs-top-70.json
 ```
 
 非 development 环境仍需显式设置 `APP_ENV`。
@@ -348,17 +417,17 @@ npm run import:ranking --workspace @music-rank/database -- --replace manifests/9
 AI agent 在报告“迁移完成”前必须逐项确认：
 
 - [ ] 已读取 `AGENTS.md`、本手册和配置说明。
-- [ ] 已确认 Git 分支、工作区状态和三个 manifest 均来自预期提交。
+- [ ] 已确认 Git 分支、工作区状态和六个 manifest 均来自预期提交。
 - [ ] 已确认目标环境；非 development 已显式设置 `APP_ENV`。
 - [ ] 未输出密码、Token 或完整数据库连接串。
 - [ ] 远程写操作前已有数据库备份。
 - [ ] 已应用所有已跟踪 migration。
 - [ ] Demo Seed 已成功，且未覆盖个人列表数据。
-- [ ] 三个 manifest 的 dry run 均已检查。
-- [ ] 80s 华语榜和大陆榜各导入 100 条，粤语榜导入 72 条。
-- [ ] 三个正式榜单已发布，Demo 保留 30 条且未发布。
+- [ ] 六个 manifest 的 dry run 均已检查。
+- [ ] 80s 华语榜、大陆榜和两个欧美榜各导入 100 条，粤语榜导入 72 条，华语红歌榜导入 74 条。
+- [ ] 六个正式榜单已发布，Demo 保留 30 条且未发布。
 - [ ] SQL 或等价数据库查询验证了条目数、名次连续性和唯一歌曲数。
-- [ ] API 返回三个正式榜单且详情 `songCount` 正确。
+- [ ] API 返回六个正式榜单且详情 `songCount` 正确。
 - [ ] 若使用了 `--replace`，报告中记录了授权、备份、manifest diff 和替换摘要。
 
-最终报告至少应包含：目标环境、执行的 migration 范围、三个榜单的导入摘要、发布状态、验证结果，以及任何未完成或需要人工处理的异常。不要在报告中包含敏感配置值。
+最终报告至少应包含：目标环境、执行的 migration 范围、六个榜单的导入摘要、发布状态、验证结果，以及任何未完成或需要人工处理的异常。不要在报告中包含敏感配置值。

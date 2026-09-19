@@ -77,19 +77,20 @@ ranking-scoped facets, and filtered entries in rank order. Missing or
 unpublished slugs return `404 RANKING_NOT_FOUND`; invalid slugs return
 `400 INVALID_REQUEST`.
 
-## Demo and pilot
+## Demo and published data
 
 The 30-entry `90s-demo-ranking` remains stored and intentionally unpublished.
-The 100-entry pilot is published as `90s-mainland-top-100`; its approved
-Bilibili URL is display metadata only. Publication does not delete the Demo,
-its entries, or its songs.
+Six source-backed rankings are published: the 80s Chinese, 90s Mainland, 90s
+Cantonese, 80s English Music, 90s English Music, and Chinese Red Songs manifests. Their
+approved source URLs are display metadata only. Publication does not delete the
+Demo, its entries, or its songs.
 
 ## Non-goals
 
 - User-submitted songs or Admin catalog management
 - Fuzzy matching or automatic duplicate merging
 - Multiple-source aggregation
-- Importing the remaining rankings
+- Automatic source extraction or unapproved additional ranking imports
 - A universal taxonomy for language, dialect, geography, genre, or era
 
 ## Acceptance criteria

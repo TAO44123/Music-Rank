@@ -1,0 +1,621 @@
+{
+  "version": 1,
+  "ranking": {
+    "title": "90s English Music Top 100",
+    "slug": "90s-western-music-top-100",
+    "era": "1990s",
+    "decadeStart": 1990,
+    "region": null,
+    "displayOrder": 7,
+    "sourceType": "COMMUNITY",
+    "sourceUrl": "https://www.youtube.com/watch?v=lDK9QqIzhwk&list=PL20C7C97230A82531",
+    "description": "User-provided 1990s English music Top 100 with a YouTube playlist source link."
+  },
+  "extraction": {
+    "sourcePlatform": "YouTube",
+    "sourceTitle": "1990年代欧美音乐排行榜TOP100",
+    "notes": "Ranks, titles, artists, and release years are taken verbatim from the user-provided JSON. The source link was recorded as provided and was not validated, per user instruction."
+  },
+  "entries": [
+  {
+    "rank": 1,
+    "title": "Smells Like Teen Spirit",
+    "artist": "Nirvana",
+    "releaseYear": 1991
+  },
+  {
+    "rank": 2,
+    "title": "One",
+    "artist": "U2",
+    "releaseYear": 1992
+  },
+  {
+    "rank": 3,
+    "title": "I Want It That Way",
+    "artist": "Backstreet Boys",
+    "releaseYear": 1999
+  },
+  {
+    "rank": 4,
+    "title": "I Will Always Love You",
+    "artist": "Whitney Houston",
+    "releaseYear": 1992
+  },
+  {
+    "rank": 5,
+    "title": "Vogue",
+    "artist": "Madonna",
+    "releaseYear": 1990
+  },
+  {
+    "rank": 6,
+    "title": "Baby Got Back",
+    "artist": "Sir Mix-A-Lot",
+    "releaseYear": 1992
+  },
+  {
+    "rank": 7,
+    "title": "Baby One More Time",
+    "artist": "Britney Spears",
+    "releaseYear": 1998
+  },
+  {
+    "rank": 8,
+    "title": "Waterfalls",
+    "artist": "TLC",
+    "releaseYear": 1995
+  },
+  {
+    "rank": 9,
+    "title": "Losing My Religion",
+    "artist": "R.E.M.",
+    "releaseYear": 1991
+  },
+  {
+    "rank": 10,
+    "title": "Nothing Compares 2 U",
+    "artist": "Sinead O'Connor",
+    "releaseYear": 1990
+  },
+  {
+    "rank": 11,
+    "title": "Jeremy",
+    "artist": "Pearl Jam",
+    "releaseYear": 1992
+  },
+  {
+    "rank": 12,
+    "title": "You Oughta Know",
+    "artist": "Alanis Morissette",
+    "releaseYear": 1995
+  },
+  {
+    "rank": 13,
+    "title": "Nuthin' but a 'G' Thang",
+    "artist": "Dr. Dre",
+    "releaseYear": 1993
+  },
+  {
+    "rank": 14,
+    "title": "Vision of Love",
+    "artist": "Mariah Carey",
+    "releaseYear": 1990
+  },
+  {
+    "rank": 15,
+    "title": "Under the Bridge",
+    "artist": "Red Hot Chili Peppers",
+    "releaseYear": 1992
+  },
+  {
+    "rank": 16,
+    "title": "U Can't Touch This",
+    "artist": "MC Hammer",
+    "releaseYear": 1990
+  },
+  {
+    "rank": 17,
+    "title": "Say My Name",
+    "artist": "Destiny's Child",
+    "releaseYear": 1999
+  },
+  {
+    "rank": 18,
+    "title": "Enter Sandman",
+    "artist": "Metallica",
+    "releaseYear": 1991
+  },
+  {
+    "rank": 19,
+    "title": "Sabotage",
+    "artist": "Beastie Boys",
+    "releaseYear": 1994
+  },
+  {
+    "rank": 20,
+    "title": "Mmmbop",
+    "artist": "Hanson",
+    "releaseYear": 1997
+  },
+  {
+    "rank": 21,
+    "title": "My Heart Will Go On",
+    "artist": "Celine Dion",
+    "releaseYear": 1997
+  },
+  {
+    "rank": 22,
+    "title": "Loser",
+    "artist": "Beck",
+    "releaseYear": 1993
+  },
+  {
+    "rank": 23,
+    "title": "Whatta Man",
+    "artist": "Salt 'N' Pepa",
+    "releaseYear": 1994
+  },
+  {
+    "rank": 24,
+    "title": "Jump Around",
+    "artist": "House of Pain",
+    "releaseYear": 1992
+  },
+  {
+    "rank": 25,
+    "title": "Black Hole Sun",
+    "artist": "Soundgarden",
+    "releaseYear": 1994
+  },
+  {
+    "rank": 26,
+    "title": "My Name Is",
+    "artist": "Eminem",
+    "releaseYear": 1999
+  },
+  {
+    "rank": 27,
+    "title": "Mr. Jones",
+    "artist": "Counting Crows",
+    "releaseYear": 1993
+  },
+  {
+    "rank": 28,
+    "title": "Livin' La Vida Loca",
+    "artist": "Ricky Martin",
+    "releaseYear": 1999
+  },
+  {
+    "rank": 29,
+    "title": "Ice Ice Baby",
+    "artist": "Vanilla Ice",
+    "releaseYear": 1990
+  },
+  {
+    "rank": 30,
+    "title": "Tearin' Up My Heart",
+    "artist": "*NSYNC",
+    "releaseYear": 1997
+  },
+  {
+    "rank": 31,
+    "title": "Creep",
+    "artist": "Radiohead",
+    "releaseYear": 1992
+  },
+  {
+    "rank": 32,
+    "title": "No Diggity",
+    "artist": "Blackstreet",
+    "releaseYear": 1996
+  },
+  {
+    "rank": 33,
+    "title": "Wannabe",
+    "artist": "Spice Girls",
+    "releaseYear": 1996
+  },
+  {
+    "rank": 34,
+    "title": "Semi-Charmed Life",
+    "artist": "Third Eye Blind",
+    "releaseYear": 1997
+  },
+  {
+    "rank": 35,
+    "title": "Wonderwall",
+    "artist": "Oasis",
+    "releaseYear": 1995
+  },
+  {
+    "rank": 36,
+    "title": "Gonna Make You Sweat",
+    "artist": "C + C Music Factory",
+    "releaseYear": 1990
+  },
+  {
+    "rank": 37,
+    "title": "Time of Your Life (Good Riddance)",
+    "artist": "Green Day",
+    "releaseYear": 1997
+  },
+  {
+    "rank": 38,
+    "title": "Genie in a Bottle",
+    "artist": "Christina Aguilera",
+    "releaseYear": 1999
+  },
+  {
+    "rank": 39,
+    "title": "Iris",
+    "artist": "Goo Goo Dolls",
+    "releaseYear": 1998
+  },
+  {
+    "rank": 40,
+    "title": "I Wanna Sex U Up",
+    "artist": "Color Me Badd",
+    "releaseYear": 1991
+  },
+  {
+    "rank": 41,
+    "title": "Two Princes",
+    "artist": "Spin Doctors",
+    "releaseYear": 1993
+  },
+  {
+    "rank": 42,
+    "title": "Shine",
+    "artist": "Collective Soul",
+    "releaseYear": 1994
+  },
+  {
+    "rank": 43,
+    "title": "My Lovin' (You're Never Gonna Get It)",
+    "artist": "En Vogue",
+    "releaseYear": 1992
+  },
+  {
+    "rank": 44,
+    "title": "Killing Me Softly",
+    "artist": "Fugees",
+    "releaseYear": 1996
+  },
+  {
+    "rank": 45,
+    "title": "Only Wanna Be With You",
+    "artist": "Hootie & The Blowfish",
+    "releaseYear": 1995
+  },
+  {
+    "rank": 46,
+    "title": "You're Still the One",
+    "artist": "Shania Twain",
+    "releaseYear": 1998
+  },
+  {
+    "rank": 47,
+    "title": "Good Vibrations",
+    "artist": "Marky Mark & the Funky Bunch",
+    "releaseYear": 1991
+  },
+  {
+    "rank": 48,
+    "title": "3Am",
+    "artist": "Matchbox Twenty",
+    "releaseYear": 1997
+  },
+  {
+    "rank": 49,
+    "title": "Who Will Save Your Soul",
+    "artist": "Jewel",
+    "releaseYear": 1996
+  },
+  {
+    "rank": 50,
+    "title": "Man in the Box",
+    "artist": "Alice in Chains",
+    "releaseYear": 1991
+  },
+  {
+    "rank": 51,
+    "title": "California Love",
+    "artist": "2Pac",
+    "releaseYear": 1995
+  },
+  {
+    "rank": 52,
+    "title": "Fly",
+    "artist": "Sugar Ray",
+    "releaseYear": 1997
+  },
+  {
+    "rank": 53,
+    "title": "O.P.P.",
+    "artist": "Naughty by Nature",
+    "releaseYear": 1991
+  },
+  {
+    "rank": 54,
+    "title": "One of Us",
+    "artist": "Joan Osborne",
+    "releaseYear": 1995
+  },
+  {
+    "rank": 55,
+    "title": "Criminal",
+    "artist": "Fiona Apple",
+    "releaseYear": 1997
+  },
+  {
+    "rank": 56,
+    "title": "Mama Said Knock You Out",
+    "artist": "LL Cool J",
+    "releaseYear": 1991
+  },
+  {
+    "rank": 57,
+    "title": "Can I Get a -",
+    "artist": "Jay-Z",
+    "releaseYear": 1998
+  },
+  {
+    "rank": 58,
+    "title": "Damn, I Wish I Was Your Lover",
+    "artist": "Sophie B. Hawkins",
+    "releaseYear": 1992
+  },
+  {
+    "rank": 59,
+    "title": "Buddy Holly",
+    "artist": "Weezer",
+    "releaseYear": 1994
+  },
+  {
+    "rank": 60,
+    "title": "Poison",
+    "artist": "Bell Biv Devoe",
+    "releaseYear": 1990
+  },
+  {
+    "rank": 61,
+    "title": "All I Wanna Do",
+    "artist": "Sheryl Crow",
+    "releaseYear": 1994
+  },
+  {
+    "rank": 62,
+    "title": "I Alone",
+    "artist": "Live",
+    "releaseYear": 1994
+  },
+  {
+    "rank": 63,
+    "title": "Mo Money Mo Problems",
+    "artist": "Notorious B.I.G. Featuring Puff Daddy & Mase",
+    "releaseYear": 1997
+  },
+  {
+    "rank": 64,
+    "title": "Peaches",
+    "artist": "The Presidents of the United States of America",
+    "releaseYear": 1996
+  },
+  {
+    "rank": 65,
+    "title": "The Humpty Dance",
+    "artist": "Digital Underground",
+    "releaseYear": 1990
+  },
+  {
+    "rank": 66,
+    "title": "I'll Be",
+    "artist": "Edwin McCain",
+    "releaseYear": 1998
+  },
+  {
+    "rank": 67,
+    "title": "Groove Is in the Heart",
+    "artist": "Deee-Lite",
+    "releaseYear": 1990
+  },
+  {
+    "rank": 68,
+    "title": "Gettin' Jiggy Wit It",
+    "artist": "Will Smith",
+    "releaseYear": 1998
+  },
+  {
+    "rank": 69,
+    "title": "Freak on a Leash",
+    "artist": "Korn",
+    "releaseYear": 1999
+  },
+  {
+    "rank": 70,
+    "title": "Virtual Insanity",
+    "artist": "Jamiroquai",
+    "releaseYear": 1996
+  },
+  {
+    "rank": 71,
+    "title": "Tennessee",
+    "artist": "Arrested Development",
+    "releaseYear": 1992
+  },
+  {
+    "rank": 72,
+    "title": "One Week",
+    "artist": "Barenaked Ladies",
+    "releaseYear": 1998
+  },
+  {
+    "rank": 73,
+    "title": "Sex & Candy",
+    "artist": "Marcy Playground",
+    "releaseYear": 1997
+  },
+  {
+    "rank": 74,
+    "title": "Believe [Remix]",
+    "artist": "Cher",
+    "releaseYear": 1998
+  },
+  {
+    "rank": 75,
+    "title": "Jump",
+    "artist": "Kris Kross",
+    "releaseYear": 1992
+  },
+  {
+    "rank": 76,
+    "title": "Run Around",
+    "artist": "Blues Traveler",
+    "releaseYear": 1995
+  },
+  {
+    "rank": 77,
+    "title": "It Was a Good Day",
+    "artist": "Ice Cube",
+    "releaseYear": 1993
+  },
+  {
+    "rank": 78,
+    "title": "Are You Gonna Go My Way",
+    "artist": "Lenny Kravitz",
+    "releaseYear": 1993
+  },
+  {
+    "rank": 79,
+    "title": "Bitch",
+    "artist": "Meredith Brooks",
+    "releaseYear": 1997
+  },
+  {
+    "rank": 80,
+    "title": "I'm Too Sexy",
+    "artist": "Right Said Fred",
+    "releaseYear": 1991
+  },
+  {
+    "rank": 81,
+    "title": "Don't Want to Wait",
+    "artist": "Paula Cole",
+    "releaseYear": 1997
+  },
+  {
+    "rank": 82,
+    "title": "Mind Playing Tricks on Me",
+    "artist": "Geto Boys",
+    "releaseYear": 1991
+  },
+  {
+    "rank": 83,
+    "title": "Cannonball",
+    "artist": "The Breeders",
+    "releaseYear": 1993
+  },
+  {
+    "rank": 84,
+    "title": "Informer",
+    "artist": "Snow",
+    "releaseYear": 1992
+  },
+  {
+    "rank": 85,
+    "title": "Insane in the Brain",
+    "artist": "Cypress Hill",
+    "releaseYear": 1993
+  },
+  {
+    "rank": 86,
+    "title": "Linger",
+    "artist": "The Cranberries",
+    "releaseYear": 1993
+  },
+  {
+    "rank": 87,
+    "title": "Achy Breaky Heart",
+    "artist": "Billy Ray Cyrus",
+    "releaseYear": 1992
+  },
+  {
+    "rank": 88,
+    "title": "Barely Breathing",
+    "artist": "Duncan Sheik",
+    "releaseYear": 1996
+  },
+  {
+    "rank": 89,
+    "title": "Never Said",
+    "artist": "Liz Phair",
+    "releaseYear": 1993
+  },
+  {
+    "rank": 90,
+    "title": "You Get What You Give",
+    "artist": "New Radicals",
+    "releaseYear": 1998
+  },
+  {
+    "rank": 91,
+    "title": "Building a Mystery",
+    "artist": "Sarah McLachlan",
+    "releaseYear": 1997
+  },
+  {
+    "rank": 92,
+    "title": "911 is a Joke",
+    "artist": "Public Enemy",
+    "releaseYear": 1990
+  },
+  {
+    "rank": 93,
+    "title": "Stay",
+    "artist": "Lisa Loeb & Nine Stories",
+    "releaseYear": 1994
+  },
+  {
+    "rank": 94,
+    "title": "The Way",
+    "artist": "Fastball",
+    "releaseYear": 1998
+  },
+  {
+    "rank": 95,
+    "title": "This Is How We Do It",
+    "artist": "Montell Jordan",
+    "releaseYear": 1995
+  },
+  {
+    "rank": 96,
+    "title": "(Can't Live Without Your) Love And Affection",
+    "artist": "Nelson",
+    "releaseYear": 1990
+  },
+  {
+    "rank": 97,
+    "title": "Gett Off",
+    "artist": "Prince",
+    "releaseYear": 1991
+  },
+  {
+    "rank": 98,
+    "title": "Unbelievable",
+    "artist": "EMF",
+    "releaseYear": 1990
+  },
+  {
+    "rank": 99,
+    "title": "The Rain (Supa Dupa Fly)",
+    "artist": "Missy Elliott",
+    "releaseYear": 1997
+  },
+  {
+    "rank": 100,
+    "title": "Rico Suave",
+    "artist": "Gerardo",
+    "releaseYear": 1990
+  }
+  ]
+}

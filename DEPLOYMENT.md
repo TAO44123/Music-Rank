@@ -251,6 +251,9 @@ APP_ENV=production npm run publish:ranking --workspace @music-rank/database -- <
 | `80s-chinese-top-100.json` | `80s-chinese-top-100` | 100 | 3 |
 | `90s-mainland-top-100.json` | `90s-mainland-top-100` | 100 | 4 |
 | `90s-cantonese-top-70.json` | `90s-cantonese-top-70` | 72 | 5 |
+| `80s-western-music-top-100.json` | `80s-western-music-top-100` | 100 | 6 |
+| `90s-western-music-top-100.json` | `90s-western-music-top-100` | 100 | 7 |
+| `chinese-red-songs-top-70.json` | `chinese-red-songs-top-70` | 74 | 8 |
 
 `publish:ranking` **只动两个榜单**:把目标置为已发布,把 Demo(`90s-demo-ranking`)置为未发布。其他已发布的正式榜单不受影响,所以依次发布多个是安全的,后发的不会撤下先发的。
 

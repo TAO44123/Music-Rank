@@ -1,0 +1,465 @@
+{
+  "version": 1,
+  "ranking": {
+    "title": "Chinese Red Songs Top 70",
+    "slug": "chinese-red-songs-top-70",
+    "era": "1930s-1990s",
+    "decadeStart": null,
+    "region": null,
+    "displayOrder": 8,
+    "sourceType": "COMMUNITY",
+    "sourceUrl": "https://www.bilibili.com/video/BV1MXMEzuEV2/?share_source=copy_web&vd_source=cc3e0458fa3b1a1b1649bae6e0373ca8",
+    "description": "User-provided Chinese-language red songs Top 70 with a Bilibili source link; the supplied list contains 74 ranked entries."
+  },
+  "extraction": {
+    "sourcePlatform": "Bilibili",
+    "sourceTitle": "top70华语红歌榜单",
+    "notes": "All 74 supplied ranks, titles, artists, and available release years are preserved. Unknown release years marked N/A in the user-provided JSON are represented as null; artist values marked N/A remain verbatim. The source link was recorded as provided and was not validated, per user instruction."
+  },
+  "entries": [
+  {
+    "rank": 1,
+    "title": "映山红",
+    "artist": "邓玉华",
+    "releaseYear": 1974
+  },
+  {
+    "rank": 2,
+    "title": "东方红",
+    "artist": "N/A",
+    "releaseYear": 1944
+  },
+  {
+    "rank": 3,
+    "title": "社会主义好",
+    "artist": "N/A",
+    "releaseYear": 1957
+  },
+  {
+    "rank": 4,
+    "title": "毛主席的光辉",
+    "artist": "才旦卓玛",
+    "releaseYear": 1964
+  },
+  {
+    "rank": 5,
+    "title": "红太阳照边疆",
+    "artist": "黄仁顺",
+    "releaseYear": 1968
+  },
+  {
+    "rank": 6,
+    "title": "咱们的领袖毛主席",
+    "artist": "N/A",
+    "releaseYear": null
+  },
+  {
+    "rank": 7,
+    "title": "阿佤人民唱新歌",
+    "artist": "西盟边防军老八团战士业余文艺宣传队",
+    "releaseYear": 1965
+  },
+  {
+    "rank": 8,
+    "title": "太阳最红毛主席最亲",
+    "artist": "卞小贞",
+    "releaseYear": 1976
+  },
+  {
+    "rank": 9,
+    "title": "毛主席的话儿记心上",
+    "artist": "邓玉华",
+    "releaseYear": 1965
+  },
+  {
+    "rank": 10,
+    "title": "没有共产党就没有新中国",
+    "artist": "N/A",
+    "releaseYear": 1943
+  },
+  {
+    "rank": 11,
+    "title": "绣金匾",
+    "artist": "郭兰英",
+    "releaseYear": 1944
+  },
+  {
+    "rank": 12,
+    "title": "珊瑚颂",
+    "artist": "赵云卿",
+    "releaseYear": 1961
+  },
+  {
+    "rank": 13,
+    "title": "五星红旗",
+    "artist": "刘媛媛",
+    "releaseYear": 1999
+  },
+  {
+    "rank": 14,
+    "title": "军中绿花",
+    "artist": "小曾",
+    "releaseYear": 1998
+  },
+  {
+    "rank": 15,
+    "title": "保卫黄河",
+    "artist": "N/A",
+    "releaseYear": 1939
+  },
+  {
+    "rank": 16,
+    "title": "北京的金山上",
+    "artist": "常留柱",
+    "releaseYear": 1961
+  },
+  {
+    "rank": 17,
+    "title": "读毛主席的书",
+    "artist": "贾世骏",
+    "releaseYear": 1964
+  },
+  {
+    "rank": 18,
+    "title": "唱支山歌给党听",
+    "artist": "任桂珍",
+    "releaseYear": 1963
+  },
+  {
+    "rank": 19,
+    "title": "敬祝毛主席万寿无疆",
+    "artist": "N/A",
+    "releaseYear": 1967
+  },
+  {
+    "rank": 20,
+    "title": "弹起我心爱的土琵琶",
+    "artist": "陈景熹",
+    "releaseYear": 1956
+  },
+  {
+    "rank": 21,
+    "title": "毛主席来到咱农庄",
+    "artist": "邓玉华",
+    "releaseYear": 1962
+  },
+  {
+    "rank": 22,
+    "title": "浏阳河",
+    "artist": "N/A",
+    "releaseYear": 1951
+  },
+  {
+    "rank": 23,
+    "title": "十送红军",
+    "artist": "N/A",
+    "releaseYear": 1961
+  },
+  {
+    "rank": 24,
+    "title": "天上太阳红彤彤",
+    "artist": "N/A",
+    "releaseYear": null
+  },
+  {
+    "rank": 25,
+    "title": "毛主席关怀咱山里的人",
+    "artist": "N/A",
+    "releaseYear": null
+  },
+  {
+    "rank": 26,
+    "title": "桂花开放幸福来",
+    "artist": "马玉涛",
+    "releaseYear": null
+  },
+  {
+    "rank": 27,
+    "title": "唱得幸福落满坡",
+    "artist": "刘改鱼",
+    "releaseYear": 1959
+  },
+  {
+    "rank": 28,
+    "title": "井冈山上太阳红",
+    "artist": "万秋萍",
+    "releaseYear": null
+  },
+  {
+    "rank": 29,
+    "title": "翻身农奴把歌唱",
+    "artist": "才旦卓玛",
+    "releaseYear": 1959
+  },
+  {
+    "rank": 30,
+    "title": "丰收歌",
+    "artist": "郭兰英",
+    "releaseYear": null
+  },
+  {
+    "rank": 31,
+    "title": "洗衣歌",
+    "artist": "史贤文、沈丛羔",
+    "releaseYear": 1964
+  },
+  {
+    "rank": 32,
+    "title": "幸福不会从天降",
+    "artist": "N/A",
+    "releaseYear": 1959
+  },
+  {
+    "rank": 33,
+    "title": "革命人永远是年轻",
+    "artist": "N/A",
+    "releaseYear": 1950
+  },
+  {
+    "rank": 34,
+    "title": "山丹丹开花红艳艳",
+    "artist": "杨巧",
+    "releaseYear": 1971
+  },
+  {
+    "rank": 35,
+    "title": "边疆的泉水清又纯",
+    "artist": "李谷一",
+    "releaseYear": 1978
+  },
+  {
+    "rank": 36,
+    "title": "青稞美酒献给毛主席",
+    "artist": "N/A",
+    "releaseYear": null
+  },
+  {
+    "rank": 37,
+    "title": "毛主席永远和我们在一起",
+    "artist": "N/A",
+    "releaseYear": null
+  },
+  {
+    "rank": 38,
+    "title": "南泥湾",
+    "artist": "王昆",
+    "releaseYear": 1943
+  },
+  {
+    "rank": 39,
+    "title": "热血颂",
+    "artist": "王虹",
+    "releaseYear": 1987
+  },
+  {
+    "rank": 40,
+    "title": "军港之夜",
+    "artist": "苏小明",
+    "releaseYear": 1980
+  },
+  {
+    "rank": 41,
+    "title": "军人本色",
+    "artist": "阎维文",
+    "releaseYear": 1997
+  },
+  {
+    "rank": 42,
+    "title": "英雄赞歌",
+    "artist": "张映哲",
+    "releaseYear": 1964
+  },
+  {
+    "rank": 43,
+    "title": "远飞的大雁",
+    "artist": "曲宗",
+    "releaseYear": 1964
+  },
+  {
+    "rank": 44,
+    "title": "洪湖水浪打浪",
+    "artist": "王玉珍",
+    "releaseYear": 1959
+  },
+  {
+    "rank": 45,
+    "title": "团结就是力量",
+    "artist": "N/A",
+    "releaseYear": 1943
+  },
+  {
+    "rank": 46,
+    "title": "共产党来了苦变甜",
+    "artist": "才旦卓玛",
+    "releaseYear": 1963
+  },
+  {
+    "rank": 47,
+    "title": "毛主席的战士最听党的话",
+    "artist": "李之金",
+    "releaseYear": 1962
+  },
+  {
+    "rank": 48,
+    "title": "地道战",
+    "artist": "N/A",
+    "releaseYear": 1965
+  },
+  {
+    "rank": 49,
+    "title": "真是乐死人",
+    "artist": "马国光",
+    "releaseYear": 1955
+  },
+  {
+    "rank": 50,
+    "title": "为女民兵题照",
+    "artist": "中央民族乐团女声合唱队",
+    "releaseYear": null
+  },
+  {
+    "rank": 51,
+    "title": "人民军队忠于党",
+    "artist": "中国人民解放军",
+    "releaseYear": 1960
+  },
+  {
+    "rank": 52,
+    "title": "军民团结一家亲",
+    "artist": "中国舞剧团",
+    "releaseYear": 1964
+  },
+  {
+    "rank": 53,
+    "title": "颂歌献给毛主席",
+    "artist": "贾世骏、中国人民解放军北京部队政治部宣传队",
+    "releaseYear": 1970
+  },
+  {
+    "rank": 54,
+    "title": "毛主席派人来",
+    "artist": "李淑君、谢忆生",
+    "releaseYear": 1960
+  },
+  {
+    "rank": 55,
+    "title": "满怀深情望北京",
+    "artist": "边桂荣",
+    "releaseYear": 1974
+  },
+  {
+    "rank": 56,
+    "title": "太阳就是毛主席",
+    "artist": "阿旺",
+    "releaseYear": 1966
+  },
+  {
+    "rank": 57,
+    "title": "红星歌",
+    "artist": "N/A",
+    "releaseYear": 1974
+  },
+  {
+    "rank": 58,
+    "title": "情深谊长",
+    "artist": "邓玉华",
+    "releaseYear": 1962
+  },
+  {
+    "rank": 59,
+    "title": "歌唱祖国",
+    "artist": "N/A",
+    "releaseYear": 1951
+  },
+  {
+    "rank": 60,
+    "title": "打靶归来",
+    "artist": "N/A",
+    "releaseYear": 1961
+  },
+  {
+    "rank": 61,
+    "title": "五月的鲜花",
+    "artist": "武汉拓荒剧团",
+    "releaseYear": 1936
+  },
+  {
+    "rank": 62,
+    "title": "我爱你中国",
+    "artist": "叶佩英",
+    "releaseYear": 1979
+  },
+  {
+    "rank": 63,
+    "title": "过雪山草地",
+    "artist": "刘斌、战友文工团",
+    "releaseYear": 1965
+  },
+  {
+    "rank": 64,
+    "title": "我爱祖国的蓝天",
+    "artist": "秦万坛",
+    "releaseYear": 1961
+  },
+  {
+    "rank": 65,
+    "title": "我们走在大路上",
+    "artist": "王其慧",
+    "releaseYear": 1963
+  },
+  {
+    "rank": 66,
+    "title": "绒花",
+    "artist": "李谷一",
+    "releaseYear": 1979
+  },
+  {
+    "rank": 67,
+    "title": "我是一个兵",
+    "artist": "N/A",
+    "releaseYear": 1950
+  },
+  {
+    "rank": 68,
+    "title": "大刀进行曲",
+    "artist": "N/A",
+    "releaseYear": 1937
+  },
+  {
+    "rank": 69,
+    "title": "我爱北京天安门",
+    "artist": "齐兵",
+    "releaseYear": 1970
+  },
+  {
+    "rank": 70,
+    "title": "学习雷锋好榜样",
+    "artist": "战友文工团",
+    "releaseYear": 1963
+  },
+  {
+    "rank": 71,
+    "title": "我们的田野",
+    "artist": "N/A",
+    "releaseYear": 1953
+  },
+  {
+    "rank": 72,
+    "title": "咱们工人有力量",
+    "artist": "佳木斯发电厂工人",
+    "releaseYear": 1947
+  },
+  {
+    "rank": 73,
+    "title": "毛主席是心中的太阳",
+    "artist": "N/A",
+    "releaseYear": null
+  },
+  {
+    "rank": 74,
+    "title": "万岁毛主席",
+    "artist": "N/A",
+    "releaseYear": 1966
+  }
+  ]
+}

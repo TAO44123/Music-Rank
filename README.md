@@ -2,7 +2,13 @@
 
 Music Rank is a full-stack application for browsing published song rankings, maintaining a personal Top 10 and Practice Library, and discovering members’ public lists through Default Group.
 
-The local database currently has three imported rankings: 80s Chinese Songs Top 100 (100 entries), 90s Mainland China Top 100 (100), and 90s Cantonese Songs Top 70 (72). The retained 30-entry **Demo Data** ranking is unpublished. A fresh setup seeds Demo fixtures; importing the formal rankings is a separate step in the [database guide](docs/DATABASE_MIGRATION.md).
+The local database currently has six imported and published rankings: 80s
+Chinese Songs Top 100 (100 entries), 90s Mainland China Top 100 (100), 90s
+Cantonese Songs Top 70 (72), 80s English Music Top 100 (100), 90s English Music
+Top 100 (100), and Chinese Red Songs Top 70 (74 supplied entries). The retained
+30-entry **Demo Data** ranking is unpublished. A fresh setup seeds Demo fixtures;
+importing the formal rankings is a separate step in the
+[database guide](docs/DATABASE_MIGRATION.md).
 
 ## Requirements
 
@@ -80,7 +86,7 @@ All `/api/me` requests resolve an opaque database-backed session cookie in one m
 
 - [First Local Run Guide](docs/LOCAL_FIRST_RUN_GUIDE.md): environment checks, configuration, startup, health checks, full verification, troubleshooting, and Agent handoff rules.
 - [Deployment Guide](DEPLOYMENT.md): first-time server setup, routine redeploys, per-environment builds, restarts, verification, rollback, and troubleshooting.
-- [Database Migration and Ranking Sync Guide](docs/DATABASE_MIGRATION.md): apply schema migrations, import and publish the three formal ranking manifests, verify counts, and handle controlled replacements.
+- [Database Migration and Ranking Sync Guide](docs/DATABASE_MIGRATION.md): apply schema migrations, import and publish the six formal ranking manifests, verify counts, and handle controlled replacements.
 - [Current Session Handoff](docs/SESSION_HANDOFF.md): repository state and the approved focus, open decisions, implementation sequence, and acceptance checklist for the next development session.
 - [Engineering Guide](docs/ENGINEERING_GUIDE.md): current architecture, API reference, data model, testing strategy, operational notes, and maintenance rules.
 - [Default Group Design](docs/DESIGN_007_DEFAULT_GROUP.md): approved membership, invitations, public-list discovery, and deferred group management.

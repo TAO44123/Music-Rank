@@ -8,7 +8,7 @@
 | 目标读者 | 负责开发、测试、排障和后续维护的工程师 |
 | 当前产品版本 | Version 1 + 认证扩展 + 响应式导航 + 多榜单目录 + Default Group 与邀请 + 个人歌单反应，本地多用户应用 |
 | 最后更新日期 | 2026-09-19 (America/New_York) |
-| 最后核对的代码提交 | 当前工作树 based on `3110600` on `main`; DESIGN-009 implemented and locally verified |
+| 最后核对的代码提交 | 当前榜单导入工作树 based on `0f427bc` on `main`; three additional rankings locally imported and published |
 | 事实来源 | 当前仓库代码、配置、迁移和自动化测试 |
 
 这份文档描述系统现在如何工作。首次在本机配置和运行项目时，先执行 [LOCAL_FIRST_RUN_GUIDE.md](LOCAL_FIRST_RUN_GUIDE.md)；PROJECT_SPEC_ZH.md、PROJECT_SPEC_EN.md 与 IMPLEMENTATION_HANDOFF.md 保留 Version 1 历史基线，当前已批准扩展以 [AUTHENTICATION_DESIGN.md](AUTHENTICATION_DESIGN.md)、[RANKING_CATALOG_DESIGN.md](RANKING_CATALOG_DESIGN.md)、[DESIGN-009](DESIGN_009_LIST_REACTIONS.md) 和 [SESSION_HANDOFF.md](SESSION_HANDOFF.md) 为准。若文档与代码不一致，应先核对代码和测试，再更新本文档。
@@ -58,7 +58,7 @@ Group-only visibility semantics remain deferred.
 
 ## 2. 系统概览
 
-Music Rank 是一个全栈多用户应用。公开目录按来源无关的 slug 展示三个已导入真实榜单，年代和地区为可选展示元数据；Demo 榜单保留但未发布。用户可以维护 Top 10 和带演唱状态与私密备注的 Practice Library，并通过 Default Group 发现成员的公开列表。
+Music Rank 是一个全栈多用户应用。公开目录按来源无关的 slug 展示六个已导入真实榜单，年代和地区为可选展示元数据；Demo 榜单保留但未发布。用户可以维护 Top 10 和带演唱状态与私密备注的 Practice Library，并通过 Default Group 发现成员的公开列表。
 
 应用的过渡版本支持仅 username 注册登录、PostgreSQL Session、多用户隔离，以及分别公开或隐藏 Top 10 和 Practice Library。匿名用户仍可浏览公共歌曲榜单。
 
@@ -77,7 +77,7 @@ flowchart LR
 
 当前包含：
 
-- 三个已发布的真实榜单：`80s Chinese Songs Top 100`（100 首）、`90s Mainland China Top 100`（100 首）和 `90s Cantonese Songs Top 70`（72 首）；另保留一个未发布的 `90s Demo Ranking`（30 首种子歌曲）。
+- 六个已发布的真实榜单：`80s Chinese Songs Top 100`（100 首）、`90s Mainland China Top 100`（100 首）、`90s Cantonese Songs Top 70`（72 首）、`80s English Music Top 100`（100 首）、`90s English Music Top 100`（100 首）和 `Chinese Red Songs Top 70`（74 首）；另保留一个未发布的 `90s Demo Ranking`（30 首种子歌曲）。
 - 按标题或歌手模糊搜索。
 - 歌手精确筛选和发行年份精确筛选。
 - 每页 25 首的前端分页。
@@ -446,10 +446,10 @@ DEMO_USER_ID 只控制 demo fixture，不再参与普通请求的当前用户解
 
 ### 7.13 Ranking manifest import
 
-`packages/database/manifests/80s-chinese-top-100.json`,
-`packages/database/manifests/90s-mainland-top-100.json`, and
-`packages/database/manifests/90s-cantonese-top-70.json` are version-controlled,
-user-approved Bilibili source manifests. `packages/database/src/ranking-importer.ts`
+The six JSON files in `packages/database/manifests/` are version-controlled,
+user-approved Bilibili or YouTube source manifests. They include the three
+original Chinese/Cantonese rankings plus the 80s English Music, 90s English Music, and
+Chinese Red Songs rankings. `packages/database/src/ranking-importer.ts`
 validates source metadata, one or more contiguous unique ranks beginning at 1,
 and normalized-song uniqueness before it writes anything. The importer is
 transactional and idempotent: a failed later row rolls back earlier writes, and
@@ -470,8 +470,10 @@ preserves the ranking's prior publication state, updates exact shared songs from
 the new manifest, and deletes only old songs that have no ranking, Top 10, or
 Practice Library references. The current pilot takes all 100 rank/title/artist/
 release-year values verbatim from the user-provided JSON; it has no
-canonicalization overrides. The source URL is display metadata only and was not
-visited or used to validate the replacement.
+canonicalization overrides. For `chinese-red-songs-top-70`, the supplied 74
+rows are preserved, source `N/A` release years map to `null`, and `N/A` artist
+text remains verbatim. Source URLs are display metadata only and need not be
+visited or used to validate an approved manifest.
 
 ### 7.14 Groups and memberships
 
@@ -1380,6 +1382,7 @@ E2E 不复用已有服务器；3101 被占用时应先定位占用者。
 
 | 日期 | 代码基线 | 内容 |
 | --- | --- | --- |
+| 2026-09-19 | Ranking-import delivery based on `0f427bc` | 新增并在本地 development 数据库发布 `80s-western-music-top-100`（展示标题 `80s English Music Top 100`，100 首）、`90s-western-music-top-100`（展示标题 `90s English Music Top 100`，100 首）和 `chinese-red-songs-top-70`（保留源文件全部 74 条）。两个英文歌榜保存用户提供的同一 YouTube URL；红歌榜保存用户提供的 Bilibili URL，10 个 `N/A` 年份转换为 `null`，`N/A` 歌手文本原样保留。首次 dry-run/导入分别为 100/100/74 条，红歌榜复用 1 首现有歌曲；导入后幂等 dry-run 全量复用。三个榜单先未发布核对，再逐个事务发布；Demo 保留且未发布。随后两个英文歌榜通过受控 `--replace` 更新标题和 description，分别复用全部 100 首歌曲、删除 0 首孤立歌曲并恢复发布状态；公开目录和详情 API 均显示新标题。typecheck、128 workspace tests、production build、Playwright 7/7、六榜单公开 API 与三个详情 API 验证通过。无 schema、migration、配置或依赖变更；用户已授权 commit/push 到 `origin/main`，未请求 deployment。 |
 | 2026-09-19 | DESIGN-009 UI refinement based on `3110600` | Cheer 改用本地适配的 outlined/filled party-popper SVG（`currentColor`、完整 viewBox），修正 reaction 垂直居中；Practice 行将 Cheer 放在状态左侧，移动端 Like/Cheer 与歌曲保持同一行，备注独占一行，其余管理控件按需下沉。Web typecheck、相关组件/路由测试及 320/375/414/600/900 px responsive Playwright 均通过；diff check 通过。用户随后授权 commit/push 到 `origin/main`；未请求 deployment。 |
 | 2026-09-19 | DESIGN-009 implementation based on `3110600` | 实现 DESIGN-009：新增 migration `0007` 及两张 entry-specific reaction 表；列表 Projection 返回 count/viewer state；新增四个幂等 PUT/DELETE 写端点与 Public/owner 授权；五类 profile/editing 显示面共用 Like/Cheer 图标、数量、Tooltip、Snackbar 和匿名认证继续；无 roster/notification/popularity/Group 扩展。typecheck、128 workspace tests（API 34 / Web 76 / config 8 / database 10）、production build 和 Playwright 7/7 通过；`0007` 已应用到本地 development DB，完整 8 个 migration 也在隔离空数据库通过并已清理。用户随后授权 commit/push 到 `origin/main`；未请求 deployment。 |
 | 2026-09-19 | Documentation working tree on `main` at `3110600` | 新增 DESIGN-009，记录 Top 10 Like 与 Practice Library Cheer 的目标身份、Public/Private 权限、删除/可见性生命周期、匿名认证继续、图标/数量/Tooltip/Snackbar、数据库保留反应者与时间但不提供名单，以及 Group 语义延期。仅更新设计、交接与文档索引；未授权或实施 schema、migration、API、UI、测试、配置或依赖变更。 |

@@ -1,0 +1,621 @@
+{
+  "version": 1,
+  "ranking": {
+    "title": "80s English Music Top 100",
+    "slug": "80s-western-music-top-100",
+    "era": "1980s",
+    "decadeStart": 1980,
+    "region": null,
+    "displayOrder": 6,
+    "sourceType": "COMMUNITY",
+    "sourceUrl": "https://www.youtube.com/watch?v=lDK9QqIzhwk&list=PL20C7C97230A82531",
+    "description": "User-provided 1980s English music Top 100 with a YouTube playlist source link."
+  },
+  "extraction": {
+    "sourcePlatform": "YouTube",
+    "sourceTitle": "1980年代欧美音乐排行榜TOP100",
+    "notes": "Ranks, titles, artists, and release years are taken verbatim from the user-provided JSON. The source link was recorded as provided and was not validated, per user instruction."
+  },
+  "entries": [
+  {
+    "rank": 1,
+    "title": "Livin' on a Prayer",
+    "artist": "Bon Jovi",
+    "releaseYear": 1986
+  },
+  {
+    "rank": 2,
+    "title": "Pour Some Sugar on Me",
+    "artist": "Def Leppard",
+    "releaseYear": 1988
+  },
+  {
+    "rank": 3,
+    "title": "Hungry Like the Wolf",
+    "artist": "Duran Duran",
+    "releaseYear": 1982
+  },
+  {
+    "rank": 4,
+    "title": "Billie Jean",
+    "artist": "Michael Jackson",
+    "releaseYear": 1983
+  },
+  {
+    "rank": 5,
+    "title": "When Doves Cry",
+    "artist": "Prince",
+    "releaseYear": 1984
+  },
+  {
+    "rank": 6,
+    "title": "I Can't Go for That (No Can Do)",
+    "artist": "Daryl Hall & John Oates",
+    "releaseYear": 1981
+  },
+  {
+    "rank": 7,
+    "title": "Sweet Child O' Mine",
+    "artist": "Guns N' Roses",
+    "releaseYear": 1988
+  },
+  {
+    "rank": 8,
+    "title": "Like a Virgin",
+    "artist": "Madonna",
+    "releaseYear": 1984
+  },
+  {
+    "rank": 9,
+    "title": "Walk This Way",
+    "artist": "Run-DMC",
+    "releaseYear": 1986
+  },
+  {
+    "rank": 10,
+    "title": "You Shook Me All Night Long",
+    "artist": "AC/DC",
+    "releaseYear": 1980
+  },
+  {
+    "rank": 11,
+    "title": "Don't Stop Believin'",
+    "artist": "Journey",
+    "releaseYear": 1981
+  },
+  {
+    "rank": 12,
+    "title": "How Will I Know",
+    "artist": "Whitney Houston",
+    "releaseYear": 1985
+  },
+  {
+    "rank": 13,
+    "title": "With or Without You",
+    "artist": "U2",
+    "releaseYear": 1987
+  },
+  {
+    "rank": 14,
+    "title": "Walk Like an Egyptian",
+    "artist": "Bangles",
+    "releaseYear": 1986
+  },
+  {
+    "rank": 15,
+    "title": "Jump",
+    "artist": "Van Halen",
+    "releaseYear": 1983
+  },
+  {
+    "rank": 16,
+    "title": "Need You Tonight",
+    "artist": "INXS",
+    "releaseYear": 1987
+  },
+  {
+    "rank": 17,
+    "title": "Here I Go Again",
+    "artist": "Whitesnake",
+    "releaseYear": 1987
+  },
+  {
+    "rank": 18,
+    "title": "Come on Eileen",
+    "artist": "Dexy's Midnight Runners",
+    "releaseYear": 1982
+  },
+  {
+    "rank": 19,
+    "title": "Time After Time",
+    "artist": "Cyndi Lauper",
+    "releaseYear": 1984
+  },
+  {
+    "rank": 20,
+    "title": "Jessie's Girl",
+    "artist": "Rick Springfield",
+    "releaseYear": 1981
+  },
+  {
+    "rank": 21,
+    "title": "Beat It",
+    "artist": "Michael Jackson",
+    "releaseYear": 1983
+  },
+  {
+    "rank": 22,
+    "title": "Just Like Heaven",
+    "artist": "The Cure",
+    "releaseYear": 1987
+  },
+  {
+    "rank": 23,
+    "title": "Girls Just Want to Have Fun",
+    "artist": "Cyndi Lauper",
+    "releaseYear": 1983
+  },
+  {
+    "rank": 24,
+    "title": "Take on Me",
+    "artist": "a-ha",
+    "releaseYear": 1985
+  },
+  {
+    "rank": 25,
+    "title": "Our Lips Are Sealed",
+    "artist": "Go-Go's",
+    "releaseYear": 1981
+  },
+  {
+    "rank": 26,
+    "title": "Welcome to the Jungle",
+    "artist": "Guns N' Roses",
+    "releaseYear": 1987
+  },
+  {
+    "rank": 27,
+    "title": "Too Shy",
+    "artist": "Kajagoogoo",
+    "releaseYear": 1983
+  },
+  {
+    "rank": 28,
+    "title": "Wake Me Up Before You Go-Go",
+    "artist": "Wham!",
+    "releaseYear": 1984
+  },
+  {
+    "rank": 29,
+    "title": "Burning Down the House",
+    "artist": "Talking Heads",
+    "releaseYear": 1983
+  },
+  {
+    "rank": 30,
+    "title": "Love Is a Battlefield",
+    "artist": "Pat Benatar",
+    "releaseYear": 1983
+  },
+  {
+    "rank": 31,
+    "title": "Under Pressure",
+    "artist": "Queen & David Bowie",
+    "releaseYear": 1981
+  },
+  {
+    "rank": 32,
+    "title": "Sister Christian",
+    "artist": "Night Ranger",
+    "releaseYear": 1984
+  },
+  {
+    "rank": 33,
+    "title": "Tainted Love",
+    "artist": "Soft Cell",
+    "releaseYear": 1981
+  },
+  {
+    "rank": 34,
+    "title": "Every Rose Has It's Thorn",
+    "artist": "Poison",
+    "releaseYear": 1988
+  },
+  {
+    "rank": 35,
+    "title": "In the Air Tonight",
+    "artist": "Phil Collins",
+    "releaseYear": 1981
+  },
+  {
+    "rank": 36,
+    "title": "867-5309 - Jenny",
+    "artist": "Tommy Tutone",
+    "releaseYear": 1981
+  },
+  {
+    "rank": 37,
+    "title": "Janie's Got a Gun",
+    "artist": "Aerosmith",
+    "releaseYear": 1989
+  },
+  {
+    "rank": 38,
+    "title": "Pride (In the Name of Love)",
+    "artist": "U2",
+    "releaseYear": 1984
+  },
+  {
+    "rank": 39,
+    "title": "I Melt With You",
+    "artist": "Modern English",
+    "releaseYear": 1982
+  },
+  {
+    "rank": 40,
+    "title": "Love Shack",
+    "artist": "The B-52's",
+    "releaseYear": 1989
+  },
+  {
+    "rank": 41,
+    "title": "Dr. Feelgood",
+    "artist": "Motley Crue",
+    "releaseYear": 1989
+  },
+  {
+    "rank": 42,
+    "title": "London Calling",
+    "artist": "The Clash",
+    "releaseYear": 1979
+  },
+  {
+    "rank": 43,
+    "title": "The Look of Love",
+    "artist": "ABC",
+    "releaseYear": 1982
+  },
+  {
+    "rank": 44,
+    "title": "Cruel Summer",
+    "artist": "Bananarama",
+    "releaseYear": 1983
+  },
+  {
+    "rank": 45,
+    "title": "Nasty",
+    "artist": "Janet Jackson",
+    "releaseYear": 1986
+  },
+  {
+    "rank": 46,
+    "title": "Every Breath You Take",
+    "artist": "The Police",
+    "releaseYear": 1983
+  },
+  {
+    "rank": 47,
+    "title": "We're Not Gonna Take It",
+    "artist": "Twisted Sister",
+    "releaseYear": 1984
+  },
+  {
+    "rank": 48,
+    "title": "Born in the U.S.A.",
+    "artist": "Bruce Springsteen",
+    "releaseYear": 1984
+  },
+  {
+    "rank": 49,
+    "title": "Fight for Your Right",
+    "artist": "Beastie Boys",
+    "releaseYear": 1986
+  },
+  {
+    "rank": 50,
+    "title": "Sweet Dreams (Are Made of This)",
+    "artist": "Eurythmics",
+    "releaseYear": 1983
+  },
+  {
+    "rank": 51,
+    "title": "Round And Round",
+    "artist": "Ratt",
+    "releaseYear": 1984
+  },
+  {
+    "rank": 52,
+    "title": "You Spin Me 'Round [Extended Version]",
+    "artist": "Dead or Alive",
+    "releaseYear": 1984
+  },
+  {
+    "rank": 53,
+    "title": "White Wedding",
+    "artist": "Billy Idol",
+    "releaseYear": 1982
+  },
+  {
+    "rank": 54,
+    "title": "Push It",
+    "artist": "Salt 'N' Pepa",
+    "releaseYear": 1987
+  },
+  {
+    "rank": 55,
+    "title": "I Ran",
+    "artist": "A Flock of Seagulls",
+    "releaseYear": 1982
+  },
+  {
+    "rank": 56,
+    "title": "Total Eclipse of the Heart",
+    "artist": "Bonnie Tyler",
+    "releaseYear": 1983
+  },
+  {
+    "rank": 57,
+    "title": "Mickey",
+    "artist": "Toni Basil",
+    "releaseYear": 1982
+  },
+  {
+    "rank": 58,
+    "title": "Do You Really Want to Hurt Me?",
+    "artist": "Culture Club",
+    "releaseYear": 1982
+  },
+  {
+    "rank": 59,
+    "title": "Jack And Diane",
+    "artist": "John Mellencamp",
+    "releaseYear": 1982
+  },
+  {
+    "rank": 60,
+    "title": "Bust a Move",
+    "artist": "Young MC",
+    "releaseYear": 1989
+  },
+  {
+    "rank": 61,
+    "title": "Mr. Roboto",
+    "artist": "Styx",
+    "releaseYear": 1983
+  },
+  {
+    "rank": 62,
+    "title": "Take My Breath Away",
+    "artist": "Berlin",
+    "releaseYear": 1986
+  },
+  {
+    "rank": 63,
+    "title": "Whip It",
+    "artist": "Devo",
+    "releaseYear": 1980
+  },
+  {
+    "rank": 64,
+    "title": "Straight Up",
+    "artist": "Paula Abdul",
+    "releaseYear": 1988
+  },
+  {
+    "rank": 65,
+    "title": "I Want to Know What Love Is",
+    "artist": "Foreigner",
+    "releaseYear": 1984
+  },
+  {
+    "rank": 66,
+    "title": "Just Can't Get Enough",
+    "artist": "Depeche Mode",
+    "releaseYear": 1981
+  },
+  {
+    "rank": 67,
+    "title": "Keep on Loving You",
+    "artist": "REO Speedwagon",
+    "releaseYear": 1980
+  },
+  {
+    "rank": 68,
+    "title": "Fight the Power",
+    "artist": "Public Enemy",
+    "releaseYear": 1989
+  },
+  {
+    "rank": 69,
+    "title": "It's the End of the World as We Know It (And I Feel Fine)",
+    "artist": "R.E.M.",
+    "releaseYear": 1987
+  },
+  {
+    "rank": 70,
+    "title": "I Love Rock 'N Roll",
+    "artist": "Joan Jett & The Blackhearts",
+    "releaseYear": 1982
+  },
+  {
+    "rank": 71,
+    "title": "Super Freak",
+    "artist": "Rick James",
+    "releaseYear": 1981
+  },
+  {
+    "rank": 72,
+    "title": "One Thing Leads to Another",
+    "artist": "The Fixx",
+    "releaseYear": 1983
+  },
+  {
+    "rank": 73,
+    "title": "99 Luftballoons",
+    "artist": "Nena",
+    "releaseYear": 1983
+  },
+  {
+    "rank": 74,
+    "title": "Faith",
+    "artist": "George Michael",
+    "releaseYear": 1987
+  },
+  {
+    "rank": 75,
+    "title": "Little Red Corvette",
+    "artist": "Prince",
+    "releaseYear": 1983
+  },
+  {
+    "rank": 76,
+    "title": "She Blinded Me With Science",
+    "artist": "Thomas Dolby",
+    "releaseYear": 1982
+  },
+  {
+    "rank": 77,
+    "title": "Candy Girl",
+    "artist": "New Edition",
+    "releaseYear": 1983
+  },
+  {
+    "rank": 78,
+    "title": "Call Me",
+    "artist": "Blondie",
+    "releaseYear": 1980
+  },
+  {
+    "rank": 79,
+    "title": "Don't You Want Me?",
+    "artist": "The Human League",
+    "releaseYear": 1981
+  },
+  {
+    "rank": 80,
+    "title": "It Takes Two",
+    "artist": "Rob Base & DJ E-Z Rock",
+    "releaseYear": 1988
+  },
+  {
+    "rank": 81,
+    "title": "Word Up",
+    "artist": "Cameo",
+    "releaseYear": 1986
+  },
+  {
+    "rank": 82,
+    "title": "Tempted",
+    "artist": "Squeeze",
+    "releaseYear": 1981
+  },
+  {
+    "rank": 83,
+    "title": "Kiss",
+    "artist": "Prince",
+    "releaseYear": 1986
+  },
+  {
+    "rank": 84,
+    "title": "All Night Long (All Night)",
+    "artist": "Lionel Richie",
+    "releaseYear": 1983
+  },
+  {
+    "rank": 85,
+    "title": "Addicted to Love",
+    "artist": "Robert Palmer",
+    "releaseYear": 1986
+  },
+  {
+    "rank": 86,
+    "title": "I Want Candy",
+    "artist": "Bow Wow Wow",
+    "releaseYear": 1982
+  },
+  {
+    "rank": 87,
+    "title": "Rock Me Amedeus",
+    "artist": "Falco",
+    "releaseYear": 1985
+  },
+  {
+    "rank": 88,
+    "title": "Ain't Nobody",
+    "artist": "Faith Evans",
+    "releaseYear": 1995
+  },
+  {
+    "rank": 89,
+    "title": "Brass in Pocket",
+    "artist": "The Pretenders",
+    "releaseYear": 1979
+  },
+  {
+    "rank": 90,
+    "title": "Wild Thing",
+    "artist": "Tone Loc",
+    "releaseYear": 1988
+  },
+  {
+    "rank": 91,
+    "title": "Walking on Sunshine",
+    "artist": "Katrina and the Waves",
+    "releaseYear": 1985
+  },
+  {
+    "rank": 92,
+    "title": "You Got It (The Right Stuff)",
+    "artist": "New Kids on the Block",
+    "releaseYear": 1988
+  },
+  {
+    "rank": 93,
+    "title": "Cars",
+    "artist": "Gary Numan",
+    "releaseYear": 1979
+  },
+  {
+    "rank": 94,
+    "title": "Start Me Up",
+    "artist": "The Rolling Stones",
+    "releaseYear": 1981
+  },
+  {
+    "rank": 95,
+    "title": "Only in My Dreams",
+    "artist": "Debbie Gibson",
+    "releaseYear": 1986
+  },
+  {
+    "rank": 96,
+    "title": "Down Under",
+    "artist": "Men at Work",
+    "releaseYear": 1981
+  },
+  {
+    "rank": 97,
+    "title": "What I Like About You",
+    "artist": "The Romantics",
+    "releaseYear": 1979
+  },
+  {
+    "rank": 98,
+    "title": "My Perrogative",
+    "artist": "Bobby Brown",
+    "releaseYear": 1988
+  },
+  {
+    "rank": 99,
+    "title": "Everybody Have Fun Tonight",
+    "artist": "Wang Chung",
+    "releaseYear": 1986
+  },
+  {
+    "rank": 100,
+    "title": "Working for the Weekend",
+    "artist": "Loverboy",
+    "releaseYear": 1981
+  }
+  ]
+}

@@ -2,11 +2,11 @@
 
 > Last updated: 2026-09-19 (America/New_York)
 >
-> Active delivered feature: `docs/DESIGN_009_LIST_REACTIONS.md`
-> (implemented and locally verified; GitHub delivery authorized)
+> Active ranking-data delivery: three additional manifests, locally imported
+> and published from `main` at `0f427bc`; GitHub delivery authorized
 >
-> Previous delivered feature: `docs/DESIGN_008_USERNAME_ONLY_TRANSITION.md`
-> (`main` and cached `origin/main` at `3110600` before DESIGN-009 documentation)
+> Latest delivered feature: `docs/DESIGN_009_LIST_REACTIONS.md`
+> (`0f427bc` on `main` and `origin/main`)
 >
 > Delivered group/profile authority: `docs/DESIGN_007_DEFAULT_GROUP.md` and
 > `docs/PLAN_007_DEFAULT_GROUP.md`
@@ -16,6 +16,45 @@
 > Task 1 design: `docs/RANKING_CATALOG_DESIGN.md`
 
 ## 1. Current Status
+
+### Three additional rankings — locally imported and published
+
+On 2026-09-19 the user supplied three JSON arrays and approved publishing them
+through the existing manifest workflow. They are now the version-controlled
+manifests `80s-western-music-top-100.json` (100 entries, display order 6),
+`90s-western-music-top-100.json` (100, display order 7), and
+`chinese-red-songs-top-70.json` (74 supplied entries, display order 8).
+The first two display as `80s English Music Top 100` and
+`90s English Music Top 100`; their stable slugs retain `western-music` so
+existing published URLs do not change.
+
+The exact user-provided URLs are stored as display metadata and were not
+validated, per explicit instruction. Both English Music manifests intentionally keep
+the same supplied YouTube URL. The red-songs source file is named Top 70 but
+contains continuous ranks 1–74; the existing Cantonese precedent was followed,
+so all 74 supplied rows were preserved. Its 10 `N/A` release years became
+`null`; `N/A` artist strings remain verbatim.
+
+All three initial dry runs passed. The two English Music imports each created 100
+songs and 100 entries. The red-songs import created 73 songs, reused one exact
+existing song, and created 74 entries. Each import first remained unpublished;
+database checks confirmed exact source URLs, counts, continuous ranks, unique
+songs, and unpublished state. Post-import dry runs reused all songs and entries.
+The three rankings were then published one at a time; the original three formal
+rankings remain published and the 30-entry Demo remains stored and unpublished.
+Final verification passed: typecheck, all 128 workspace tests, the production
+build, Playwright 7/7, and real HTTP reads of the six-item public catalog plus
+all three new detail endpoints. The API returned counts 100/100/74, exact source
+URLs, and no Demo entry. No schema, migration, application code, configuration,
+or dependency changed. The user subsequently authorized committing the complete
+ranking-data/documentation change and pushing it to `origin/main`; deployment
+was not requested.
+
+After publication, the user changed both displayed titles to English Music.
+Controlled `--replace` operations reused all 100 songs in each
+ranking, deleted no orphaned songs, and restored both publication states. The
+post-replacement dry runs reused all songs and entries; public catalog and detail
+API reads returned the new titles and unchanged 100-song counts.
 
 ### Personal-list reactions — implemented and locally verified
 
@@ -263,12 +302,14 @@ were not rerun because no application, configuration, or database code changed.
 
 ## 2. Repository State
 
-- DESIGN-009 implementation is in the current working tree on clean baseline
-  `main` at `3110600`, which matched cached `origin/main` before work began. It
-  includes code, migration, tests, E2E, design/engineering/migration docs, and
-  this handoff. The user authorized commit and push to `origin/main`; no
-  deployment was requested. Inspect live status/log/remote refs for the final
-  delivery commit.
+- The three new manifest files and synchronized documentation are based on clean
+  `main`/`origin/main` at `0f427bc`. Their data is already imported and published
+  in the normal local development database. The user authorized commit and push
+  to `origin/main`; no deployment was requested. Inspect live status/log/remote
+  refs for the final delivery commit.
+- DESIGN-009 is delivered in `0f427bc` on `main` and `origin/main`, including
+  implementation, migration, tests, E2E, and documentation. No deployment was
+  requested.
 - DESIGN-008 is delivered in `3110600` on `main` and `origin/main`, including
   implementation, tests, and documentation. No deployment was requested.
 - Historical owner-profile delivery target: `main`; parent baseline `a871406`. `git fetch origin`
@@ -494,8 +535,9 @@ jsdom's unimplemented `window.scrollTo()` notices during Web tests.
   repeated. Earlier `83ab826` verification had 107 workspace tests.
 - TTT/AAA are reserved for user acceptance. Automated tests use owned fixtures;
   do not reinitialize or reset the live acceptance accounts.
-- Preserve published rankings with 100/100/72 entries and the unpublished
-  30-entry Demo; no further imports or publication changes are authorized.
+- Preserve the six published rankings with 100/100/72/100/100/74 entries and
+  the unpublished 30-entry Demo. No additional import or publication change is
+  authorized beyond these manifests.
 - Group creation, exit/removal/dissolution, roles, multiple groups, group-only
   visibility, and user-created lists remain outside the delivered scope.
 
@@ -596,9 +638,11 @@ outside this feature scope.
    plan remains the authority for preserving delivered ranking behavior.
 2. Inspect `git status --short --branch`, recent commits, staged changes, and the
    full working-tree diff before editing.
-3. Preserve all three imported rankings and their current publication state;
-   verify that `80s-chinese-top-100`, `90s-mainland-top-100`, and
-   `90s-cantonese-top-70` are published and `90s-demo-ranking` is not.
+3. Preserve all six imported rankings and their current publication state;
+   verify that `80s-chinese-top-100`, `90s-mainland-top-100`,
+   `90s-cantonese-top-70`, `80s-western-music-top-100`,
+   `90s-western-music-top-100`, and `chinese-red-songs-top-70` are published and
+   `90s-demo-ranking` is not.
 4. Do not repeat completed desktop/mobile acceptance unless later UI changes
    require it; rerun the final diff check after edits.
 5. Do not start further Task 3 imports, Admin work, fuzzy matching, or
@@ -644,8 +688,23 @@ clean temporary database. Record exact test counts and any skipped check.
 ## 10. Copy-Paste Prompt for the Next Follow-up
 
 ```text
-Current feature: DESIGN_009_LIST_REACTIONS.md is implemented and locally
-verified in the working tree based on main at 3110600. Migration 0007 adds
+Current working-tree task: three additional ranking manifests were added from
+user-provided JSON and published in the normal local development database.
+80s-western-music-top-100 and 90s-western-music-top-100 each contain 100
+entries and display as 80s/90s English Music Top 100;
+chinese-red-songs-top-70 preserves all 74 supplied entries. The exact
+user-provided URLs are stored without validation; both English Music manifests use
+the same supplied YouTube URL. Ten N/A red-song years map to null, while N/A
+artist strings remain verbatim. Initial dry runs, transactional unpublished
+imports, read-only database checks, idempotent post-import dry runs, and all
+three publication operations passed. Six formal rankings are now published;
+the 30-entry Demo remains unpublished. Typecheck, 128 workspace tests,
+production build, Playwright 7/7, and real catalog/detail API reads passed. No
+schema/migration/code/config/dependency changed. The user authorized commit and
+push to origin/main; no deployment was requested.
+
+Latest delivered feature: DESIGN_009_LIST_REACTIONS.md is implemented at
+0f427bc on main and origin/main. Migration 0007 adds
 entry-specific Top 10 Like and Practice Library Cheer tables. Reads expose
 aggregate count/current-viewer state; four authenticated idempotent write
 endpoints enforce Public/owner permissions. All supported editing/profile
@@ -659,10 +718,10 @@ use a separate row. Typecheck, 128 workspace tests, production build, and
 Playwright 7/7 passed for the implementation; after the UI refinement, Web
 typecheck, related tests, and the responsive scenario at 320/375/414/600/900 px
 also passed. The migration was applied to the normal local DB; all 8 migrations
-also passed in a clean temporary DB, which was removed. The user authorized
-commit and push to origin/main; no deployment was requested.
+also passed in a clean temporary DB, which was removed. No deployment was
+requested.
 
-Latest delivered feature: DESIGN_008_USERNAME_ONLY_TRANSITION.md is implemented;
+Previous delivered feature: DESIGN_008_USERNAME_ONLY_TRANSITION.md is implemented;
 read its final validation record before continuing. The user
 confirmed username-only login for existing accounts, registration prompts for
 unknown usernames, and separate explicit username-only registration. Password

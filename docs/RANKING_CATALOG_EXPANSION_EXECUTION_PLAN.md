@@ -1,6 +1,6 @@
 # Ranking Catalog Expansion — Cross-Session Execution Plan
 
-> Status: Task 1, Task 2, and all three approved ranking imports are verified and merged into `main`; the 80s Chinese Top 100 was directly merged at `81a3e33` after explicit authorization
+> Status: Task 1, Task 2, and the original three approved ranking imports are verified and merged into `main`; three additional user-supplied rankings were imported and published locally on 2026-09-19 from a working tree based on `0f427bc`
 >
 > Last updated: 2026-09-17 (America/New_York)
 >
@@ -1087,3 +1087,36 @@ Before ending a session:
   `feature/80s-ranking-import`, then separately authorized a direct merge into
   `main` on 2026-09-17. Feature commit `b5507cc` was merged at `81a3e33`; both
   branches were pushed to `origin`. No PR was created.
+
+### 2026-09-19 — Three additional ranking imports
+
+- Moved the three user-provided JSON arrays into version-controlled manifests:
+  `80s-western-music-top-100.json`, `90s-western-music-top-100.json`, and
+  `chinese-red-songs-top-70.json`, with display orders 6, 7, and 8.
+- Recorded the two user-provided YouTube URLs and the Bilibili URL exactly as
+  supplied. Per explicit user instruction, the links were not validated; both
+  English Music manifests intentionally retain the same supplied URL.
+- Both English Music files contain 100 continuous unique ranks. The file named Top 70
+  contains 74 continuous unique ranks; following the existing Cantonese Top 70
+  precedent, all supplied rows were preserved rather than truncated. Its 10
+  `N/A` release-year values map to `null`, while `N/A` artist text remains
+  verbatim.
+- Initial dry runs reported 100 new songs/100 entries for each English Music ranking
+  and 73 new songs/1 reused song/74 entries for the red-songs ranking. All three
+  transactional imports succeeded unpublished. Post-import dry runs reused all
+  songs and entries.
+- Read-only database checks confirmed the exact source URLs, unpublished state,
+  continuous ranks, expected entry counts, and one unique song per entry. Each
+  ranking was then published transactionally; the retained 30-entry Demo stayed
+  unpublished and the original three formal rankings stayed published.
+- No schema, migration, application code, configuration, or dependency changed.
+  Final verification passed: typecheck, 128 workspace tests, production build,
+  Playwright 7/7, the six-item public catalog, and all three new detail APIs with
+  counts 100/100/74 and exact source URLs. The user subsequently authorized
+  commit and push to `origin/main`; deployment was not requested.
+- The user then renamed the displayed titles to `80s English Music Top 100` and
+  `90s English Music Top 100`. Stable slugs and manifest filenames were retained
+  to avoid breaking published URLs. Two controlled `--replace` transactions
+  reused all 100 songs per ranking, removed no orphaned songs, restored both
+  published states, and passed idempotent dry-run plus public catalog/detail API
+  verification.
